@@ -1,0 +1,477 @@
+var __assign = (this && this.__assign) || Object.assign || function(t) {
+    for (var s, i = 1, n = arguments.length; i < n; i++) {
+        s = arguments[i];
+        for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+            t[p] = s[p];
+    }
+    return t;
+};
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+define(["require", "exports", "dojo/cookie", "dojo/_base/kernel", "esri/config", "esri/core/promiseUtils", "esri/identity/IdentityManager", "esri/identity/OAuthInfo", "esri/portal/Portal", "esri/portal/PortalItem", "./declareDecorator"], function (require, exports, cookie, kernel, esriConfig, promiseUtils, IdentityManager, OAuthInfo, Portal, PortalItem, declareDecorator_1) {
+    Object.defineProperty(exports, "__esModule", { value: true });
+    var defaultConfig = {
+        bgColor: "#ffffff",
+        cardColor: "#ffffff",
+        appCaptionColor: "#292b2c",
+        mapCaptionColor: "#0275d8",
+        sceneCaptionColor: "#5cb85c",
+        fileCaptionColor: "#d9534f",
+        captionTextColor: "#ffffff",
+        fontColor: "#000000",
+        headColor: "#ffffff",
+        linkColor: "#0079c1",
+        buttonBgColor: "#0079c1",
+        buttonTextColor: "#ffffff",
+        cardButtonColor: "#0079c1",
+        headerTextColor: "#000000",
+        portalUrl: "https://www.arcgis.com",
+        helperServices: {
+            geometry: {},
+            printTask: {},
+            elevationSync: {},
+            geocode: []
+        }
+    };
+    var defaultSettings = {
+        environment: {},
+        portal: {},
+        rightToLeftLocales: ["ar", "he"],
+        urlParams: [],
+        telemetry: Telemetry
+    };
+    var ApplicationBase = /** @class */ (function () {
+        //--------------------------------------------------------------------------
+        //
+        //  Lifecycle
+        //
+        //--------------------------------------------------------------------------
+        function ApplicationBase(options) {
+            //--------------------------------------------------------------------------
+            //
+            //  Properties
+            //
+            //--------------------------------------------------------------------------
+            //----------------------------------
+            //  settings
+            //----------------------------------
+            this.settings = defaultSettings;
+            //----------------------------------
+            //  config
+            //----------------------------------
+            this.config = defaultConfig;
+            //----------------------------------
+            //  results
+            //----------------------------------
+            this.results = {};
+            //----------------------------------
+            //  portal
+            //----------------------------------
+            this.portal = null;
+            //----------------------------------
+            //  direction
+            //----------------------------------
+            this.direction = null;
+            //----------------------------------
+            //  locale
+            //----------------------------------
+            this.locale = kernel.locale;
+            //----------------------------------
+            //  units
+            //----------------------------------
+            this.units = null;
+            var config = options.config, settings = options.settings;
+            var applicationConfig = typeof config === "string"
+                ? JSON.parse(config)
+                : config;
+            var applicationBaseSettings = typeof settings === "string"
+                ? JSON.parse(settings)
+                : settings;
+            var configMixin = __assign({}, defaultConfig, applicationConfig);
+            var settingsMixin = __assign({}, defaultSettings, applicationBaseSettings);
+            this._mixinSettingsDefaults(settingsMixin);
+            this.config = configMixin;
+            this.settings = settingsMixin;
+        }
+        //--------------------------------------------------------------------------
+        //
+        //  Public Methods
+        //
+        //--------------------------------------------------------------------------
+        ApplicationBase.prototype.authenticateUser = function (portal) {
+            if (portal && portal.user && portal.user.username) {
+                IdentityManager.destroyCredentials();
+                if (this.config.token) {
+                    this.config.token = null;
+                }
+                // delete the cookie
+                cookie("esri_auth", null, {
+                    path: "/",
+                    domain: ".arcgis.com",
+                    expires: -1
+                });
+                cookie("esri_auth", null, {
+                    path: "/",
+                    domain: "." + document.domain,
+                    expires: -1
+                });
+                this.portal = null;
+                return this.load();
+            }
+            else {
+                // this will reload the app once user signs-in
+                if (portal && portal.url) {
+                    IdentityManager.getCredential(portal.url + "/sharing");
+                }
+                return promiseUtils.resolve();
+            }
+        };
+        ApplicationBase.prototype.loadItem = function (id) {
+            var item = new PortalItem({
+                id: id
+            });
+            return item.load();
+        };
+        ApplicationBase.prototype.load = function () {
+            var _this = this;
+            var settings = this.settings;
+            var environmentSettings = settings.environment, portalSettings = settings.portal, groupSettings = settings.group, urlParamsSettings = settings.urlParams;
+            var isEsri = environmentSettings.isEsri, webTierSecurity = environmentSettings.webTierSecurity;
+            var urlParams = this._getUrlParamValues(urlParamsSettings);
+            this.results.urlParams = urlParams;
+            this.config = this._mixinAllConfigs({
+                config: this.config,
+                url: urlParams
+            });
+            if (isEsri) {
+                var esriPortalUrl = this._getEsriEnvironmentPortalUrl();
+                this.config.portalUrl = esriPortalUrl;
+                this.config.proxyUrl = this._getEsriEnvironmentProxyUrl(esriPortalUrl);
+            }
+            var _a = this.config, portalUrl = _a.portalUrl, proxyUrl = _a.proxyUrl, oauthappid = _a.oauthappid, appAccessId = _a.appAccessId;
+            this._setPortalUrl(portalUrl);
+            // When cookie is false that means we disable redirecting to mobile site
+            // and direct to desktop site.
+            var mobileCookie = cookie("mobile_redirect");
+            var redirect = mobileCookie == "false" ? false : true;
+            if (redirect === false) {
+                document.location.href = portalUrl;
+            }
+            this._setProxyUrl(proxyUrl);
+            // check for auth cookie
+            this._copyCookie();
+            var rtlLocales = this.settings.rightToLeftLocales;
+            this.direction = this._getLanguageDirection(rtlLocales);
+            if (this.direction === "rtl") {
+                document.dir = "rtl";
+                document.documentElement.classList.add("rtl");
+            }
+            this._registerOauthInfos(oauthappid, portalUrl);
+            // When useSignInPage is false IM doesn't check
+            // for cookie. So set it to true, check status
+            // then reset to false so we aren't redirected
+            // to desktop sign-in page.
+            IdentityManager.useSignInPage = true;
+            // Check to see if we have the proper portal url here
+            var checkSignIn = IdentityManager.checkAppAccess(portalUrl + "/sharing", appAccessId);
+            IdentityManager.setOAuthRedirectionHandler(function (info) {
+                var signInOption = "showSignupOption=true";
+                var queryString = Object.keys(info.authorizeParams).map(function (key) { return key + '=' + info.authorizeParams[key]; }).join('&');
+                window.location.href = info.authorizeUrl + "?" + queryString + "&" + signInOption;
+            });
+            IdentityManager.useSignInPage = false;
+            return checkSignIn.always(function (response) {
+                _this.config.appSignInResponse = response;
+                var portalUrl = response && response.server ? response.server : null;
+                var portal = portalUrl ? new Portal(portalUrl) : new Portal();
+                if (response.hasOwnProperty("userId")) {
+                    portal.authMode = "immediate";
+                }
+                return promiseUtils
+                    .eachAlways([portal.load()])
+                    .always(function (applicationArgs) {
+                    _this.portal = portal;
+                    _this._updatePortalUrl(isEsri, portal);
+                    // Setup Telemetry
+                    _this._setupTelemetry(portal);
+                    if (portal.portalProperties && portal.portalProperties.sharedTheme) {
+                        // Overwrite default values with shared theme info
+                        var themes = portal.portalProperties.sharedTheme;
+                        _this.config.headerTextColor =
+                            themes.header.text || _this.config.headerTextColor;
+                        _this.config.headColor =
+                            themes.header.background || _this.config.headColor;
+                        _this.config.fontColor = themes.body.text || _this.config.fontColor;
+                        _this.config.bgColor = themes.body.background || _this.config.bgColor;
+                        _this.config.buttonBgColor =
+                            themes.button.background || _this.config.buttonBgColor;
+                        _this.config.buttonTextColor =
+                            themes.button.text || _this.config.buttonTextColor;
+                        _this.config.linkColor = themes.body.link || _this.config.linkColor;
+                        // Add custom styles for shared theming to item browser
+                        var sharedStyleCSS = ".ib__container a{ color:" + _this.config.linkColor + ";} .ib__container\n          .card-mcr__action-container{color:" + _this.config.buttonBgColor + ";}\n          .ib__container .ib-item-pane__btn:hover{background:" + _this.config.buttonTextColor + "; border:" + _this.config.buttonBgColor + "; color:" + _this.config.buttonBgColor + ";}\n          .ib__container .ib-item-pane__btn{ background:" + _this.config.buttonBgColor + "; color:" + _this.config.buttonTextColor + "; border-color:" + _this.config.buttonBgColor + ";}\n          ";
+                        var style = document.createElement("style");
+                        style.id = "customcss";
+                        style.appendChild(document.createTextNode(sharedStyleCSS));
+                        document.head.appendChild(style);
+                    }
+                    else {
+                        // remove shared styles if they exist
+                        var ss = document.getElementById("customcss");
+                        if (ss) {
+                            document.head.removeChild(ss);
+                        }
+                        // Reset shared values when user logs-out of org
+                        _this.config.headerTextColor = defaultConfig.headerTextColor;
+                        _this.config.headColor = defaultConfig.headColor;
+                        _this.config.fontColor = defaultConfig.fontColor;
+                        _this.config.bgColor = defaultConfig.bgColor;
+                        _this.config.buttonBgColor = defaultConfig.buttonBgColor;
+                        _this.config.buttonTextColor = defaultConfig.buttonTextColor;
+                        _this.config.linkColor = defaultConfig.linkColor;
+                    }
+                    _this.units = _this._getUnits(portal);
+                    esriConfig.fontsUrl = _this._getFontsUrl(portal);
+                    _this.config = _this._mixinAllConfigs({
+                        config: _this.config,
+                        url: urlParams
+                    });
+                    _this._setGeometryService(_this.config, portal);
+                    return _this;
+                });
+            });
+        };
+        //--------------------------------------------------------------------------
+        //
+        //  Private Methods
+        //
+        //--------------------------------------------------------------------------
+        ApplicationBase.prototype._getFontsUrl = function (portal) {
+            // could check portal.isPortal for on premise? But
+            // can we just use portal.staticImagesUrl
+            return portal.staticImagesUrl.replace("images", "fonts");
+        };
+        ApplicationBase.prototype._copyCookie = function () {
+            var authCookie = cookie("esri_auth");
+            if (authCookie) {
+                var cookieProps = { "path": "/", domain: document.domain };
+                var userPref = __assign({ portalApp: true }, JSON.parse(authCookie));
+                cookie("esri_auth", JSON.stringify(userPref), cookieProps);
+            }
+        };
+        ApplicationBase.prototype._updatePortalUrl = function (isEsri, portal) {
+            if (isEsri && portal && portal.urlKey && portal.customBaseUrl) {
+                if (document.location.href.indexOf(portal.urlKey) === -1) {
+                    var updateUrl = document.location.protocol + "//" + portal.urlKey + "." + portal.customBaseUrl + document.location.pathname + document.location.search;
+                    this.config.portalUrl = updateUrl;
+                    document.location.assign(this.config.portalUrl);
+                }
+            }
+        };
+        ApplicationBase.prototype._setupTelemetry = function (portal) {
+            var userPoolId = this.settings.environment.telemetry.prod.userPoolId;
+            var appId = this.settings.environment.telemetry.prod.appId;
+            if (this.portal.customBaseUrl.indexOf("mapsdevext") !== -1) {
+                // use devext credentials
+                userPoolId = this.settings.environment.telemetry.devext.userPoolId;
+                appId = this.settings.environment.telemetry.devext.appId;
+            }
+            else if (this.portal.customBaseUrl.indexOf("mapsqa") !== -1) {
+                // or qa
+                userPoolId = this.settings.environment.telemetry.qa.userPoolId;
+                appId = this.settings.environment.telemetry.qa.appId;
+            }
+            this.settings.telemetry = new Telemetry({
+                portal: portal,
+                debug: false,
+                amazon: {
+                    userPoolID: userPoolId,
+                    app: {
+                        name: "Arcgis Online Mobile",
+                        id: appId,
+                        version: "1.0"
+                    }
+                }
+            });
+        };
+        ApplicationBase.prototype._mixinSettingsDefaults = function (settings) {
+            var userEnvironmentSettings = settings.environment;
+            var userPortalSettings = settings.portal;
+            var itemParams = {
+                num: 9,
+                start: 0
+            };
+            settings.group = {
+                default: "908dd46e749d4565a17d2b646ace7b1a",
+                fetchInfo: true,
+                fetchItems: true,
+                fetchMultiple: true,
+                itemParams: itemParams
+            };
+            settings.environment = __assign({ isEsri: false, webTierSecurity: false }, userEnvironmentSettings);
+            settings.portal = __assign({ fetch: true }, userPortalSettings);
+        };
+        ApplicationBase.prototype._getEsriEnvironmentPortalUrl = function () {
+            var pathname = location.pathname;
+            var esriAppsPath = "/apps/";
+            var esriHomePath = "/home/";
+            var esriAppsPathIndex = pathname.indexOf(esriAppsPath);
+            var esriHomePathIndex = pathname.indexOf(esriHomePath);
+            var isEsriAppsPath = esriAppsPathIndex !== -1;
+            var isEsriHomePath = esriHomePathIndex !== -1;
+            var appLocationIndex = isEsriAppsPath
+                ? esriAppsPathIndex
+                : isEsriHomePath
+                    ? esriHomePathIndex
+                    : undefined;
+            if (appLocationIndex === undefined) {
+                return;
+            }
+            var portalInstance = pathname.substr(0, appLocationIndex);
+            var host = location.host;
+            return "https://" + host + portalInstance;
+        };
+        ApplicationBase.prototype._getEsriEnvironmentProxyUrl = function (portalUrl) {
+            if (!portalUrl) {
+                return;
+            }
+            return portalUrl + "/sharing/proxy";
+        };
+        ApplicationBase.prototype._getUnits = function (portal) {
+            var USRegion = "US";
+            var USLocale = "en-us";
+            var user = portal.user;
+            var userRegion = user && user.region;
+            var userUnits = user && user.units;
+            var responseUnits = portal.units;
+            var responseRegion = portal.region;
+            var ipCountryCode = portal.ipCntryCode;
+            var isEnglishUnits = userRegion === USRegion ||
+                (userRegion && responseRegion === USRegion) ||
+                (userRegion && !responseRegion) ||
+                (!user && ipCountryCode === USRegion) ||
+                (!user && !ipCountryCode && kernel.locale === USLocale);
+            var units = userUnits
+                ? userUnits
+                : responseUnits
+                    ? responseUnits
+                    : isEnglishUnits
+                        ? "english"
+                        : "metric";
+            return units;
+        };
+        ApplicationBase.prototype._getLanguageDirection = function (rtlLocales) {
+            if (rtlLocales === void 0) { rtlLocales = ["ar", "he"]; }
+            var isRTL = rtlLocales.some(function (language) {
+                return kernel.locale.indexOf(language) !== -1;
+            });
+            return isRTL ? "rtl" : "ltr";
+        };
+        ApplicationBase.prototype._mixinAllConfigs = function (params) {
+            var config = params.config || null;
+            var appConfig = params.application || null;
+            var localConfig = params.local || null;
+            var urlConfig = params.url || null;
+            return __assign({}, config, appConfig, localConfig, urlConfig);
+        };
+        ApplicationBase.prototype._setGeometryService = function (config, portal) {
+            var configHelperServices = config.helperServices;
+            var anyPortal = portal;
+            var portalHelperServices = anyPortal && anyPortal.helperServices;
+            if (portalHelperServices &&
+                portalHelperServices.geocode &&
+                portalHelperServices.geocode.length &&
+                portalHelperServices.geocode.length > 0)
+                config.helperServices = __assign({}, config.helperServices, { geocode: portalHelperServices.geocode });
+            var configGeometryUrl = configHelperServices &&
+                configHelperServices.geometry &&
+                configHelperServices.geometry.url;
+            var portalGeometryUrl = portalHelperServices &&
+                portalHelperServices.geometry &&
+                portalHelperServices.geometry.url;
+            var geometryServiceUrl = portalGeometryUrl || configGeometryUrl;
+            if (!geometryServiceUrl) {
+                return;
+            }
+            esriConfig.geometryServiceUrl = geometryServiceUrl;
+        };
+        ApplicationBase.prototype._setPortalUrl = function (portalUrl) {
+            if (!portalUrl) {
+                return;
+            }
+            esriConfig.portalUrl = portalUrl;
+        };
+        ApplicationBase.prototype._setProxyUrl = function (proxyUrl) {
+            if (!proxyUrl) {
+                return;
+            }
+            esriConfig.request.proxyUrl = proxyUrl;
+        };
+        ApplicationBase.prototype._registerOauthInfos = function (oauthappid, portalUrl) {
+            if (!oauthappid) {
+                return;
+            }
+            var info = new OAuthInfo({
+                appId: oauthappid,
+                portalUrl: portalUrl
+            });
+            if (!info) {
+                return;
+            }
+            IdentityManager.registerOAuthInfos([info]);
+            IdentityManager.useSignInPage = false;
+        };
+        ApplicationBase.prototype._getUrlParamValues = function (urlParams) {
+            var _this = this;
+            var urlObject = this._urlToObject();
+            var formattedUrlObject = {};
+            if (!urlObject || !urlParams || !urlParams.length) {
+                return;
+            }
+            urlParams.forEach(function (param) {
+                var urlParamValue = urlObject[param];
+                if (urlParamValue) {
+                    formattedUrlObject[param] = _this._formatUrlParamValue(urlParamValue);
+                }
+            });
+            return formattedUrlObject;
+        };
+        ApplicationBase.prototype._urlToObject = function () {
+            var _this = this;
+            var query = (window.location.search || "?").substr(1), map = {};
+            var urlRE = /([^&=]+)=?([^&]*)(?:&+|$)/g;
+            query.replace(urlRE, function (match, key, value) {
+                map[key] = _this._stripStringTags(decodeURIComponent(value));
+                return "";
+            });
+            return map;
+        };
+        ApplicationBase.prototype._formatUrlParamValue = function (urlParamValue) {
+            if (typeof urlParamValue !== "string") {
+                return urlParamValue;
+            }
+            var lowerCaseValue = urlParamValue.toLowerCase();
+            if (lowerCaseValue === "true") {
+                return true;
+            }
+            if (lowerCaseValue === "false") {
+                return false;
+            }
+            return urlParamValue;
+        };
+        ApplicationBase.prototype._stripStringTags = function (value) {
+            var tagsRE = /<\/?[^>]+>/g;
+            return value.replace(tagsRE, "");
+        };
+        ApplicationBase = __decorate([
+            declareDecorator_1.default()
+        ], ApplicationBase);
+        return ApplicationBase;
+    }());
+    exports.default = ApplicationBase;
+});
+//# sourceMappingURL=ApplicationBase.js.map

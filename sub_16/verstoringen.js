@@ -1,0 +1,17 @@
+sSorteerSleutel ="datum";
+bToonSorteerKeuze = true;
+bSortOptieDatum = true;
+bSortOptieTitel = true;
+bSelOnderwerp = true;
+bHoofdOverzichtMetData = true;
+ aLi[1] = {a:'Aanvragen en wijzigen voorlopige aanslag erfbelasting niet langer mogelijk via Mijn Belastingdienst',b:'Particulier',c:'Erven|Erven',d:'29-07-2022 14:00',e:'1e48bcad-e99f-417a-81e2-2be56b16fe61',f:'',g:''};
+aLi[2] = {a:'Btw-aangiften over 2e kwartaal 2022 en juni 2022 mogelijk niet op tijd verwerkt',b:'Ondernemer',c:'Btw',d:'25-08-2022 13:30',e:'235e9d92-4497-4b2c-a896-c9b5131383f1',f:'',g:''};
+aLi[3] = {a:'Downloaden op Mijn Belastingdienst lukt mogelijk niet (opgelost)',b:'Particulier',c:'Aangifte doen|Belastingaangifte',d:'29-07-2022 15:45',e:'4491adca-388a-4ba3-a3b9-2c0e66ce3c3c',f:'',g:''};
+aLi[4] = {a:'Fout in overzicht coronaschulden april (opgelost)',b:'Ondernemer,Intermediair',c:'Corona|Ondernemen|Corona',d:'15-04-2022 17:00',e:'dab23689-4919-4d7b-9a13-4f2e2314936a',f:'',g:'13-05-2022 15:45'};
+aLi[5] = {a:'Mijn Belastingdienst en Inloggen voor ondernemers op zaterdag 8 oktober niet beschikbaar',b:'Particulier,Ondernemer',c:'Ondernemen|Belastingaangifte',d:'06-10-2022 9:15',e:'a8119c0b-81e7-445e-a85f-d167f801cad3',f:'',g:''};
+aLi[6] = {a:'Moet u onterecht toeslag terugbetalen omdat wij een verkeerd vermogen hebben gebruikt?',b:'Particulier,Intermediair',c:'Huurtoeslag|Zorgtoeslag|Toeslagen',d:'15-07-2022 18:15',e:'c0f0b1a2-4d1a-4397-9478-cb52dc33048c',f:'',g:''};
+aLi[7] = {a:'Onterechte herinnering opgaaf wereldinkomen verstuurd',b:'Particulier',c:'Belastingaangifte',d:'26-08-2022 17:30',e:'733737d8-2d99-43d1-aae8-7cc7292169b5',f:'',g:''};
+aLi[8] = {a:'Periodieke overboeking voor betalingsregeling bijzonder uitstel corona nog niet mogelijk via ABN AMRO',b:'Werkgever,Ondernemer',c:'Corona',d:'23-09-2022 10:30',e:'a9c82f3e-33ba-4c18-bdfb-2a3758a5804d',f:'',g:''};
+aLi[9] = {a:'Ten onrechte brief geen voorlopige aanslag 2021 verstuurd',b:'Particulier',c:'Aangifte doen',d:'27-06-2022 16:30',e:'72940ff6-a53c-4cd6-ab3f-334f37f6436b',f:'',g:''};
+aLi[10] = {a:'Teruggaaf milieubelastingen vertraagd',b:'Ondernemer',c:'Milieubelastingen',d:'20-05-2021 16:00',e:'8ce50ffa-e9c7-4f77-8a05-7854c198ae49',f:'',g:'08-12-2021 12:30'};
+aLi[11] = {a:'Vertraging in verwerking aangiftes bpm (opgelost)',b:'Particulier,Ondernemer',c:'Auto en vervoer|Auto en vervoer',d:'25-07-2022 15:15',e:'a510d752-ffea-4e8d-8bf0-bbb2fc79e8bc',f:'',g:'03-08-2022 12:30'};

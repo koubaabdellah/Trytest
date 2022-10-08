@@ -1,0 +1,83 @@
+define({
+  "licenseError": {
+    "message": "Uw account heeft geen licentie om configureerbare apps te gebruiken die niet openbaar zijn. Vraag uw organisatiebeheerder om u een gebruikerstype toe te wijzen dat Essential Apps of een add-on Essential Apps-licentie bevat.",
+    "title": "Geen licentie"
+  },
+  "ui": {
+    "close": "Sluiten",
+    "mapExtTip": "Kaart openen",
+    "sceneExtTip": "Openen in Scene Viewer",
+    "appExtTip": "Open applicatie",
+    "fileExtTip": "Bestand downloaden",
+    "itemExtTip": "Itemdetails openen",
+    "scene": "Scene",
+    "map": "Kaart",
+    "categories": "Categorieën",
+    "gallery": "Galerij",
+    "help": "Help",
+    "terms": "Gebruiksvoorwaarden"
+  },
+  "appLoading": {
+    "init": "Laden..",
+    "login": "Gebruiker login wordt gecontroleerd..",
+    "portalapp": "Portaal & toepassing worden opgevraagd..",
+    "groupdata": "Groepsgegevens worden opgevraagd..",
+    "groupprocess": "Groepsreactie wordt verwerkt..",
+    "groupitems": "Items laden..",
+    "failed": "Laden van de toepassing is mislukt."
+  },
+  "viewLoading": {
+    "scripts": "Laden",
+    "map": "De kaart wordt voorbereid..",
+    "basemap": "De basiskaart wordt geladen..",
+    "layers": "Lagen worden verwerkt..",
+    "view": "De weergave wordt geïnitialiseerd..",
+    "widgets": "Widgets worden toegevoegd..",
+    "failed": "Het item kan niet worden geladen.",
+    "sorry": "Sorry, bij het laden van het opgevraagde item is er iets fout gegaan.",
+    "iframe": "Sorry, uw browser ondersteund geen Iframes."
+  },
+  "header": {
+    "menu": "Menu",
+    "main": "Algemeen",
+    "agol": "ArcGIS Online",
+    "search": "Zoeken",
+    "signIn": "Aanmelden",
+    "signOut": "Afmelden",
+    "details": "Details weergeven"
+  },
+  "items": {
+    "webmap": "Openen in Viewer",
+    "layer": "Openen in Viewer",
+    "application": "Open applicatie",
+    "ownedby": "door",
+    "modifiedDate": "Laatst gewijzigd",
+    "description": "Beschrijving",
+    "access": "Gebruiksvoorwaarden",
+    "more": "Laad meer items",
+    "presentation": "Presentatie openen",
+    "dashboard": "Dashboard weergeven",
+    "nativeApps": {
+      "collector": "Openen in Collector",
+      "navigator": "Stops openen in Navigator",
+      "survey123": "Openen in Survey123",
+      "workforce": "Openen in Workforce for ArcGIS (internet)"
+    }
+  },
+  "viewer": {
+    "legend": "Legenda",
+    "layers": "Kaartlagen",
+    "basemap": "Basiskaartgalerij"
+  },
+  "footer": {
+    "fullsite": "De gehele site bekijken"
+  },
+  "gallery": {
+    "featuredContent": "Aanbevolen content",
+    "menuLabel": "Inhoudsmenu",
+    "userFavorites": "Favorieten",
+    "userContent": "Content",
+    "noContent": "Geen openbare groepen beschikbaar. Log in om de inhoud te bekijken.",
+    "noItems": "Groep bevat geen items"
+  }
+});

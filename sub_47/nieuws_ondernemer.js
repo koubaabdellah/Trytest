@@ -1,0 +1,14 @@
+sSorteerSleutel ="datum";
+bToonSorteerKeuze = true;
+bSortOptieDatum = true;
+bSortOptieTitel = true;
+bSelOnderwerp = true;
+ aLi[1] = {a:'21% btw voor veevoer dat bestemd is voor zowel vee als voor dieren die niet als &lsquo;vee&rsquo; worden aangemerkt',b:'Ondernemer',c:'Btw',d:'28-09-2022 11:00',e:'47329f2a-88bf-4bee-895b-78119587b746',f:''};
+aLi[2] = {a:'Belastingdienst start invordering van openstaande belastingschulden weer op',b:'Particulier,Ondernemer,Intermediair',c:'Betalen|Corona',d:'23-09-2021 8:45',e:'3c3d72ad-ba95-4e45-a526-e1289bf3d20a',f:''};
+aLi[3] = {a:'Belastingplan 2023 - op rijksoverheid.nl staan de voorgestelde veranderingen',b:'Particulier,Werkgever,Ondernemer,Intermediair',c:'Voorlopige aanslag|Onderneming starten|Betalen|Ondernemen|Aangifte doen|Auto en vervoer|Bijzondere regelingen|Erven|Vennootschapsbelasting|Btw|Dividendbelasting|Aanmelden bij de Belastingdienst',d:'20-09-2022 15:15',e:'af9f46db-83ea-4b6d-b426-cc6967c65794',f:''};
+aLi[4] = {a:'Btw-tarief verhuur accommodaties aan gemeenten voor de opvang van Oekraïense vluchtelingen',b:'Ondernemer',c:'Btw',d:'08-09-2022 16:00',e:'c2aea67f-a719-49ad-bfcc-86f30f32af86',f:''};
+aLi[5] = {a:'Inloggen DigiD binnenkort alleen met app of sms-controle',b:'Particulier,Ondernemer',c:'',d:'06-04-2022 8:45',e:'f1b219d9-1250-4764-a62c-e83c1e2480fb',f:''};
+aLi[6] = {a:'Nieuwe brieven voor motorrijtuigenbelasting vrachtauto&#39;s',b:'Particulier,Ondernemer',c:'Auto en vervoer',d:'22-08-2022 13:45',e:'80b90bff-fb0e-4b05-a5e7-e279bd8d60b8',f:''};
+aLi[7] = {a:'U kunt binnenkort niet meer met een acceptgiro betalen',b:'Particulier,Ondernemer',c:'Betalen',d:'15-09-2022 9:00',e:'1feedb43-1e78-44ec-a90d-0a7999f2e1bc',f:''};
+aLi[8] = {a:'Versoepelingen betalingsregeling bijzonder uitstel vanwege corona',b:'Ondernemer,Intermediair',c:'Corona',d:'08-09-2022 20:00',e:'f1974fe3-c8bf-4ca7-a288-be6729f4a8ef',f:''};
+aLi[9] = {a:'Voorlopige aanslag 2022 en bijzonder uitstel van betaling (update)',b:'Ondernemer,Intermediair',c:'Corona',d:'28-02-2022 16:00',e:'ff19c802-58a7-4e28-a860-0680a45be620',f:''};

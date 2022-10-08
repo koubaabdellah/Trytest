@@ -1,0 +1,33 @@
+define(["require", "exports"], function (require, exports) {
+    Object.defineProperty(exports, "__esModule", { value: true });
+    function _getTelemetry(settings) {
+        if (settings && settings.telemetry) {
+            return settings.telemetry;
+        }
+        else {
+            return null;
+        }
+    }
+    function logPageView(settings) {
+        var telemetry = _getTelemetry(settings);
+        if (telemetry) {
+            telemetry.logPageView();
+        }
+    }
+    exports.logPageView = logPageView;
+    function logEvent(settings, eventInfo) {
+        var telemetry = _getTelemetry(settings);
+        if (telemetry) {
+            telemetry.logEvent(eventInfo);
+        }
+    }
+    exports.logEvent = logEvent;
+    function logError(settings, errorInfo) {
+        var telemetry = _getTelemetry(settings);
+        if (telemetry) {
+            telemetry.logEvent(errorInfo);
+        }
+    }
+    exports.logError = logError;
+});
+//# sourceMappingURL=telemetryUtils.js.map

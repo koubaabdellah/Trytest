@@ -1,0 +1,109 @@
+define(["require", "exports", "tslib", "esri/widgets/support/widget", "esri/core/accessorSupport/decorators", "esri/core/watchUtils", "./Common", "./Map/MapViewModel", "../../widgets/ItemBrowser/ItemBrowserPreview", "../../icons/icons", "../../utils/configParamsUtils"], function (require, exports, tslib_1, widget_1, decorators_1, watchUtils, Common_1, MapViewModel, ItemBrowserPreview, icons_1, configParamsUtils_1) {
+    "use strict";
+    Common_1 = tslib_1.__importDefault(Common_1);
+    icons_1 = tslib_1.__importDefault(icons_1);
+    var Map = (function (_super) {
+        tslib_1.__extends(Map, _super);
+        function Map(params) {
+            var _this = _super.call(this, params) || this;
+            _this.actionIcon = icons_1.default.map;
+            _this.actionLabel = null;
+            _this.sectionHeaderLabel = null;
+            _this.sectionHeaderSubtitle = null;
+            _this.sectionTip = null;
+            _this.itemBrowserPreview = null;
+            _this.type = "map";
+            _this.messages = null;
+            _this.viewModel = new MapViewModel();
+            return _this;
+        }
+        Map.prototype.postInitialize = function () {
+            var _this = this;
+            this.own([
+                watchUtils.when(this, "configPanelViewModel", function () {
+                    var configPanelViewModel = _this.configPanelViewModel;
+                    _this.viewModel.configPanelViewModel = configPanelViewModel;
+                    _this.itemBrowserPreview = new ItemBrowserPreview({
+                        configPanelViewModel: configPanelViewModel,
+                        darkModeEnabled: _this.configPanelViewModel.darkModeEnabled,
+                        itemBrowser: _this.viewModel.itemBrowser
+                    });
+                }),
+                watchUtils.whenOnce(this, "messages", function () {
+                    _this.actionLabel = _this.actionLabel
+                        ? _this.actionLabel
+                        : _this.messages.map;
+                    _this.sectionHeaderLabel = _this.sectionHeaderLabel
+                        ? _this.sectionHeaderLabel
+                        : _this.messages.map;
+                    _this.sectionHeaderSubtitle = _this.sectionHeaderSubtitle
+                        ? _this.sectionHeaderSubtitle
+                        : _this.messages.mapSubsection;
+                    _this.sectionTip = _this.sectionTip
+                        ? _this.sectionTip
+                        : _this.messages.generalTip;
+                    watchUtils.whenOnce(_this, "configPanelViewModel.configParams", function () {
+                        _this._handleSectionStrings();
+                    });
+                })
+            ]);
+        };
+        Map.prototype.renderItemBrowser = function () {
+            var _a;
+            return (_a = this.viewModel.itemBrowser) === null || _a === void 0 ? void 0 : _a.render();
+        };
+        Map.prototype.renderItemBrowserPreview = function () {
+            var _a;
+            return (_a = this.itemBrowserPreview) === null || _a === void 0 ? void 0 : _a.render();
+        };
+        Map.prototype._handleSectionStrings = function () {
+            var _a, _b, _c, _d;
+            var mapSection = configParamsUtils_1.getConfigParamsSection(this.configPanelViewModel.configParams.config, "map");
+            var mapConfig = mapSection === null || mapSection === void 0 ? void 0 : mapSection.config;
+            if (((_a = mapConfig === null || mapConfig === void 0 ? void 0 : mapConfig.itemTypes) === null || _a === void 0 ? void 0 : _a.length) === 1 && ((_b = mapConfig === null || mapConfig === void 0 ? void 0 : mapConfig.itemTypes) === null || _b === void 0 ? void 0 : _b.includes("3d"))) {
+                this.actionLabel = this.messages.scene;
+                this.sectionHeaderLabel = this.messages.scene;
+                this.sectionHeaderSubtitle = this.messages.sceneSubsection;
+                this.sectionTip = this.messages.sceneGeneralTip;
+            }
+            else if (((_c = mapConfig === null || mapConfig === void 0 ? void 0 : mapConfig.itemTypes) === null || _c === void 0 ? void 0 : _c.includes("2d")) && ((_d = mapConfig === null || mapConfig === void 0 ? void 0 : mapConfig.itemTypes) === null || _d === void 0 ? void 0 : _d.includes("3d"))) {
+                this.sectionHeaderSubtitle = this.messages.mapSceneSubsection;
+            }
+        };
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], Map.prototype, "actionIcon", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], Map.prototype, "actionLabel", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], Map.prototype, "sectionHeaderLabel", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], Map.prototype, "sectionHeaderSubtitle", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], Map.prototype, "sectionTip", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], Map.prototype, "itemBrowserPreview", void 0);
+        tslib_1.__decorate([
+            decorators_1.property({ readOnly: true })
+        ], Map.prototype, "type", void 0);
+        tslib_1.__decorate([
+            decorators_1.property(),
+            widget_1.messageBundle("dist/assets/t9n/ui/sections/Map/resources")
+        ], Map.prototype, "messages", void 0);
+        tslib_1.__decorate([
+            decorators_1.property({
+                type: MapViewModel
+            })
+        ], Map.prototype, "viewModel", void 0);
+        Map = tslib_1.__decorate([
+            decorators_1.subclass("Map")
+        ], Map);
+        return Map;
+    }(Common_1.default));
+    return Map;
+});

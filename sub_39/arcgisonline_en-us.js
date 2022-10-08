@@ -1,0 +1,2 @@
+//>>built
+define("arcgisonline/nls/arcgisonline_en-us",{"arcgis-components/Inputs/Tags/nls/resources":{addTags:"Add tag(s)",noTagsFound:"No existing tags match.",required:"One or more tags are required.",_localized:{}}});

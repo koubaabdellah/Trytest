@@ -1,0 +1,117 @@
+/*
+ *   Copyright (c) 2022 Esri
+ *   All rights reserved.
+
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+
+ *   http://www.apache.org/licenses/LICENSE-2.0
+
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ */
+define(["require", "exports", "tslib", "esri/core/accessorSupport/decorators", "esri/core/watchUtils", "esri/widgets/support/widget", "./Panel/PanelViewModel", "esri/widgets/Widget", "./icons/icons"], function (require, exports, tslib_1, decorators_1, watchUtils_1, widget_1, PanelViewModel_1, Widget_1, icons_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    PanelViewModel_1 = tslib_1.__importDefault(PanelViewModel_1);
+    Widget_1 = tslib_1.__importDefault(Widget_1);
+    icons_1 = tslib_1.__importDefault(icons_1);
+    var Panel = /** @class */ (function (_super) {
+        tslib_1.__extends(Panel, _super);
+        function Panel(props) {
+            var _this = _super.call(this, props) || this;
+            _this.calcitePanel = null;
+            _this.actions = [];
+            _this.actionBar = null;
+            _this.viewModel = new PanelViewModel_1.default(props);
+            return _this;
+        }
+        Panel.prototype.postInitialize = function () {
+            var _this = this;
+            var _a, _b;
+            this.own([
+                (0, watchUtils_1.init)(this, ["applicationConfig.legendPanel", "applicationConfig.basemapGallery", "applicationConfig.utilityNetwork", "applicationConfig.bookmarksPanel", "applicationConfig.layerListPanel", "applicationConfig.popupPanel", "applicationConfig.activePanel", "applicationConfig.details", "applicationConfig.filterPanel", "applicationConfig.layerEditPanel"], function () {
+                    _this.viewModel.createActions();
+                })
+            ]);
+            if (((_a = this === null || this === void 0 ? void 0 : this.applicationConfig) === null || _a === void 0 ? void 0 : _a.sidebarExpanded) && ((_b = this === null || this === void 0 ? void 0 : this.applicationConfig) === null || _b === void 0 ? void 0 : _b.layoutType) === "horizontal") {
+                document.body.classList.add("action-bar-expanded");
+            }
+        };
+        Panel.prototype.render = function () {
+            var _a, _b;
+            var _c = this.applicationConfig, legendPanel = _c.legendPanel, layerListPanel = _c.layerListPanel, basemapGallery = _c.basemapGallery, utilityNetwork = _c.utilityNetwork, details = _c.details, popupPanel = _c.popupPanel, activePanel = _c.activePanel, layerEditPanel = _c.layerEditPanel, bookmarksPanel = _c.bookmarksPanel, filterPanel = _c.filterPanel, layoutType = _c.layoutType, panelSize = _c.panelSize, sidebarPosition = _c.sidebarPosition;
+            // make sure the activePanel exists 
+            var collapsed = (activePanel !== null && this.applicationConfig[activePanel]) ? false : true;
+            var blocks = this.renderBlocks();
+            var actionBar = this.renderActionBar();
+            // toggle the action bar to render correctly (bug?)
+            if ((this === null || this === void 0 ? void 0 : this.actionBar) && ((_a = this === null || this === void 0 ? void 0 : this.actionBar) === null || _a === void 0 ? void 0 : _a.expanded) && ((_b = this === null || this === void 0 ? void 0 : this.applicationConfig) === null || _b === void 0 ? void 0 : _b.withinConfigurationExperience)) {
+                this.actionBar.expanded = false;
+                this.actionBar.expanded = true;
+            }
+            var hide = bookmarksPanel || basemapGallery || utilityNetwork || layerListPanel || legendPanel || details || popupPanel || layerEditPanel || filterPanel ? null : "hide";
+            var resizePanel = popupPanel ? "resize" : null;
+            var widthScale = layoutType !== "default" ? "xl" : panelSize;
+            return ((0, widget_1.tsx)("calcite-shell-panel", { collapsed: collapsed, class: this.classes(["primary-panel", layoutType, hide, resizePanel]), slot: sidebarPosition === "end" ? "contextual-panel" : "primary-panel", bind: this, "data-node-ref": "calcitePanel", afterCreate: widget_1.storeNode, "width-scale": widthScale, position: sidebarPosition },
+                actionBar,
+                blocks));
+        };
+        Panel.prototype.renderActionBar = function () {
+            var _this = this;
+            var _a = this.applicationConfig, layoutType = _a.layoutType, sidebarExpanded = _a.sidebarExpanded, bundle = _a.bundle;
+            var horizontal = layoutType === "horizontal" ? true : false;
+            return (0, widget_1.tsx)("calcite-action-bar", { slot: "action-bar", bind: this, expanded: sidebarExpanded, "data-node-ref": "actionBar", afterCreate: widget_1.storeNode, "intl-collapse": bundle.collapse, "intl-expand": "", "overflow-actions-disabled": horizontal ? "true" : "false", onclick: this.viewModel.actionItemClicked, class: "sidebar" },
+                (0, widget_1.tsx)("calcite-tooltip", { slot: "expand-tooltip" },
+                    " ",
+                    bundle.expand),
+                (0, widget_1.tsx)("calcite-action-group", null, this.actions.map(function (action) {
+                    var active = action.active, name = action.name, label = action.label, key = action.key, icon = action.icon;
+                    var calciteIcon = icons_1.default[icon] === "utility-network-trace" ?
+                        (0, widget_1.tsx)("span", { class: "network-icon" },
+                            (0, widget_1.tsx)("svg", { xmlns: "http://www.w3.org/2000/svg", viewBox: "0 0 16 16" },
+                                (0, widget_1.tsx)("path", { d: "M1.5 11a1.5 1.5 0 0 0 1.47-1.8l2.58-1.548a1.487 1.487 0 0 0 .45.256v5.184a1.5 1.5 0 1 0 1 0V7.908A1.495 1.495 0 0 0 7.908 7h2.184a1.494 1.494 0 0 0 1.38.997l1.108 3.326a1.495 1.495 0 1 0 .948-.32L12.42 7.677a1.478 1.478 0 0 0 .233-2.126L14.2 2.97A1.5 1.5 0 1 0 13 1.5a1.486 1.486 0 0 0 .347.95L11.8 5.03a1.492 1.492 0 0 0-1.707.97H7.908a1.497 1.497 0 0 0-2.878.8L2.45 8.347A1.497 1.497 0 1 0 1.5 11zM7 14.5v.5H6v-1h1zm7-2.5v1h-1v-1h1zm0-11h1v1h-1V1zm-2.783 5H12v1h-1V6zM6 6h1v1H6V6zM1 9.5V9h1v1H1zm2-8A1.5 1.5 0 1 0 1.5 3 1.5 1.5 0 0 0 3 1.5zm-1 0V2H1V1h1zM1 14h1v1H1zm1-1H1v-1h1zM1 6h1v1H1zm1-1H1V4h1z" }),
+                                (0, widget_1.tsx)("path", { fill: "none", d: "M0 0h16v16H0z" })))
+                        : (0, widget_1.tsx)("calcite-icon", { scale: "s", icon: icons_1.default[icon] });
+                    return (0, widget_1.tsx)("calcite-action", { bind: _this, active: active, key: key, title: label, "data-action-item": key, text: name, label: label }, calciteIcon);
+                })));
+        };
+        Panel.prototype.renderBlocks = function () {
+            var _this = this;
+            var _a = this.applicationConfig, theme = _a.theme, panelSize = _a.panelSize, layoutType = _a.layoutType;
+            var themeClass = theme === "dark" ? "calcite-theme-dark" : "calcite-theme-light";
+            var widthScale = layoutType !== "default" ? "xl" : panelSize;
+            return this.actions.map(function (action) {
+                return (0, widget_1.tsx)("calcite-panel", { class: _this.classes(themeClass, action.active ? null : "hide"), open: true, style: "margin-top:0;margin-bottom:0;", "width-scale": widthScale, key: action.key },
+                    (0, widget_1.tsx)("div", { bind: _this, theme: theme, afterCreate: _this.viewModel.createActionClickFunction(action) }));
+            });
+        };
+        tslib_1.__decorate([
+            (0, decorators_1.aliasOf)("viewModel.view")
+        ], Panel.prototype, "view", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], Panel.prototype, "viewModel", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], Panel.prototype, "applicationConfig", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.aliasOf)("viewModel.calcitePanel")
+        ], Panel.prototype, "calcitePanel", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.aliasOf)("viewModel.actions")
+        ], Panel.prototype, "actions", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.aliasOf)("viewModel.actionBar")
+        ], Panel.prototype, "actionBar", void 0);
+        Panel = tslib_1.__decorate([
+            (0, decorators_1.subclass)("Panel")
+        ], Panel);
+        return Panel;
+    }((Widget_1.default)));
+    exports.default = Panel;
+});

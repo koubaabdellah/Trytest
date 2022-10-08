@@ -1,0 +1,120 @@
+﻿//Aanpassen van de status van de dropdown op basis van de waarde van de checkbox die bij de dropdown hoort. 
+//Zowel de dropdown als de checkbox worden als jQuery object aan de functie meegegeven.
+function SetStatusDropDown(ddl, chk)
+{
+	if ((ddl != null) && (chk != null))
+	{
+		ddl.attr("disabled", !chk.attr("checked"));
+
+		if (ddl.attr("disabled"))
+		{
+			ddl.attr("value", '-1');
+		}
+	}
+}
+
+//Wanneer in een keuzelijst een afnamedatum wordt geselecteerd controleert dit script of dezelfde afnamedatum ook voorkomt bij de andere 
+//afnames binnen het traject. Als dit het geval is - en er is voor die afnames nog geen datum geselecteerd - wordt deze datum automatisch 
+//bij de overige afnames geselecteerd. Deze functionaliteit is o.a. handig bij EPA of BOA trajecten waarbij de kandidaat deelneemt aan 
+//meerdere afnames waarbij alle afnames op dezelfde dag plaatsvinden.
+function SelectEqualDate(tblAfnames, ddlSource)
+{
+	try
+	{
+		//Vasthouden van een referentie naar de geselecteerde datum.
+		var dateSelected = ddlSource[0][ddlSource[0].selectedIndex].text;
+
+		//Doorlopen van alle afnames.
+		for (var index = 0; index < tblAfnames[0].rows.length; index++)
+		{
+			//Vasthouden van een referentie naar de checkbox en keuzelijst van de afname op de aangegeven rij.
+			var chk = tblAfnames[0].rows[index].cells[1].children[0];
+			var ddl = tblAfnames[0].rows[index].cells[1].children[1];
+
+			//Er hoeft geen actie te worden uitgevoerd voor de keuzelijst die zojuist is gewijzigd en voor keuzelijsten waarin al een datum is geselecteerd.
+			if ((ddlSource.attr("id") != ddl.id) && (ddl.selectedIndex == 0))
+			{
+				//Doorlopen van alle opties in de keuzelijst en nagaan of er een afnamedatum tussen zit die gelijk is aan de afnamedatum 
+				//die is geselecteerd in de andere keuzelijst. Als er een gelijke afnamedatum is gevonden, wordt deze geselecteerd en 
+				//wordt de keuzelijst actief gemaakt.
+				for (var indexOption = 0; indexOption < ddl.children.length; indexOption++)
+				{
+					if (ddl[indexOption].text == dateSelected)
+					{
+						chk.checked = true;
+						ddl.disabled = false;
+						ddl.selectedIndex = indexOption;
+					}
+				}
+			}
+		}
+	} catch (e) { }
+}
+
+//Bij de IPMA trajecten moet er een projectrapport worden ingeleverd voordat het interview plaatsvindt. Wanneer een kandidaat zich inschrijft 
+//voor een interview wordt in het label lblProjectrapportInfo een toelichtende tekst weergegeven waarin wordt aangegeven wanneer het projectrapport 
+//ingeleverd dient te worden.
+function ShowProjectrapportInfo(ddlAfname, lblProjectrapportInfo, textResource)
+{
+	try
+	{
+		//Standaard wordt het label voor de projectinfo eerst leeg gemaakt.
+		lblProjectrapportInfo.text("");
+
+		//Vasthouden van een referentie naar de geselecteerde datum. Hierbij wordt de geselecteerde datum direct uitgesplitst in dag, maand en jaar.
+		//var dateParts = new String(ddlAfname[0][ddlAfname[0].selectedIndex].text).split("-");
+		var datePart = new String(ddlAfname[0][ddlAfname[0].selectedIndex].text).split(" ");
+		var dateParts = new String(datePart[0]).split("-");
+
+		if (dateParts.length == 3)
+		{
+			//Aanmaken van een date object voor bewerking van de datum. NB! De maand wordt gedefinieerd met een getal van 0 t/m 11. 
+			//Hierdoor moet bij het getal dat wordt gebruikt voor het weergeven van de maand één worden afgetrokken.
+			var realDate = new Date();
+			realDate.setFullYear(new Number(dateParts[2]), new Number(dateParts[1]) - 1, new Number(dateParts[0]));
+
+			//Het projectrapport moet altijd 6 weken voor de interviewdatum worden ingeleverd.
+			realDate.setDate(realDate.getDate() - 42);
+
+			//Converteren van de berekende datum naar een tekstuele representatie in het formaat "d-M-yyyy".
+			var textDate = realDate.getDate().toString() + "-" + (realDate.getMonth() + 1).toString() + "-" + realDate.getFullYear().toString();
+
+			//Weergeven van de tekst waarin wordt aangegeven wanneer het projectrapport moet worden ingeleverd.
+			lblProjectrapportInfo.text(new String(textResource).replace("[datetime]", textDate));
+		}
+
+	} catch (e) { }
+}
+
+//Specifiek voor Cito Certificering  moet er een extra melding worden getoond. Wanneer er namelijk een datum wordt geselecteerd voor de 
+//afname, moet er een melding worden getoond waarin wordt aangegeven wanneer het portfolio uiterlijk moet zijn ingeleverd.
+function ShowPortfolioInfo(ddlAfname, lblPortfolioInfo, textResource)
+{
+	try
+	{
+		//Standaard wordt het label voor de portfolio eerst leeg gemaakt.
+		lblPortfolioInfo.text("");
+
+		//Vasthouden van een referentie naar de geselecteerde datum. Hierbij wordt de geselecteerde datum direct uitgesplitst in dag, maand en jaar.
+		var datePart = new String(ddlAfname[0][ddlAfname[0].selectedIndex].text).split(" ");
+		var dateParts = new String(datePart[0]).split("-");
+
+		if (dateParts.length == 3)
+		{
+			//Aanmaken van een date object voor bewerking van de datum. NB! De maand wordt gedefinieerd met een getal van 0 t/m 11. 
+			//Hierdoor moet bij het getal dat wordt gebruikt voor het weergeven van de maand één worden afgetrokken.
+			var realDate = new Date();
+			realDate.setFullYear(new Number(dateParts[2]), new Number(dateParts[1]) - 1, new Number(dateParts[0]));
+
+			//Het portfolio moet altijd 6 weken voor de afnamedatum worden ingeleverd.
+			realDate.setDate(realDate.getDate() - 42);
+
+			//Converteren van de berekende datum naar een tekstuele representatie in het formaat "d-M-yyyy".
+			var textDate = realDate.getDate().toString() + "-" + (realDate.getMonth() + 1).toString() + "-" + realDate.getFullYear().toString();
+
+			//Weergeven van de tekst waarin wordt aangegeven wanneer het projectrapport moet worden ingeleverd.
+			lblPortfolioInfo.text(new String(textResource).replace("[datetime]", textDate));
+		}
+
+	} catch (e) { }
+}

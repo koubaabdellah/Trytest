@@ -1,0 +1,169 @@
+;(function (){
+          treedata = (window.treedata || {});
+          treedata.data["root_167"]  = {  
+              "parent" : "",
+              "children" : ["167_h0","167_h1","167_h2","167_h3","167_h4","167_25","167_123"]
+            },
+treedata.data["167_h0"]  = { 
+              "parent" : "root_167",
+              "label" : "Introduction",
+              "children" : ["167_3","167_6","167_7","167_5"]
+            }
+            ,
+treedata.data["167_3"]  = {
+            "parent" : "167_h0",
+            "label" : "Introduction to installing and configuring ArcGIS for Desktop",
+            "url" : "/en/arcmap/10.3/get-started/installation-guide/introduction.htm"
+            
+          },
+treedata.data["167_6"]  = {
+            "parent" : "167_h0",
+            "label" : "Minimum system requirements",
+            "url" : "/en/arcmap/10.3/get-started/installation-guide/minimum-system-requirements-.htm"
+            
+          },
+treedata.data["167_7"]  = {
+            "parent" : "167_h0",
+            "label" : "Python requirement",
+            "url" : "/en/arcmap/10.3/get-started/installation-guide/python-requirement.htm"
+            
+          },
+treedata.data["167_5"]  = {
+            "parent" : "167_h0",
+            "label" : "Questions, feedback, and information",
+            "url" : "/en/arcmap/10.3/get-started/installation-guide/questions-feedback-and-information.htm"
+            
+          },
+treedata.data["167_h1"]  = { 
+              "parent" : "root_167",
+              "label" : "Preparing to install",
+              "children" : ["167_117","167_10"]
+            }
+            ,
+treedata.data["167_117"]  = {
+            "parent" : "167_h1",
+            "label" : "Authorizing your Software",
+            "url" : "/en/arcmap/10.3/get-started/installation-guide/obtaining-an-authorization-file.htm"
+            
+          },
+treedata.data["167_10"]  = {
+            "parent" : "167_h1",
+            "label" : "Existing ArcGIS Desktop users",
+            "url" : "/en/arcmap/10.3/get-started/installation-guide/existing-arcgis-desktop-users.htm"
+            
+          },
+treedata.data["167_h2"]  = { 
+              "parent" : "root_167",
+              "label" : "The license manager",
+              "children" : ["167_12","167_13"]
+            }
+            ,
+treedata.data["167_12"]  = {
+            "parent" : "167_h2",
+            "label" : "About the license manager",
+            "url" : "/en/arcmap/10.3/get-started/installation-guide/about-the-license-manager.htm"
+            
+          },
+treedata.data["167_13"]  = {
+            "parent" : "167_h2",
+            "label" : "Installing the license manager",
+            "url" : "/en/arcmap/10.3/get-started/installation-guide/installing-the-lm.htm"
+            
+          },
+treedata.data["167_h3"]  = { 
+              "parent" : "root_167",
+              "label" : "Installing ArcGIS Desktop",
+              "children" : ["167_14","167_15","167_118","167_24","167_128","167_16","167_17","167_18"]
+            }
+            ,
+treedata.data["167_14"]  = {
+            "parent" : "167_h3",
+            "label" : "Installation overview",
+            "url" : "/en/arcmap/10.3/get-started/installation-guide/installation-overview.htm"
+            
+          },
+treedata.data["167_15"]  = {
+            "parent" : "167_h3",
+            "label" : "Installing ArcGIS Desktop on your computer",
+            "url" : "/en/arcmap/10.3/get-started/installation-guide/installing-on-your-computer.htm"
+            
+          },
+treedata.data["167_118"]  = {
+            "parent" : "167_h3",
+            "label" : "Authorizing your software",
+            "url" : "/en/arcmap/10.3/get-started/installation-guide/authorization-wizard.htm"
+            
+          },
+treedata.data["167_24"]  = {
+            "parent" : "167_h3",
+            "label" : "The ArcGIS Administrator",
+            "url" : "/en/arcmap/10.3/get-started/installation-guide/the-arcgis-administrator.htm"
+            
+          },
+treedata.data["167_128"]  = {
+            "parent" : "167_h3",
+            "label" : "Installing a localized ArcGIS for Desktop setup",
+            "url" : "/en/arcmap/10.3/get-started/installation-guide/installing-a-localized-arcgis-for-desktop-setup.htm"
+            
+          },
+treedata.data["167_16"]  = {
+            "parent" : "167_h3",
+            "label" : "Installing ArcGIS Desktop on a network server",
+            "url" : "/en/arcmap/10.3/get-started/installation-guide/installing-arcgis-desktop-on-a-network-server.htm"
+            
+          },
+treedata.data["167_17"]  = {
+            "parent" : "167_h3",
+            "label" : "Installing ArcGIS Desktop from a network server",
+            "url" : "/en/arcmap/10.3/get-started/installation-guide/installing-from-a-network-server.htm"
+            
+          },
+treedata.data["167_18"]  = {
+            "parent" : "167_h3",
+            "label" : "Installing ArcGIS Desktop silently",
+            "url" : "/en/arcmap/10.3/get-started/installation-guide/installing-silently.htm"
+            
+          },
+treedata.data["167_h4"]  = { 
+              "parent" : "root_167",
+              "label" : "Adding additional installation components",
+              "children" : ["167_20","167_21","167_22","167_121"]
+            }
+            ,
+treedata.data["167_20"]  = {
+            "parent" : "167_h4",
+            "label" : "Adding ArcGIS Desktop installation components",
+            "url" : "/en/arcmap/10.3/get-started/installation-guide/adding-additional-installation-components.htm"
+            
+          },
+treedata.data["167_21"]  = {
+            "parent" : "167_h4",
+            "label" : "Adding Tutorial Data",
+            "url" : "/en/arcmap/10.3/get-started/installation-guide/adding-tutorial-data.htm"
+            
+          },
+treedata.data["167_22"]  = {
+            "parent" : "167_h4",
+            "label" : "Installing ArcGIS Desktop VBA Developer Resources",
+            "url" : "/en/arcmap/10.3/get-started/installation-guide/installing-developer-kit.htm"
+            
+          },
+treedata.data["167_121"]  = {
+            "parent" : "167_h4",
+            "label" : "Installing the ArcGIS extensions",
+            "url" : "/en/arcmap/10.3/get-started/installation-guide/installing-additional-arcgis-extensions.htm"
+            
+          },
+treedata.data["167_25"]  = {
+            "parent" : "root_167",
+            "label" : "Uninstalling ArcGIS for Desktop",
+            "url" : "/en/arcmap/10.3/get-started/installation-guide/uninstalling.htm"
+            
+          },
+treedata.data["167_123"]  = {
+            "parent" : "root_167",
+            "label" : "Copyright information",
+            "url" : "/en/arcmap/10.3/get-started/installation-guide/copyright-information.htm"
+            
+          }
+        })()

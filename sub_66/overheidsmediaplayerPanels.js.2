@@ -1,0 +1,24 @@
+$.fn.collapsePanels = function() {
+
+    return this.each(function() {
+        var $player = $(this);
+
+        function createCollapsePanels() {
+            $player.find('.toggle').each(function() {
+                $(this).addClass('close');
+                var $panelHeader = $(this).find('h2');
+                var panelTxt = $panelHeader.text();
+                $panelHeader.html('<a href="#">' + panelTxt + '</a>');
+            });
+
+            $player.find('.toggle h2 a').click(function(e) {
+                e.preventDefault();
+                $(this).parents('li').toggleClass("close").toggleClass("open");
+            });
+        }
+
+        createCollapsePanels();
+    });
+};
+
+$('.block-audio-video').collapsePanels();

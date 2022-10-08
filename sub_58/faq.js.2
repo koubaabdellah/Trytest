@@ -1,0 +1,12 @@
+(
+	function ( $ ) {
+		$( function () {
+			$( '.faq-question' ).click( function () {
+				$( this ).toggleClass( 'active' );
+				var answer = $( this ).next( '.faq-answer' );
+				answer.toggleClass( 'hidden' );
+				return false;
+			} );
+		} );
+	}
+)( jQuery );

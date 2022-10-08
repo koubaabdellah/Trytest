@@ -1,0 +1,303 @@
+﻿/*
+ | Copyright 2020 Esri
+ |
+ | Licensed under the Apache License, Version 2.0 (the "License");
+ | you may not use this file except in compliance with the License.
+ | You may obtain a copy of the License at
+ |
+ |    http://www.apache.org/licenses/LICENSE-2.0
+ |
+ | Unless required by applicable law or agreed to in writing, software
+ | distributed under the License is distributed on an "AS IS" BASIS,
+ | WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ | See the License for the specific language governing permissions and
+ | limitations under the License.
+ */
+
+/*
+ | Note: this file uses two types of symbols to mark where values are inserted by the program:
+ |   * under the "typescript" section:  ${insert_here}
+ |   * under the "elm" section:  {{insert_here}}
+*/
+
+define({
+  root: ({
+
+    // ==================== Esri Global Navigation heading ====================
+    "header": {
+      "subtitle": "Industry-specific configurations for ArcGIS",
+      "menus": [[{
+        "label": "Home" // button to show main page of app, which displays available Solutions as cards
+      }, {
+        "label": "My Solutions" // button to show page which displays Solutions deployed by user as cards
+      }], [{
+        "label": "Resources" // link to information site https://solutions.arcgis.com/
+      }], [{
+        "label": "Overview"
+      }, {
+        "label": "View Gallery"
+      }]],
+      // ArcGIS Online account information for signed-in user
+      "account": {
+        "label": "Account Profile",
+        "controls": {
+          "signin": "Sign In",
+          "signout": "Sign Out",
+          "switch": "Switch Account"
+        },
+        "menus": [{
+          "label": "Profile & Settings"
+        }, {
+          "label": "My Esri"
+        }, {
+          "label": "Training"
+        }, {
+          "label": "Community & Forums"
+        }]
+      },
+      // Button and popup for starting a search on esri.com
+      "esriSearch": "Search",
+      "esriSearchTitle": "Search Esri",
+      "esriSearchCancelBtn": "Cancel"
+    },
+    "footer": {
+      // Button and popup for changing the page's language
+      "switchLanguageBtn": "Switch Language",
+      "switchDialogTitle": "Please select a language:",
+      "switchDialogChangeBtn": "Change",
+      "switchDialogCloseBtn": "Close"
+    },
+
+
+    // ==================== Text specific to app ====================
+    // Used to provide a link for the user to provide feedback
+    "feedback": {
+      "message": "Provide your feedback through <a href='https://community.esri.com/community/gis/solutions'>GeoNet, the Esri Community.</a>"
+    },
+    "typescript": {
+      "alerts": {
+        "failedToDeploy": "${solutionTitle} failed to deploy", // appears in a pop-up box after an attempt to deploy a Solution
+        "successfullyDeployed": "${solutionTitle} was successfully deployed", // appears in a pop-up box after an attempt to deploy a Solution
+        "failedToDelete": "${solutionTitle} failed to delete", // appears in a pop-up box after an attempt to delete a Solution
+        "successfullyDeleted": "${solutionTitle} was successfully deleted", // appears in a pop-up box after an attempt to deploy a Solution
+        "shareToClipboardDone": "You copied the Solution URL to your clipboard", // popup confirming copy to clipboard
+      },
+      "buttons": {
+        "retry": "Retry" // appears in a pop-up box with the "failedToDeploy" alert; used to trigger a retry with the failed Solution
+      }
+    },
+    "elm": {
+      // ---------- copy all of the "elm" properties to the file Elm_strings.json, removing comments
+      "browser": {
+        "notSupported": "You are using a browser that is not supported by ArcGIS Solutions.",
+        "browserSuggestion": "Please use the latest version of Google Chrome, Mozilla Firefox, Apple Safari, or Microsoft Edge."
+      },
+      "user": {
+        "blockedAccess": "Access to this application has been blocked.",
+        "blockedSuggestion": "Please contact your administrator for more information."
+      },
+      "common": {
+        "learnMore": "Learn more", // button leading to additional information about solution
+        "preparing": "Preparing..." // placeholder display for slow operations
+      },
+      // Used in the display of Solution cards and their details pop-up
+      "cards": {
+        "back": "Back", // return to the card details pop-up
+        "close": "Close", // in a card details or missing-privileges pop-up to close it
+        "cancel": "Cancel", // cancel current user config option
+        "deploy": "Deploy", // in modal title when configuring user options
+        "deployed": "Deployed", // tooltip on Solution card when that Solution has already been deployed
+        "getNow": "Get Now", // in the card details pop-up to get (start deploying) a Solution
+        "deployNow": "Deploy now", // in the card details pop-up to get (start deploying) a Solution
+        "overview": "Overview", //Title above solution summary and description
+        "developedFor": "Developed for", //Title above industry categories
+        "version": "Version", // Extra info about a Solution
+        "termsOfUse": "Terms of Use", // Conditions for using a Solution
+        "share": "Share", // Button to share options; currently, only copy the Solution URL to the clipboard
+        "agolTooltip": "Available for ArcGIS Online", //tooltip from arcgis online icon
+        "enterpriseTooltip": "Available for ArcGIS Enterprise", //tooltip from arcgis enterprise icon
+         // if one clicks "Get Now" in card details pop-up but doesn't have privileges to publish, a missing-privileges pop-up appears
+        "missingPrivilegesPopup": {
+          "missingPrivilegesListHeading": "You are missing the following privileges to deploy this solution:",
+          "requiredPrivilegesList": {
+            "createGroup": "Create, update, and delete groups",
+            "createItem": "Create, update, and delete items",
+            "publishFeatures": "Publish hosted feature layers",
+            "shareToGroup": "Share items with groups",
+            "publishFeeds": "Publish feeds",
+            "publishRealTimeAnalytics": "Publish real-time analytics",
+            "publishBigDataAnalytics": "Publish big data analytics",
+            "requiresAdmin": "You must be an administrator in your organization to deploy this solution. ",
+            "requiresLocationTrackingAndAdmin": "Location tracking must be enabled in your organization and you must be an administrator to deploy this solution. ",
+            "requiresLocationTracking": "Location tracking must be enabled in your organization to deploy this solution. ",
+            "hubPremium": "Your organization must be licensed for ArcGIS Hub premium to deploy this solution."
+          },
+          "suggestedProblemRemedyMessage": "Please contact your administrator for assistance."
+        },
+        "next": "Next", // go to next page of user options
+        "open": "Open", // cursor hover display on Solution card for a deployed Solution to show that one can click on card to go to Solution in ArcGIS Online
+        "viewDetails": "View Details" // cursor hover display on Solution card to show that one can click on card to open card details pop-up
+      },
+      "configure": {
+        "servicesLabel": "Services",
+        "featureServiceInfo": "Define the item ID of an existing service to use in the deployment. If you don't specify an item a new hosted service will be created.",
+        "validate": "Validate",
+        "invalidID": "The item is inaccessible or the wrong type.",
+        "spatialReferencePlaceholder": "Search for spatial reference using name or WKID",
+        "spatialReferenceLabel": "Spatial Reference",
+        "spatialReferenceInfo": "Select the spatial reference of the feature layers deployed with the solution.",
+        "itemIdPlaceholder": "Enter the Item ID"
+      },
+      // Used to adjust which Solution cards are displayed
+      "filters": {
+        "clearFilters": "Clear filters",
+        "clearSingleFilter": "Clear {{filterName}} filter",
+        "domainFilterType": "Domain",
+        "domainsValues": {
+          "agriculture": "Agriculture", // Government industry
+          "assessmentAndTaxation": "Assessment and Taxation", // Government industry
+          "districtEnergy": "District Energy", // Utilities industry (“Solutions for networks of hot and cold water pipes, typically buried underground, that are used to efficiently heat and cool buildings.”)
+          "elections": "Elections", // Government industry
+          "electric": "Electric", // Utilities industry
+          "emergencyManagement": "Emergency Management", // Public Safety & Government industries
+          "environmentAndNaturalResources": "Environment and Natural Resources",
+          "fireService": "Fire Service", // Public Safety & Government industries
+          "fishAndWildlife": "Fish and Wildlife", // Government industry
+          "gas": "Gas", // Utilities industry
+          "healthAndHumanServices": "Health and Human Services", // Government industry
+          "lawEnforcement": "Law Enforcement", // Public Safety & Government industries
+          "naturalResources": "Natural Resources", // Government industry
+          "planningAndDevelopment": "Planning and Development", // Government industry
+          "protectedAreas": "Protected Areas",
+          "publicWorks": "Public Works", // Government industry
+          "sewer": "Sewer", // Utilities industry
+          "stormwater": "Stormwater", // Utilities industry
+          "telecommunications": "Telecommunications",
+          "transportation": "Transportation", // Government industry
+          "water": "Water Distribution" // Utilities industry
+        },
+        "filterButton": "Filter", // button to show/hide Filters sidebar
+        "filtersHeading": "Filters", // heading for Filters sidebar
+        "industriesHeading": "Industries",
+        "industriesValues": {
+          "business": "Business",
+          "conservation": "Conservation",
+          "defense": "Defense",
+          "pipeline": "Pipeline",
+          "publicSafety": "Public Safety",
+          "stateAndLocalGovernment": "State and Local Government",
+          "utilities": "Utilities"
+        },
+        "industryFilterType": "Industry",
+        "newFilterType": "Type",
+        "newFilterValue": "New",
+        "newReleaseToggle": "New Release", // toggle switch indicating if only recently-released Solutions are to be displayed
+        "numberOfSolutionsFound": "Solutions:" // displays count of Solutions on page
+      },
+      // Used to find Solutions
+      "search": {
+        "nothingFound": "No solutions found that meet your criteria. Try changing your search term or clearing some filters to show more solutions.",
+        "searching": "Searching for \"{{searchTerm}}\"", // message that appears while app is searching for a Solution
+        "noSolutionsYet": "No solutions yet.", // title of message that appears if there are no deployed Solutions to search
+        "deployFirstSolution": "Go to the Home page to deploy your first solution.", // explanation line following the noSolutionsYet title
+        "searchArcGISSolutions": "Search Solutions", // placeholder for searching for Solutions on Home (available Solutions) page
+        "searchMyArcGISSolutions": "Search My Solutions", // placeholder for searching for Solutions on My Solutions (already deployed) page
+        "clearSearch": "Clear search" // ARIA text for button to erase current search text
+      },
+      // Used to adjust the order in which Solution cards are displayed
+      "cardDisplayOrder": {
+        "sortBy": "Sort by", // title for type of sort: date modified, relevance, or title
+        "sortByDateDeployed" : "Date Deployed", // sort option
+        "sortByDateModified": "Date Modified", // sort option
+        "sortByRelevance": "Relevance", // sort option
+        "sortByTitle": "Title", // sort option
+        "sortByViewCount": "Views", // sort option
+        "sortDirection": "Sort direction", // title for direction of sort for sorting by date modified or by title
+        "sortDirectionAlphabetical": "Alphabetical", // direction for sorting by title
+        "sortDirectionLeastRecent": "Least recent", // direction for sorting by date deployed
+        "sortDirectionLeastViews": "Least to most", // direction for sorting by number of views
+        "sortDirectionMostRecent": "Most recent", // direction for sorting by date deployed
+        "sortDirectionMostViews": "Most to least", // direction for sorting by number of views
+        "sortDirectionReverseAlphabetical": "Reverse-Alphabetical", // direction for sorting by title
+        "sortingByAlphabetical": "sorting in alphabetical order", // description of sorting menu button for screen reader
+        "sortingByDateDeployed": "sorting by date deployed", // description of sorting menu button for screen reader
+        "sortingByDateModified": "sorting by date modified", // description of sorting menu button for screen reader
+        "sortingByLeastToMostViews": "sorting in order from least to most views", // description of sorting menu button for screen reader
+        "sortingByMostToLeastViews": "sorting in order from  most to least views", // description of sorting menu button for screen reader
+        "sortingByRelevance": "sorting by relevance", // description of sorting menu button for screen reader
+        "sortingByReverseAlphabetical": "sorting in reverse alphabetical order", // description of sorting menu button for screen reader
+        "sortingByTitle": "sorting by title", // description of sorting menu button for screen reader
+        "sortingByViewCount": "sorting by number of views" // description of sorting menu button for screen reader
+      },
+      // Pop-up for first-time users to introduce the app
+      "welcome": {
+        "firstParagraph": "ArcGIS Solutions are a collection of focused maps and apps that help address challenges in your organization. Part of the Esri Geospatial Cloud, ArcGIS Solutions leverage your authoritative data and are designed to help you improve operations, gain new insight, and enhance services.",
+        "secondParagraph": "The ArcGIS Solutions app can be used to search for a solution and quickly deploy to your ArcGIS organization. Once complete you can open the solution in your organization and configure it to meet your needs.",
+        "thirdParagraph": "If you don't see the solution you are interested in, click Resources to visit the ArcGIS Solutions website and explore the complete collection of solutions.",
+        "title" : "Welcome to the new ArcGIS Solutions app!"
+      },
+      "delete": {
+        "confirmHeader": "Confirm Solution Deletion: {{solutionName}}", // header for delete solution modal
+        "confirmWarning": "This will permanently delete this solution.", // warning in modal
+        "confirmDeleteItems": "The following items will also be deleted:", // text above table of items to be deleted
+        "confirmDeleteButton": "Confirm Deletion", // action button text
+        "deleteTooltip": "Delete solution", // button text on hover
+        "deleteDisabledTooltip" : "Cannot delete solution in this app", // button text on hover
+        "deletingMessage": "Deleting Solution", // action text in modal while solution items are deleting
+        "tableColumnItemName" : "Item Name", // first column header in table of items to delete
+        "tableColumnType" : "Type", // second column header in table of items to delete
+        "tableColumnOwner" : "Owner", // third column header in table of items to delete
+        "tableColumnLastModified": "Last Modified", // fourth column header in table of items to delete
+        "successHeader": "Solution Successfully Deleted", // successful deletion modal header
+        "successMessage": "The solution and components were successfully deleted.", // successful deletion message in modal
+        "successRemainingItems": "Some items could not be deleted:", // partial success message in modal
+        "failedHeader" : "Solution Failed To Delete", //Failed deletion header
+        "failedRetryButton" : "Retry" //Failed deletion retry button text
+      },
+      "pagination": { // ARIA label for buttons to change the page of the solution items display
+        "jumpToPreviousPage": "Previous",
+        "jumpToNextPage": "Next"
+      }
+      // ---------- end of copy
+    }
+  }),
+  "ar": 1,
+  "bs": 1,
+  "bg": 1,
+  "ca": 1,
+  "cs": 1,
+  "da": 1,
+  "de": 1,
+  "el": 1,
+  "es": 1,
+  "et": 1,
+  "fi": 1,
+  "fr": 1,
+  "he": 1,
+  "hr": 1,
+  "hu": 1,
+  "id": 1,
+  "it": 1,
+  "ja": 1,
+  "ko": 1,
+  "lt": 1,
+  "lv": 1,
+  "nb": 1,
+  "nl": 1,
+  "pl": 1,
+  "pt-br": 1,
+  "pt-pt": 1,
+  "ro": 1,
+  "ru": 1,
+  "sk": 1,
+  "sl": 1,
+  "sr": 1,
+  "sv": 1,
+  "th": 1,
+  "tr": 1,
+  "uk": 1,
+  "vi": 1,
+  "zh-cn": 1,
+  "zh-hk": 1,
+  "zh-tw": 1
+});

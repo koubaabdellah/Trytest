@@ -1,0 +1,256 @@
+$.fn.createPlayer = function() {
+
+    var defaults = {
+        txt: [],
+    },
+
+    settings = $.extend({}, defaults);
+
+    return this.each(function() {
+      var $player = $(this);
+        var $video = $player.find('video');
+        var $audio = $player.find('audio');
+
+        function getTextLabels() {
+            $player.settings.txt.play = $video.attr('data-playtxt') || 'Afspelen';
+            $player.settings.txt.pauze = $video.attr('data-pauzetxt') || 'Pauzeer';
+            $player.settings.txt.enableAd = $video.attr('data-enablead') || 'Audio descriptie afspelen';
+            $player.settings.txt.disableAd = $video.attr('data-disablead') || 'Audio descriptie stoppen';
+            $player.settings.txt.enableCc = $video.attr('data-enablecc') || 'Ondertiteling aan';
+            $player.settings.txt.disableCc = $video.attr('data-disablecc') || 'Ondertiteling uit';
+            $player.settings.txt.volumeOn = $video.attr('data-enablevolume') || 'Geluid aan';
+            $player.settings.txt.volumeOff = $video.attr('data-disablevolume') || 'Geluid uit';
+            $player.settings.txt.enableFullscreen = $video.attr('data-enablefullscreen') || 'Schermvullende weergave openen';
+            $player.settings.txt.disableFullscreen = $video.attr('data-disablefullscreen') || 'Schermvullende weergave sluiten';
+        }
+
+        function initControlLabels(MediaElement) {
+            $player.settings.playButton = $player.find('.mejs-playpause-button button');
+            $player.settings.adButton = $player.find('.mejs-audiodescription-button button');
+            $player.settings.subButton = $player.find('.mejs-captions-button button');
+            $player.settings.volButton = $player.find('.mejs-volume-button button');
+            $player.settings.fullscreenButton = $player.find('.mejs-fullscreen-button button');
+
+            togglePlayBtnTxt(MediaElement);
+            toggleAdBtnTxt(MediaElement);
+            toggleCcBtnTxt(MediaElement);
+            toggleVolBtnTxt(MediaElement);
+            toggleFullscreenBtnTxt(MediaElement);
+
+            MediaElement.addEventListener('play', function(e) {
+                togglePlayBtnTxt(e.target);
+            }, false);
+            MediaElement.addEventListener('playing', function(e) {
+                togglePlayBtnTxt(e.target);
+            }, false);
+            MediaElement.addEventListener('pause', function(e) {
+                togglePlayBtnTxt(e.target);
+            }, false);
+
+            $player.settings.adButton.on('click', function() {
+              toggleAdBtnTxt(MediaElement);
+            });
+
+            $player.settings.subButton.on('click', function() {
+              toggleCcBtnTxt(MediaElement);
+            });
+
+            $player.settings.volButton.on('click', function() {
+              toggleVolBtnTxt(MediaElement);
+            });
+
+            $player.settings.fullscreenButton.on('click', function() {
+              toggleFullscreenBtnTxt(MediaElement);
+            });
+
+        }
+
+        function togglePlayBtnTxt(target) {
+            var block = $(target).parents('.block-audio-video');
+            var playButton = block.find('.mejs-playpause-button button');
+            if (playButton.parent().hasClass('mejs-play')) {
+                playButton.attr({
+                    'title': $player.settings.txt.play,
+                    'aria-label': $player.settings.txt.play
+                });
+                playButton.html($player.settings.txt.play);
+                block.siblings('.hide-on-play').show();
+            } else {
+                playButton.attr({
+                    'title': $player.settings.txt.pauze,
+                    'aria-label': $player.settings.txt.pauze
+                });
+                playButton.html($player.settings.txt.pauze);
+                block.siblings('.hide-on-play').hide();
+            }
+        }
+
+        function toggleAdBtnTxt(target) {
+            var block = $(target).parents('.block-audio-video');
+            var adButton = block.find('.mejs-audiodescription-button button');
+            if (adButton.hasClass('inactive')) {
+                adButton.removeClass('inactive');
+                adButton.attr({
+                    'title': $player.settings.txt.disableAd,
+                    'aria-label': $player.settings.txt.disableAd
+                });
+                adButton.html($player.settings.txt.disableAd);
+            } else {
+                adButton.addClass('inactive');
+                adButton.attr({
+                    'title': $player.settings.txt.enableAd,
+                    'aria-label': $player.settings.txt.enableAd
+                });
+                adButton.html($player.settings.txt.enableAd);
+            }
+        }
+
+        function toggleCcBtnTxt(target) {
+            var block = $(target).parents('.block-audio-video');
+            var subButton = block.find('.mejs-captions-button button');
+            if (subButton.hasClass('inactive')) {
+                subButton.removeClass('inactive');
+                subButton.attr({
+                    'title': $player.settings.txt.disableCc,
+                    'aria-label': $player.settings.txt.disableCc
+                });
+                subButton.html($player.settings.txt.disableCc);
+            } else {
+                subButton.addClass('inactive');
+                subButton.attr({
+                    'title': $player.settings.txt.enableCc,
+                    'aria-label': $player.settings.txt.enableCc
+                });
+                subButton.html($player.settings.txt.enableCc);
+            }
+        }
+
+        function toggleVolBtnTxt(target) {
+            var block = $(target).parents('.block-audio-video');
+            var volButton = block.find('.mejs-volume-button button');
+            if (volButton.hasClass('inactive')) {
+                volButton.removeClass('inactive');
+                volButton.attr({
+                    'title': $player.settings.txt.volumeOn,
+                    'aria-label': $player.settings.txt.volumeOn
+                });
+                volButton.html($player.settings.txt.volumeOn);
+            } else {
+                volButton.addClass('inactive');
+                volButton.attr({
+                    'title': $player.settings.txt.volumeOff,
+                    'aria-label': $player.settings.txt.volumeOff
+                });
+                volButton.html($player.settings.txt.volumeOff);
+            }
+        }
+
+        function toggleFullscreenBtnTxt(target) {
+            var block = $(target).parents('.block-audio-video');
+            var fullscreenButton = block.find('.mejs-fullscreen-button button');
+            if (fullscreenButton.hasClass('fullscreen')) {
+                fullscreenButton.attr({
+                    'title': $player.settings.txt.disableFullscreen,
+                    'aria-label': $player.settings.txt.disableFullscreen
+                });
+                fullscreenButton.html($player.settings.txt.disableFullscreen);
+                fullscreenButton.removeClass('fullscreen');
+            } else {
+                fullscreenButton.attr({
+                    'title': $player.settings.txt.enableFullscreen,
+                    'aria-label': $player.settings.txt.enableFullscreen
+                });
+                fullscreenButton.html($player.settings.txt.enableFullscreen);
+                fullscreenButton.addClass('fullscreen');
+            }
+        }
+
+        function setPlayerType(){
+            if ($player.find('embed').length > 0){
+                $player.addClass('flash');
+            }
+        }
+
+        function createVideoPlayer() {
+            var playerWidth = -1;
+            var playerHeight = -1;
+
+            $video.mediaelementplayer({
+                enableAutosize: true,
+                videoWidth: playerWidth,
+                videoHeight: playerHeight,
+                mode: 'auto',
+                plugins: ['flash'],
+                pluginPath: 'assets/mediaelement/',
+                flashName: 'flashmediaelement.swf',
+                features: ['playpause', 'current', 'progress', 'duration', 'volume', 'tracks', 'audiodescription','fullscreen'],
+                adFile: $video.data('ad'),
+                alwaysShowControls: true,
+                toggleCaptionsButtonWhenOnlyOne: true,
+                success: function(MediaElement) {
+                    initControlLabels(MediaElement);
+                    setPlayerType();
+                }
+            });
+        }
+
+        function createStreamingVideoPlayer() {
+
+            var playerWidth = -1;
+            var playerHeight = -1;
+
+            $video.mediaelementplayer({
+                enableAutosize: true,
+                videoWidth: playerWidth,
+                videoHeight: playerHeight,
+                mode: 'auto',
+                plugins: ['flash'],
+                pluginPath: $('body').attr('data-scriptpath') + '/shared-ro/mediaelement/',
+                flashName: 'flashmediaelement.swf',
+                features: ['playpause', 'volume', 'fullscreen'],
+                type: 'application/x-mpegURL',
+                alwaysShowControls: true,
+                success: function(MediaElement) {
+                    initControlLabels(MediaElement);
+                    setPlayerType();
+                },
+                error: function() {
+                    $player.html($video.attr('data-noplugintxt'));
+                }
+            });
+        }
+        
+        function createAudioPlayer() {
+            $audio.mediaelementplayer({
+                enableAutosize: true,
+                mode: 'auto',
+                plugins: ['flash'],
+                pluginPath: 'shared-ro/mediaelement/',
+                flashName: 'flashmediaelement.swf',
+                features: ['playpause', 'current', 'progress', 'duration', 'volume'],
+                alwaysShowControls: true,
+                success: function(MediaElement) {
+                    initControlLabels(MediaElement);
+                }
+            });
+        }
+
+        function init() {
+            $player.settings = settings;
+            getTextLabels();
+            if ($video.length > 0) {
+                if ($player.hasClass('streaming')) {
+                    createStreamingVideoPlayer();
+                } else {
+                    createVideoPlayer();
+                }
+            } else if ($audio.length > 0) {
+                createAudioPlayer();
+            }
+        }
+        init();
+    });
+
+};
+
+$('.block-audio-video').createPlayer();

@@ -1,0 +1,63 @@
+;(function (){
+          treedata = (window.treedata || {});
+          window.treedata.mode = 0;
+          window.treedata.mapping = {'1606' : 'arcmap/10.6/get-started/main' ,'1607' : 'arcmap/10.6/get-started/introduction' ,'1608' : 'arcmap/10.6/get-started/setup' ,'167' : 'arcmap/10.6/get-started/installation-guide' ,'3' : 'arcmap/10.6/get-started/administer' ,'340' : 'arcmap/10.6/get-started/customizing-the-ui' ,'1604' : 'arcmap/10.6/get-started/terms-of-use' };
+          treedata.data = {};
+          treedata.data["root"]  = {  
+              "parent" : "",
+              "children" : ["1606_h0"]
+            },treedata.data["root_1606"] = treedata.data["root"],
+treedata.data["1606_h0"]  = { 
+              "parent" : "root",
+              "label" : "Get Started",
+              "children" : ["1606_149","1606_h1","1606_h2","1606_h4","1606_h5","1606_h6"]
+            }
+            ,
+treedata.data["1606_149"]  = {
+            "parent" : "1606_h0",
+            "label" : "Get started with ArcMap",
+            "url" : "/en/arcmap/10.6/get-started/main/get-started-with-arcmap.htm"
+            ,"homepage": true
+          },
+treedata.data["1606_h1"]  = { 
+              "parent" : "1606_h0",
+              "label" : "Introducing ArcMap and ArcCatalog",
+              "linkuri" : "1607",
+              "linkurl" : "/en/arcmap/10.6/get-started/introduction/1607.js"
+            },
+            treedata.data["rootalias_1607"] = treedata.data["1606_h1"],
+treedata.data["1606_h2"]  = { 
+              "parent" : "1606_h0",
+              "label" : "Set up ArcMap and ArcCatalog",
+              "children" : [{"graft":true, "linkuri": "1608", "linkurl": "/en/arcmap/10.6/get-started/setup/1608.js", "toc": "None"},"1606_h3"]
+            },treedata.data["rootalias_1608"] = treedata.data["1606_h2"]
+            ,
+treedata.data["1606_h3"]  = { 
+              "parent" : "1606_h2",
+              "label" : "Installation Guide",
+              "linkuri" : "167",
+              "linkurl" : "/en/arcmap/10.6/get-started/installation-guide/167.js"
+            },
+            treedata.data["rootalias_167"] = treedata.data["1606_h3"],
+treedata.data["1606_h4"]  = { 
+              "parent" : "1606_h0",
+              "label" : "Administer ArcMap and ArcCatalog",
+              "linkuri" : "3",
+              "linkurl" : "/en/arcmap/10.6/get-started/administer/3.js"
+            },
+            treedata.data["rootalias_3"] = treedata.data["1606_h4"],
+treedata.data["1606_h5"]  = { 
+              "parent" : "1606_h0",
+              "label" : "Customizing the UI",
+              "linkuri" : "340",
+              "linkurl" : "/en/arcmap/10.6/get-started/customizing-the-ui/340.js"
+            },
+            treedata.data["rootalias_340"] = treedata.data["1606_h5"],
+treedata.data["1606_h6"]  = { 
+              "parent" : "1606_h0",
+              "label" : "Terms of use",
+              "linkuri" : "1604",
+              "linkurl" : "/en/arcmap/10.6/get-started/terms-of-use/1604.js"
+            },
+            treedata.data["rootalias_1604"] = treedata.data["1606_h6"]
+        })()

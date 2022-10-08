@@ -1,0 +1,7 @@
+jQuery(document).ready(function(){
+	// Temp manual fix for SmoothScroll problem
+    if (window.SmoothScroll) {
+        window.SmoothScroll.destroy();
+        // console.log('Disabled smooth scrolling to prevent stutter.');
+    }
+});

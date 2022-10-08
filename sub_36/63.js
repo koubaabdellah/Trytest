@@ -1,0 +1,511 @@
+;(function (){
+          treedata = (window.treedata || {});
+          treedata.data["root_63"]  = {  
+              "parent" : "",
+              "children" : ["63_1","63_87","63_3","63_h0","63_h6","63_h10","63_h14"]
+            },
+treedata.data["63_1"]  = {
+            "parent" : "root_63",
+            "label" : "What are graphs in ArcGIS?",
+            "url" : "/en/arcmap/10.3/map/graphs/exploring-and-visualizing-data-with-graphs.htm"
+            
+          },
+treedata.data["63_87"]  = {
+            "parent" : "root_63",
+            "label" : "A quick tour of graphs",
+            "url" : "/en/arcmap/10.3/map/graphs/a-quick-tour-of-creating-graphs.htm"
+            
+          },
+treedata.data["63_3"]  = {
+            "parent" : "root_63",
+            "label" : "Essential graphing vocabulary",
+            "url" : "/en/arcmap/10.3/map/graphs/essential-graphing-vocabulary.htm"
+            
+          },
+treedata.data["63_h0"]  = { 
+              "parent" : "root_63",
+              "label" : "Creating graphs",
+              "children" : ["63_4","63_8","63_5","63_7","63_h1","63_h3","63_26","63_118","63_h4","63_h5","63_21","63_34"]
+            }
+            ,
+treedata.data["63_4"]  = {
+            "parent" : "63_h0",
+            "label" : "The steps to create a graph",
+            "url" : "/en/arcmap/10.3/map/graphs/the-steps-to-create-a-graph.htm"
+            
+          },
+treedata.data["63_8"]  = {
+            "parent" : "63_h0",
+            "label" : "Types of graphs",
+            "url" : "/en/arcmap/10.3/map/graphs/types-of-graphs.htm"
+            
+          },
+treedata.data["63_5"]  = {
+            "parent" : "63_h0",
+            "label" : "Sources of information for graphs",
+            "url" : "/en/arcmap/10.3/map/graphs/sources-of-information-for-graphs.htm"
+            
+          },
+treedata.data["63_7"]  = {
+            "parent" : "63_h0",
+            "label" : "Creating a graph from a table",
+            "url" : "/en/arcmap/10.3/map/graphs/creating-a-graph-from-a-table.htm"
+            
+          },
+treedata.data["63_h1"]  = { 
+              "parent" : "63_h0",
+              "label" : "Creating different types of graphs",
+              "children" : ["63_10","63_86","63_12","63_13","63_14","63_15","63_16","63_17","63_18","63_19","63_h2"]
+            }
+            ,
+treedata.data["63_10"]  = {
+            "parent" : "63_h1",
+            "label" : "Creating bar graphs",
+            "url" : "/en/arcmap/10.3/map/graphs/creating-bar-graphs.htm"
+            
+          },
+treedata.data["63_86"]  = {
+            "parent" : "63_h1",
+            "label" : "Bar min and max graph",
+            "url" : "/en/arcmap/10.3/map/graphs/creating-bar-min-and-max-graphs.htm"
+            
+          },
+treedata.data["63_12"]  = {
+            "parent" : "63_h1",
+            "label" : "Creating histogram graphs",
+            "url" : "/en/arcmap/10.3/map/graphs/creating-histogram-graphs.htm"
+            
+          },
+treedata.data["63_13"]  = {
+            "parent" : "63_h1",
+            "label" : "Creating line graphs",
+            "url" : "/en/arcmap/10.3/map/graphs/creating-line-graphs.htm"
+            
+          },
+treedata.data["63_14"]  = {
+            "parent" : "63_h1",
+            "label" : "Creating area graphs",
+            "url" : "/en/arcmap/10.3/map/graphs/creating-area-graphs.htm"
+            
+          },
+treedata.data["63_15"]  = {
+            "parent" : "63_h1",
+            "label" : "Creating scatterplot graphs",
+            "url" : "/en/arcmap/10.3/map/graphs/creating-scatter-plot-graphs.htm"
+            
+          },
+treedata.data["63_16"]  = {
+            "parent" : "63_h1",
+            "label" : "Creating box plot graphs",
+            "url" : "/en/arcmap/10.3/map/graphs/creating-box-plot-graphs.htm"
+            
+          },
+treedata.data["63_17"]  = {
+            "parent" : "63_h1",
+            "label" : "Creating pie graphs",
+            "url" : "/en/arcmap/10.3/map/graphs/creating-pie-graphs.htm"
+            
+          },
+treedata.data["63_18"]  = {
+            "parent" : "63_h1",
+            "label" : "Creating bubble graphs",
+            "url" : "/en/arcmap/10.3/map/graphs/creating-bubble-graphs.htm"
+            
+          },
+treedata.data["63_19"]  = {
+            "parent" : "63_h1",
+            "label" : "Creating polar graphs",
+            "url" : "/en/arcmap/10.3/map/graphs/creating-polar-graphs.htm"
+            
+          },
+treedata.data["63_h2"]  = { 
+              "parent" : "63_h1",
+              "label" : "Creating Scatter Plot Matrix graphs",
+              "children" : ["63_9","63_20"]
+            }
+            ,
+treedata.data["63_9"]  = {
+            "parent" : "63_h2",
+            "label" : "Fundamentals of Scatterplot Matrix graphs",
+            "url" : "/en/arcmap/10.3/map/graphs/scatter-plot-matrix-graphs.htm"
+            
+          },
+treedata.data["63_20"]  = {
+            "parent" : "63_h2",
+            "label" : "Creating a Scatterplot Matrix graph",
+            "url" : "/en/arcmap/10.3/map/graphs/creating-a-scatter-plot-matrix-using-the-wizard.htm"
+            
+          },
+treedata.data["63_h3"]  = { 
+              "parent" : "63_h0",
+              "label" : "Setting graph properties",
+              "children" : ["63_22","63_23","63_24","63_25"]
+            }
+            ,
+treedata.data["63_22"]  = {
+            "parent" : "63_h3",
+            "label" : "General properties of graphs",
+            "url" : "/en/arcmap/10.3/map/graphs/properties-of-graphs.htm"
+            
+          },
+treedata.data["63_23"]  = {
+            "parent" : "63_h3",
+            "label" : "Fundamentals of setting the colors of a graph",
+            "url" : "/en/arcmap/10.3/map/graphs/fundamentals-of-setting-the-colors-of-a-graph.htm"
+            
+          },
+treedata.data["63_24"]  = {
+            "parent" : "63_h3",
+            "label" : "Changing the text and style of titles",
+            "url" : "/en/arcmap/10.3/map/graphs/changing-the-text-and-style-of-titles.htm"
+            
+          },
+treedata.data["63_25"]  = {
+            "parent" : "63_h3",
+            "label" : "Controlling the axes of the graph",
+            "url" : "/en/arcmap/10.3/map/graphs/controlling-the-axes-of-the-graph.htm"
+            
+          },
+treedata.data["63_26"]  = {
+            "parent" : "63_h0",
+            "label" : "Using series with graphs",
+            "url" : "/en/arcmap/10.3/map/graphs/using-series-with-graphs.htm"
+            
+          },
+treedata.data["63_118"]  = {
+            "parent" : "63_h0",
+            "label" : "Create a graph with multiple series",
+            "url" : "/en/arcmap/10.3/map/graphs/creating-a-graph-with-multiple-series.htm"
+            
+          },
+treedata.data["63_h4"]  = { 
+              "parent" : "63_h0",
+              "label" : "Adding a function to the graph",
+              "children" : ["63_27","63_28","63_29"]
+            }
+            ,
+treedata.data["63_27"]  = {
+            "parent" : "63_h4",
+            "label" : "Fundamentals of graph functions",
+            "url" : "/en/arcmap/10.3/map/graphs/graph-functions.htm"
+            
+          },
+treedata.data["63_28"]  = {
+            "parent" : "63_h4",
+            "label" : "Adding a function line to a graph",
+            "url" : "/en/arcmap/10.3/map/graphs/adding-a-function-line-to-a-graph.htm"
+            
+          },
+treedata.data["63_29"]  = {
+            "parent" : "63_h4",
+            "label" : "Setting function parameters",
+            "url" : "/en/arcmap/10.3/map/graphs/setting-function-parameters.htm"
+            
+          },
+treedata.data["63_h5"]  = { 
+              "parent" : "63_h0",
+              "label" : "Using graph templates",
+              "children" : ["63_30","63_31","63_32","63_33"]
+            }
+            ,
+treedata.data["63_30"]  = {
+            "parent" : "63_h5",
+            "label" : "Fundamentals of graph templates",
+            "url" : "/en/arcmap/10.3/map/graphs/fundamentals-of-graph-templates.htm"
+            
+          },
+treedata.data["63_31"]  = {
+            "parent" : "63_h5",
+            "label" : "Creating a graph template",
+            "url" : "/en/arcmap/10.3/map/graphs/creating-a-graph-template.htm"
+            
+          },
+treedata.data["63_32"]  = {
+            "parent" : "63_h5",
+            "label" : "Loading a graph template",
+            "url" : "/en/arcmap/10.3/map/graphs/loading-a-graph-template.htm"
+            
+          },
+treedata.data["63_33"]  = {
+            "parent" : "63_h5",
+            "label" : "Removing graph templates",
+            "url" : "/en/arcmap/10.3/map/graphs/removing-graph-templates.htm"
+            
+          },
+treedata.data["63_21"]  = {
+            "parent" : "63_h0",
+            "label" : "Creating a graph using geoprocessing tools",
+            "url" : "/en/arcmap/10.3/map/graphs/creating-a-graph-using-geoprocessing-tools.htm"
+            
+          },
+treedata.data["63_34"]  = {
+            "parent" : "63_h0",
+            "label" : "Interacting with graphs",
+            "url" : "/en/arcmap/10.3/map/graphs/graph-options.htm"
+            
+          },
+treedata.data["63_h6"]  = { 
+              "parent" : "root_63",
+              "label" : "Displaying and querying graphs",
+              "children" : ["63_h7","63_h8","63_h9"]
+            }
+            ,
+treedata.data["63_h7"]  = { 
+              "parent" : "63_h6",
+              "label" : "Displaying a graph",
+              "children" : ["63_35","63_36","63_37","63_38"]
+            }
+            ,
+treedata.data["63_35"]  = {
+            "parent" : "63_h7",
+            "label" : "Understanding how to display a graph",
+            "url" : "/en/arcmap/10.3/map/graphs/understanding-how-to-display-a-graph.htm"
+            
+          },
+treedata.data["63_36"]  = {
+            "parent" : "63_h7",
+            "label" : "Displaying an existing graph",
+            "url" : "/en/arcmap/10.3/map/graphs/displaying-an-existing-graph.htm"
+            
+          },
+treedata.data["63_37"]  = {
+            "parent" : "63_h7",
+            "label" : "Displaying an existing graph using the Graph Manager",
+            "url" : "/en/arcmap/10.3/map/graphs/displaying-an-existing-graph-with-the-graph-manager.htm"
+            
+          },
+treedata.data["63_38"]  = {
+            "parent" : "63_h7",
+            "label" : "Displaying a graph with international characters",
+            "url" : "/en/arcmap/10.3/map/graphs/displaying-a-graph-with-international-characters.htm"
+            
+          },
+treedata.data["63_h8"]  = { 
+              "parent" : "63_h6",
+              "label" : "Working with graph in the layout view of ArcMap",
+              "children" : ["63_39","63_40","63_41","63_42","63_43"]
+            }
+            ,
+treedata.data["63_39"]  = {
+            "parent" : "63_h8",
+            "label" : "About working with graphs in the layout view",
+            "url" : "/en/arcmap/10.3/map/graphs/about-working-with-graphs-in-the-layout.htm"
+            
+          },
+treedata.data["63_40"]  = {
+            "parent" : "63_h8",
+            "label" : "Adding a graph to the layout",
+            "url" : "/en/arcmap/10.3/map/graphs/adding-a-graph-to-the-layout.htm"
+            
+          },
+treedata.data["63_41"]  = {
+            "parent" : "63_h8",
+            "label" : "Modifying a graph in the layout",
+            "url" : "/en/arcmap/10.3/map/graphs/modifying-a-graph-in-the-layout.htm"
+            
+          },
+treedata.data["63_42"]  = {
+            "parent" : "63_h8",
+            "label" : "Making a copy of a graph in the layout",
+            "url" : "/en/arcmap/10.3/map/graphs/making-a-copy-of-a-graph-in-the-layout.htm"
+            
+          },
+treedata.data["63_43"]  = {
+            "parent" : "63_h8",
+            "label" : "Making a static graphic from a graph",
+            "url" : "/en/arcmap/10.3/map/graphs/making-a-graphic-from-a-graph.htm"
+            
+          },
+treedata.data["63_h9"]  = { 
+              "parent" : "63_h6",
+              "label" : "Interactive querying of graphs",
+              "children" : ["63_45","63_46","63_47"]
+            }
+            ,
+treedata.data["63_45"]  = {
+            "parent" : "63_h9",
+            "label" : "Highlighting graph selections",
+            "url" : "/en/arcmap/10.3/map/graphs/highlighting-graph-selections.htm"
+            
+          },
+treedata.data["63_46"]  = {
+            "parent" : "63_h9",
+            "label" : "Updating graphs with selections",
+            "url" : "/en/arcmap/10.3/map/graphs/updating-graphs-with-selections.htm"
+            
+          },
+treedata.data["63_47"]  = {
+            "parent" : "63_h9",
+            "label" : "Making graphs static",
+            "url" : "/en/arcmap/10.3/map/graphs/making-graphs-static.htm"
+            
+          },
+treedata.data["63_h10"]  = { 
+              "parent" : "root_63",
+              "label" : "Modifying and managing graphs",
+              "children" : ["63_48","63_h11","63_h12"]
+            }
+            ,
+treedata.data["63_48"]  = {
+            "parent" : "63_h10",
+            "label" : "Fundamentals for modifying graphs",
+            "url" : "/en/arcmap/10.3/map/graphs/fundamentals-for-modifying-graphs.htm"
+            
+          },
+treedata.data["63_h11"]  = { 
+              "parent" : "63_h10",
+              "label" : "Modifying existing graphs",
+              "children" : ["63_49","63_50","63_51","63_52","63_53","63_54","63_55","63_56","63_57","63_58"]
+            }
+            ,
+treedata.data["63_49"]  = {
+            "parent" : "63_h11",
+            "label" : "Changing the graph type",
+            "url" : "/en/arcmap/10.3/map/graphs/changing-the-graph-type.htm"
+            
+          },
+treedata.data["63_50"]  = {
+            "parent" : "63_h11",
+            "label" : "Changing the source data of a graph",
+            "url" : "/en/arcmap/10.3/map/graphs/changing-the-source-data-of-a-graph.htm"
+            
+          },
+treedata.data["63_51"]  = {
+            "parent" : "63_h11",
+            "label" : "Changing the value field in a graph",
+            "url" : "/en/arcmap/10.3/map/graphs/changing-the-value-field-in-a-graph.htm"
+            
+          },
+treedata.data["63_52"]  = {
+            "parent" : "63_h11",
+            "label" : "Changing the title of a graph",
+            "url" : "/en/arcmap/10.3/map/graphs/changing-the-title-of-a-graph.htm"
+            
+          },
+treedata.data["63_53"]  = {
+            "parent" : "63_h11",
+            "label" : "Changing the legend title and location",
+            "url" : "/en/arcmap/10.3/map/graphs/changing-the-legend-title-and-location.htm"
+            
+          },
+treedata.data["63_54"]  = {
+            "parent" : "63_h11",
+            "label" : "Labeling data values on the graph",
+            "url" : "/en/arcmap/10.3/map/graphs/labeling-data-values-on-the-graph.htm"
+            
+          },
+treedata.data["63_55"]  = {
+            "parent" : "63_h11",
+            "label" : "Labeling the axes",
+            "url" : "/en/arcmap/10.3/map/graphs/labeling-the-axes.htm"
+            
+          },
+treedata.data["63_56"]  = {
+            "parent" : "63_h11",
+            "label" : "Making the graph axes logarithmic",
+            "url" : "/en/arcmap/10.3/map/graphs/making-the-graph-axes-logarithmic.htm"
+            
+          },
+treedata.data["63_57"]  = {
+            "parent" : "63_h11",
+            "label" : "Changing line graph symbology",
+            "url" : "/en/arcmap/10.3/map/graphs/changing-line-graph-symbology.htm"
+            
+          },
+treedata.data["63_58"]  = {
+            "parent" : "63_h11",
+            "label" : "Giving a graph a 3D appearance",
+            "url" : "/en/arcmap/10.3/map/graphs/giving-a-graph-a-3d-appearance.htm"
+            
+          },
+treedata.data["63_h12"]  = { 
+              "parent" : "63_h10",
+              "label" : "Managing Graphs",
+              "children" : ["63_59","63_h13"]
+            }
+            ,
+treedata.data["63_59"]  = {
+            "parent" : "63_h12",
+            "label" : "Fundamentals for managing graphs",
+            "url" : "/en/arcmap/10.3/map/graphs/fundamentals-for-managing-graphs.htm"
+            
+          },
+treedata.data["63_h13"]  = { 
+              "parent" : "63_h12",
+              "label" : "Using the Graph Manager",
+              "children" : ["63_60","63_61","63_62","63_63","63_64"]
+            }
+            ,
+treedata.data["63_60"]  = {
+            "parent" : "63_h13",
+            "label" : "...to create a new graph",
+            "url" : "/en/arcmap/10.3/map/graphs/creating-a-new-graph-using-the-graph-manager.htm"
+            
+          },
+treedata.data["63_61"]  = {
+            "parent" : "63_h13",
+            "label" : "...to open a graph",
+            "url" : "/en/arcmap/10.3/map/graphs/opening-a-graph.htm"
+            
+          },
+treedata.data["63_62"]  = {
+            "parent" : "63_h13",
+            "label" : "...to rename a graph",
+            "url" : "/en/arcmap/10.3/map/graphs/renaming-a-graph.htm"
+            
+          },
+treedata.data["63_63"]  = {
+            "parent" : "63_h13",
+            "label" : "...to remove a graph",
+            "url" : "/en/arcmap/10.3/map/graphs/removing-a-graph.htm"
+            
+          },
+treedata.data["63_64"]  = {
+            "parent" : "63_h13",
+            "label" : "...to load a graph",
+            "url" : "/en/arcmap/10.3/map/graphs/loading-a-graph-using-the-graph-manager.htm"
+            
+          },
+treedata.data["63_h14"]  = { 
+              "parent" : "root_63",
+              "label" : "Saving and exporting graphs",
+              "children" : ["63_65","63_66","63_67","63_68","63_69","63_70"]
+            }
+            ,
+treedata.data["63_65"]  = {
+            "parent" : "63_h14",
+            "label" : "Saving a graph",
+            "url" : "/en/arcmap/10.3/map/graphs/saving-a-graph.htm"
+            
+          },
+treedata.data["63_66"]  = {
+            "parent" : "63_h14",
+            "label" : "Loading a graph",
+            "url" : "/en/arcmap/10.3/map/graphs/loading-a-graph.htm"
+            
+          },
+treedata.data["63_67"]  = {
+            "parent" : "63_h14",
+            "label" : "Fundamentals of exporting graphs",
+            "url" : "/en/arcmap/10.3/map/graphs/fundamentals-of-exporting-graphs.htm"
+            
+          },
+treedata.data["63_68"]  = {
+            "parent" : "63_h14",
+            "label" : "Exporting a graph to a native format",
+            "url" : "/en/arcmap/10.3/map/graphs/exporting-a-graph-to-a-native-format.htm"
+            
+          },
+treedata.data["63_69"]  = {
+            "parent" : "63_h14",
+            "label" : "Exporting graph data to an image or vector format",
+            "url" : "/en/arcmap/10.3/map/graphs/exporting-graph-data-to-an-image-or-vector-format.htm"
+            
+          },
+treedata.data["63_70"]  = {
+            "parent" : "63_h14",
+            "label" : "Exporting the graph data",
+            "url" : "/en/arcmap/10.3/map/graphs/exporting-the-graph-data.htm"
+            
+          }
+        })()

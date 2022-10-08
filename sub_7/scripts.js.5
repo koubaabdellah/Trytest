@@ -1,0 +1,853 @@
+var baseUrl = 'https://besluiten.cvdm.nl';
+    //baseUrl = 'https://staging.cvdm.sabelonline.nl';
+
+/* 	<> Legislation quicklinks
+
+				Enhancement of legislation quicklinks: only show
+				one initially, make other available on click
+ */
+
+ if( jQuery('.legislation-container').length > 0 ) {
+ 	jQuery('.legislation-container').each(function(){
+ 		var jQuerylegislationContainer = jQuery(this);
+ 		var jQuerylegislationNav = jQuery('.legislation-quicklinks',jQuerylegislationContainer);
+
+ 		// set the height of the container to at least the height of the navigation
+ 		jQuerylegislationContainer.css('min-height',jQuerylegislationNav.height() + 50);
+
+ 		// hide all items, then unhide the first one
+ 		jQuerylegislationContainer.find('.legislation-item').addClass('is-hidden');
+ 		jQuerylegislationContainer.find('.legislation-item:first').removeClass('is-hidden').addClass('is-visible');
+
+ 		// when the link to an item is clicked, show that item
+ 		jQuerylegislationNav.find('a').click(function(e){
+ 			var thisDest = jQuery(this).attr('href');
+ 			jQuerylegislationContainer.find('.legislation-item').addClass('is-hidden').removeClass('is-visible');
+ 			jQuery(thisDest).removeClass('is-hidden').addClass('is-visible');
+ 			e.preventDefault();
+ 		});
+ 	});
+ }
+
+/* <> Sticky nav adder
+
+			Adds class 'scrolled-past-nav' to body when
+			page is scrolled past main navigation
+*/
+// while page is scrolling
+jQuery(window).scroll(function(){
+	// if width is more than 720
+	if( jQuery(window).width() > 720 ) {
+		// and if page has scrolled down past nav
+		if( jQuery(window).scrollTop() > 147 ) {
+			// add class
+			jQuery('body').addClass('scrolled-past-nav');
+		}
+		// if page has scrolled up past nav
+		if( jQuery(window).scrollTop() < 147 ) {
+			// remove class
+			jQuery('body').removeClass('scrolled-past-nav');
+		}
+	}
+});
+
+/* <> print link
+
+	Add a print link and make the print link print on click
+
+*/
+$printButton = jQuery('<li><button class="icon icon-print" onClick="window.print()"><span class="hide-60 print-60">Print</span></button></li>');
+jQuery('.utilities-functionality').append($printButton);
+
+/* <> Explanation toggler
+
+(for forms) links with 'explanation toggler' open the
+nearest 'explanation content'
+*/
+if(jQuery('.labelhelp').length > 0 && window.matchMedia('(min-width: 48em)').matches) {
+	jQuery('.labelhelp').each(function(){
+		var jQuerytoggler, jQuerycontent;
+		jQuerytoggler = jQuery(this);
+		jQuerycontent = jQuerytoggler.parent().find('.labelhelp-content');
+		// let the toggler toggle
+		jQuerytoggler.click(function(){
+			jQuerycontent.toggleClass('is-hidden');
+		});
+		// now that the icon has become a working toggler,
+		// the content can safely be hidden
+		jQuerycontent.addClass('is-hidden');
+	});
+}
+
+/* <> in page nav height fix
+
+// 2013-06-11 no longer needed!
+
+var jQueryinPageNav = jQuery('.in-page-nav');
+var inPageNavExtraSpace = 50;
+if(jQueryinPageNav.length > 0) {
+	jQueryinPageNav.next('.article-content').css('min-height',jQueryinPageNav.height() + inPageNavExtraSpace);
+}
+*/
+
+/* <> Add loading classes for icon font
+
+			This adds a class to <html> when the icon font is available
+			(when it is, the icon is made visible in CSS)
+*/
+
+WebFontConfig = {
+		custom: { families: ['icon'] }
+};
+(function() {
+  var wf = document.createElement('script');
+  wf.src = '/wp-content/themes/cvdm/js/webfont.js';
+  wf.type = 'text/javascript';
+  wf.async = 'true';
+  var s = document.getElementsByTagName('script')[0];
+  s.parentNode.insertBefore(wf, s);
+})();
+
+/* <> FAQ Toggler
+
+	 This makes sure for each .faq, the .faq-content elements are
+	 hidden and can be toggled with their closests .faq-toggler elements
+
+*/
+var faqs = jQuery('.faq');
+faqs.each(function(){
+	jQueryfaq = jQuery(this);
+	jQueryfaq.addClass('js-faq');
+	jQuery('.faq-toggler',jQueryfaq).click(function(){
+		jQuery(this).toggleClass('faq-toggler-open').next('.faq-content').toggleClass('is-hidden');
+	});
+	jQuery(".faq-content a").attr("tabindex",1);
+	//Tab through questions
+	jQuery('.faq-toggler').on("focus blur",jQueryfaq, function(){
+		jQuery(this).addClass('faq-toggler-open').next('.faq-content').removeClass('is-hidden');
+	});
+});
+
+if(jQuery("body").hasClass('vraagjes')){
+	jQuery(document).scrollTop( jQuery("#active").offset().top - 125 );
+}
+
+/*	<> Enhance checkboxes
+
+			Wraps checkboxes and radio buttons and adds 'checked' class,
+			to allow for custom styling.
+
+			Code taken from Filament Group
+*/
+
+jQuery.fn.customInput = function(){
+	jQuery(this).each(function(i){
+		if(jQuery(this).is('[type=checkbox],[type=radio]')){
+
+			var input = jQuery(this);
+
+			// get the associated label using the input's id
+			var label = jQuery('label[for='+input.attr('id')+']');
+
+			//get type, for classname suffix
+			var inputType = (input.is('[type=checkbox]')) ? 'checkbox' : 'radio';
+
+			// wrap the input + label in a div
+			jQuery('<div class="custom-'+ inputType +'"></div>').insertBefore(input).append(input, label);
+
+			// find all inputs in this set using the shared name attribute
+			/* edit HdV 20130620: this causes a problem if the @name contains periods.
+				 replaced with a select for all inputs
+       var allInputs = jQuery('input[name='+input.attr('name')+']');
+			*/
+			var allInputs = jQuery('input');
+
+			// necessary for browsers that don't support the :hover pseudo class on labels
+			label.hover(
+				function(){
+					jQuery(this).addClass('hover');
+					if(inputType == 'checkbox' && input.is(':checked')){
+						jQuery(this).addClass('checkedHover');
+					}
+				},
+				function(){ jQuery(this).removeClass('hover checkedHover'); }
+			);
+
+			//bind custom event, trigger it, bind click,focus,blur events
+			input.bind('updateState', function(){
+				if (input.is(':checked')) {
+					if (input.is(':radio')) {
+						allInputs.each(function(){
+							jQuery('label[for='+jQuery(this).attr('id')+']').removeClass('checked');
+						});
+					};
+					label.addClass('checked');
+				}
+				else { label.removeClass('checked checkedHover checkedFocus'); }
+
+			})
+			.trigger('updateState')
+			.click(function(){
+				runFilter();
+			})
+			.focus(function(){
+				label.addClass('focus');
+				if(inputType == 'checkbox' && input.is(':checked')){
+					jQuery(this).addClass('checkedFocus');
+				}
+			})
+			.blur(function(){ label.removeClass('focus checkedFocus'); });
+		}
+	});
+};
+jQuery('.facetset input').customInput();
+
+function runFilter() {
+
+	jQuery(this).trigger('updateState');
+
+	var dataString = "filter=besluiten&page=0";
+
+	if(GetURLParameter("sq")){
+		dataString += "&query="+GetURLParameter("sq");
+	} else if(GetURLParameter("tag")){
+		dataString += "&tagquery="+GetURLParameter("tag");
+	} else if(GetURLParameter("s")){
+		dataString += "&query="+GetURLParameter("s");
+	}
+
+	jQuery("input[name=facet-jaar]:checked").each(function(index){
+		if(index == 0){
+			dataString += "&jaar="+jQuery(this).attr("id");
+		} else {
+			dataString += ","+jQuery(this).attr("id");
+		}
+	});
+	jQuery("input[name=facet-onderwerp]:checked").each(function(index){
+		if(index == 0){
+			dataString += "&onderwerp="+jQuery(this).attr("id");
+		} else {
+			dataString += ","+jQuery(this).attr("id");
+		}
+	});
+	jQuery("input[name=facet-organisatie]:checked").each(function(index){
+		if(index == 0){
+			dataString += "&organisatie="+jQuery(this).attr("id");
+		} else {
+			dataString += ","+jQuery(this).attr("id");
+		}
+	});
+	jQuery("input[name=facet-type]:checked").each(function(index){
+		if(index == 0){
+			dataString += "&type="+jQuery(this).attr("id");
+		} else {
+			dataString += ","+jQuery(this).attr("id");
+		}
+	});
+	jQuery("input[name=facet-status]:checked").each(function(index){
+		if(index == 0){
+			dataString += "&status="+jQuery(this).attr("id");
+		} else {
+			dataString += ","+jQuery(this).attr("id");
+		}
+	});
+	jQuery("input[name=facet-type]:checked").each(function(index){
+		if(index == 0){
+			dataString += "&type="+jQuery(this).attr("id");
+		} else {
+			dataString += ","+jQuery(this).attr("id");
+		}
+	});
+
+	if(jQuery(".besluit-order").length) {
+		dataString += "&order="+ jQuery(".besluit-order").data('value');
+	}
+
+	if(jQuery("#ajax-holder").hasClass("besluiten-list")){
+		var urls = baseUrl +"/wp-content/themes/cvdm/filter-besluit.php";
+        sessionStorage.setItem("besluiten-filter", saveBesluitenFilter());
+	} else if(jQuery("#ajax-holder").hasClass("search-list")){
+		var urls = baseUrl +"/wp-content/themes/cvdm/filter-all.php";
+	} else {
+		var urls = baseUrl +"/wp-content/themes/cvdm/filter-nieuws.php";
+        sessionStorage.setItem("nieuws-filter", saveNieuwsFilter());
+	}
+
+	jQuery(".article-list").html('Laden');
+
+	jQuery.ajax({
+	  type: "POST",
+	  url: urls,
+	  data: dataString,
+	  success: function(response) {
+		jQuery(".article-list").html(response);
+		jQuery(".oldResults").html(jQuery(".newResults").html());
+		return false;
+	  }
+	});
+
+	num = 0;
+}
+
+
+/*  <> Enhance <select>s (script by Roger Johansson / 456 Berea Street)
+
+*/
+
+/*
+ * This is based on ideas from a technique described by Alen Grakalic in
+ * https://cssglobe.com/post/8802/custom-styling-of-the-select-elements
+ */
+(function(jQuery) {
+	jQuery.fn.customSelect = function(settings) {
+		var config = {
+			replacedClass: 'replaced', // Class name added to replaced selects
+			customSelectClass: 'custom-select', // Class name of the (outer) inserted span element
+			activeClass: 'active', // Class name assigned to the fake select when the real select is in hover/focus state
+			wrapperElement: '<div class="custom-select-container" />' // Element that wraps the select to enable positioning
+		};
+		if (settings) {
+			jQuery.extend(config, settings);
+		}
+		this.each(function() {
+			var select = jQuery(this);
+			select.addClass(config.replacedClass);
+			select.wrap(config.wrapperElement);
+			var update = function() {
+				val = jQuery('option:selected', this).text();
+				span.find('span span').text(val);
+			};
+			// Update the fake select when the real selectâ€™s value changes
+			select.change(update);
+			/* Gecko browsers don't trigger onchange until the select closes, so
+			 * changes made by using the arrow keys aren't reflected in the fake select.
+			 * See https://bugzilla.mozilla.org/show_bug.cgi?id=126379.
+			 * IE normally triggers onchange when you use the arrow keys to change the selected
+			 * option of a closed select menu. Unfortunately jQuery doesnâ€™t seem able to bind to this.
+			 * As a workaround the text is also updated when any key is pressed and then released
+			 * in all browsers, not just in Firefox.
+			 */
+			select.keyup(update);
+			/* Create and insert the spans that will be styled as the fake select
+			 * To prevent (modern) screen readers from announcing the fake select in addition to the real one,
+			 * aria-hidden is used to hide it.
+			 */
+			// Three nested spans? The only way I could get text-overflow:ellipsis to work in IE7.
+			var span = jQuery('<span class="' + config.customSelectClass + '" aria-hidden="true"><span><span>' + jQuery('option:selected', this).text() + '</span></span></span>');
+			select.after(span);
+			// Change class names to enable styling of hover/focus states
+			select.bind({
+				mouseenter: function() {
+					span.addClass(config.activeClass);
+				},
+				mouseleave: function() {
+					span.removeClass(config.activeClass);
+				},
+				focus: function() {
+					span.addClass(config.activeClass);
+				},
+				blur: function() {
+					span.removeClass(config.activeClass);
+				}
+			});
+		});
+	};
+})(jQuery);
+
+jQuery(function() {
+	jQuery('select').customSelect();
+});
+
+
+/*	<> Facetset toggler
+
+			Adds 'more' link to facetset
+*/
+
+jQueryfacetset = jQuery('.facetset');
+if (jQueryfacetset.length > 0) {
+	// settings
+	var facetLimit = 3;
+	var moreText = "<span class='more'>Meer opties</span>";
+	var lessText = "<span class='less'>Minder</span>";
+
+	// with Match Media, limit to 0 items in < 48em width
+	if(window.matchMedia('(max-width: 48em)').matches) {
+		facetLimit = 0;
+		moreText = "Toon";
+		lessText = "Verberg";
+	}
+
+	jQueryfacetset.each(function() {
+		// from each facet, save all options
+		jQueryfacetoptions = jQuery('.facet-content',this);
+
+		if(jQueryfacetoptions.length > facetLimit) {
+			// over the line!!
+			// let's create the toggle behaviour for this facetset
+			var jQueryfacetoptions, jQueryfacetContainer, jQueryfacetMore, itemsOpened;
+			itemsOpened = false;
+
+			// save the remaining options
+			jQueryfacetoptionsRemainder = jQueryfacetoptions.slice(facetLimit);
+
+			// save a button to toggle
+			jQueryfacetToggler = jQuery('<button class="facet-toggler">'+moreText+'</button>');
+
+			// hide and identify remaining items
+			jQueryfacetoptionsRemainder.each(function() {
+				jQuery(this).addClass('is-hidden is-facet-remainder');
+			});
+
+			// add facet toggler
+			jQuery(this).find("div.facet-option").after(jQueryfacetToggler);
+
+			jQuery(document).on('click', ".facet-toggler",function(e){
+				if(!itemsOpened) {
+					jQuery(this).closest('.facetset').find('.is-facet-remainder').removeClass('is-hidden');
+					jQuery(this).closest('.facet-toggler').html(lessText);
+					itemsOpened = true;
+				} else if (itemsOpened) {
+					jQuery(this).closest('.facetset').find('.is-facet-remainder').addClass('is-hidden');
+					jQuery(this).closest('.facet-toggler').html(moreText);
+					itemsOpened = false;
+				}
+					e.preventDefault();
+			});
+		}
+	});
+}
+
+/* <> in page nav's mobile drop down version
+
+			Create <select> to use instead of menu links on mobile
+*/
+
+var jQueryinPageNav = jQuery('.in-page-nav:not(".in-page-nav-facet")');
+if(jQueryinPageNav.length > 0) {
+	var mobileNavCondition = window.matchMedia('(max-width: 48em)').matches;
+	if(mobileNavCondition) {
+		jQueryinPageNav.each(function(){
+			var jQuerythisNav, jQueryselectBoxNav;
+			jQuerythisNav = jQuery(this);
+
+			// populate selectbox
+			jQueryselectBoxNav = jQuery('<select class="in-page-nav-select"></select>');
+
+			// add first option and other options based on original nav
+			jQuery("<option />", {
+	   "selected": "selected",
+	   "value"   : "",
+	   "text"    : "Ga naar..."
+			}).appendTo(jQueryselectBoxNav);
+			jQuerythisNav.find("a").each(function() {
+				var el = jQuery(this);
+				jQuery("<option />", {
+	     "value"   : el.attr("href"),
+	     "text"    : el.text()
+	 		}).appendTo(jQueryselectBoxNav);
+			});
+
+			// if item is selected, go to the apt page
+			jQueryselectBoxNav.change(function() {
+				window.location = jQuery(this).find("option:selected").val();
+			});
+
+			// replace nav by checkbox nav
+			jQuerythisNav.hide().after(jQueryselectBoxNav);
+		});
+	}
+}
+
+
+var num = 1;
+jQuery(document).on("click", ".ajax-nav .button",function(e){
+
+	e.preventDefault();
+	var dataString = "filter=besluiten";
+
+	if(GetURLParameter("sq")){
+		dataString += "&query="+GetURLParameter("sq");
+	} else if(GetURLParameter("tag")){
+		dataString += "&tagquery="+GetURLParameter("tag");
+	}
+
+	jQuery("input[name=facet-jaar]:checked").each(function(index){
+		if(index == 0){
+			dataString += "&jaar="+jQuery(this).attr("id");
+		} else {
+			dataString += ","+jQuery(this).attr("id");
+		}
+	});
+	jQuery("input[name=facet-onderwerp]:checked").each(function(index){
+		if(index == 0){
+			dataString += "&onderwerp="+jQuery(this).attr("id");
+		} else {
+			dataString += ","+jQuery(this).attr("id");
+		}
+	});
+	jQuery("input[name=facet-organisatie]:checked").each(function(index){
+		if(index == 0){
+			dataString += "&organisatie="+jQuery(this).attr("id");
+		} else {
+			dataString += ","+jQuery(this).attr("id");
+		}
+	});
+	jQuery("input[name=facet-type]:checked").each(function(index){
+		if(index == 0){
+			dataString += "&type="+jQuery(this).attr("id");
+		} else {
+			dataString += ","+jQuery(this).attr("id");
+		}
+	});
+	jQuery("input[name=facet-status]:checked").each(function(index){
+		if(index == 0){
+			dataString += "&status="+jQuery(this).attr("id");
+		} else {
+			dataString += ","+jQuery(this).attr("id");
+		}
+	});
+
+	if(jQuery(".besluit-order").length) {
+		dataString += "&order="+ jQuery(".besluit-order").data('value');
+	}
+
+	if(jQuery(this).hasClass("prev-page")){
+		num--;
+	} else if(jQuery(this).hasClass("next-page")){
+		if(num == 0){
+			num = 1;
+		}
+		num++;
+	} else {
+		num = parseInt(jQuery(this).text());
+	}
+
+	dataString += "&page="+num;
+	if(jQuery("#ajax-holder").hasClass("besluiten-list")){
+		var urls = baseUrl +"/wp-content/themes/cvdm/filter-besluit.php";
+        sessionStorage.setItem("besluiten-filter", saveBesluitenFilter());
+	} else if(jQuery("#ajax-holder").hasClass("search-list")){
+		var urls = baseUrl +"/wp-content/themes/cvdm/filter-all.php";
+	} else {
+		var urls = baseUrl +"/wp-content/themes/cvdm/filter-nieuws.php";
+        sessionStorage.setItem("nieuws-filter", saveNieuwsFilter());
+	}
+
+	jQuery.ajax({
+	  type: "POST",
+	  url: urls,
+	  data: dataString,
+	  success: function(response) {
+		jQuery(".article-list").html(response);
+		jQuery(".oldResults").html(jQuery(".newResults").html());
+		return false;
+	  }
+	});
+});
+
+jQuery(document).on("click",".delete-besluit-filter",function(e){
+	e.preventDefault();
+	jQuery.removeCookie('besluit-filter');
+	jQuery(".icon-save").text("Selectie bewaren").addClass('save-besluit-filter').removeClass('delete-besluit-filter');
+});
+jQuery(document).on("click",".save-besluit-filter",function(e){
+	e.preventDefault();
+
+    var dataString = saveBesluitenFilter();
+
+	jQuery.removeCookie('besluit-filter');
+	jQuery.cookie('besluit-filter', dataString, { expires: 365 });
+	jQuery(".icon-save").text("Opgeslagen selectie verwijderen").removeClass('save-besluit-filter').addClass('delete-besluit-filter');
+});
+
+function saveBesluitenFilter() {
+    var dataString = "filter=besluiten&page=0";
+
+	if(GetURLParameter("sq")){
+		dataString += "&query="+GetURLParameter("sq");
+	} else if(GetURLParameter("tag")){
+		dataString += "&tagquery="+GetURLParameter("tag");
+	} else if(GetURLParameter("s")){
+		dataString += "&query="+GetURLParameter("s");
+	}
+
+	jQuery("input[name=facet-jaar]:checked").each(function(index){
+		if(index == 0){
+			dataString += "&jaar="+jQuery(this).attr("id");
+		} else {
+			dataString += ","+jQuery(this).attr("id");
+		}
+	});
+	jQuery("input[name=facet-onderwerp]:checked").each(function(index){
+		if(index == 0){
+			dataString += "&onderwerp="+jQuery(this).attr("id");
+		} else {
+			dataString += ","+jQuery(this).attr("id");
+		}
+	});
+	jQuery("input[name=facet-organisatie]:checked").each(function(index){
+		if(index == 0){
+			dataString += "&organisatie="+jQuery(this).attr("id");
+		} else {
+			dataString += ","+jQuery(this).attr("id");
+		}
+	});
+	jQuery("input[name=facet-type]:checked").each(function(index){
+		if(index == 0){
+			dataString += "&type="+jQuery(this).attr("id");
+		} else {
+			dataString += ","+jQuery(this).attr("id");
+		}
+	});
+	jQuery("input[name=facet-status]:checked").each(function(index){
+		if(index == 0){
+			dataString += "&status="+jQuery(this).attr("id");
+		} else {
+			dataString += ","+jQuery(this).attr("id");
+		}
+	});
+	if(jQuery(".besluit-order").length) {
+		dataString += "&order="+ jQuery(".besluit-order").data('value');
+	}
+
+    return dataString;
+}
+
+
+jQuery(document).on("click",".delete-nieuws-filter",function(e){
+	e.preventDefault();
+	jQuery.removeCookie('nieuws-filter');
+	jQuery(".icon-save").text("Selectie bewaren").addClass('save-nieuws-filter').removeClass('delete-nieuws-filter');
+});
+jQuery(document).on("click",".save-nieuws-filter",function(e){
+	e.preventDefault();
+
+    var dataString = saveNieuwsFilter();
+
+	jQuery.removeCookie('nieuws-filter');
+	jQuery.cookie('nieuws-filter', dataString, { expires: 365 });
+	jQuery(".icon-save").text("Opgeslagen selectie verwijderen").removeClass('save-nieuws-filter').addClass('delete-nieuws-filter');
+});
+
+function saveNieuwsFilter() {
+	var dataString = "filter=nieuws&page=0";
+
+	if(GetURLParameter("sq")){
+		dataString += "&query="+GetURLParameter("sq");
+	} else if(GetURLParameter("tag")){
+		dataString += "&tagquery="+GetURLParameter("tag");
+	} else if(GetURLParameter("s")){
+		dataString += "&query="+GetURLParameter("s");
+	}
+
+	jQuery("input[name=facet-jaar]:checked").each(function(index){
+		if(index == 0){
+			dataString += "&jaar="+jQuery(this).attr("id");
+		} else {
+			dataString += ","+jQuery(this).attr("id");
+		}
+	});
+	jQuery("input[name=facet-onderwerp]:checked").each(function(index){
+		if(index == 0){
+			dataString += "&onderwerp="+jQuery(this).attr("id");
+		} else {
+			dataString += ","+jQuery(this).attr("id");
+		}
+	});
+	jQuery("input[name=facet-organisatie]:checked").each(function(index){
+		if(index == 0){
+			dataString += "&organisatie="+jQuery(this).attr("id");
+		} else {
+			dataString += ","+jQuery(this).attr("id");
+		}
+	});
+
+    return dataString;
+}
+
+function GetURLParameter(sParam){
+    var sPageURL = window.location.search.substring(1);
+    var sURLVariables = sPageURL.split('&');
+    for (var i = 0; i < sURLVariables.length; i++){
+       var sParameterName = sURLVariables[i].split('=');
+       if (sParameterName[0] == sParam){
+        return sParameterName[1];
+       }
+    }
+};
+
+if(jQuery.cookie("size") == "small"){
+	jQuery("body").css("font-size","80%");
+} else if(jQuery.cookie("size") == "big"){
+	jQuery("body").css("font-size","120%");
+}
+
+var baseUrlDynamic = window.location.host;
+
+jQuery(".textsize-decrease").on("click",function(e){
+	e.preventDefault();
+	jQuery("body").css("font-size","80%");
+	jQuery.cookie("size","small",{ expires: 1, path:'/', domain  : baseUrlDynamic });
+});
+jQuery(".textsize-default").on("click",function(e){
+	e.preventDefault();
+	jQuery("body").css("font-size","100%");
+	jQuery.cookie("size","normal",{ expires: 1, path:'/', domain  : baseUrlDynamic });
+});
+jQuery(".textsize-increase").on("click",function(e){
+	e.preventDefault();
+	jQuery("body").css("font-size","120%");
+	jQuery.cookie("size","big",{ expires: 1, path:'/', domain  : baseUrlDynamic });
+});
+jQuery(".cookie-alert-yes").click(function(){
+	jQuery.cookie("cookies","yes",{ expires: 500, path:'/', domain  : baseUrlDynamic });
+	jQuery(".cookie-alert").remove();
+});
+jQuery(".cookie-alert-no").click(function(){
+	jQuery.cookie("cookies","no",{ expires: 1, path:'/', domain  : baseUrlDynamic  });
+	jQuery(".cookie-alert").remove();
+});
+
+//TAB through share controls share button
+jQuery(".article-buttons-sharing").focus(function(){
+	jQuery(this).addClass("active");
+});
+jQuery(".article-buttons-sharing li:last-child a").on("blur",function(){
+	jQuery(".article-buttons-sharing").removeClass("active");
+});
+
+//TAB through share controls menu navigation
+jQuery(".page-navigation li a").focus(function(){
+	jQuery(this).parent().addClass("active");
+});
+jQuery(".page-navigation li ul li:last-child a").on("blur",function(){
+	jQuery(".page-navigation li").removeClass("active");
+});
+
+jQuery(".article-content a[href$='.pdf']").each(function(){
+	jQuery(this).prepend("<img src='/wp-content/themes/cvdm/img/pdf.png' alt='pdf-bestand' /> ");
+});
+
+
+jQuery('.custom-checkbox input').on("focus blur", function(){
+	jQuery(this).closest("label").css("border","2px solid #000");
+});
+
+function sameHeight(elem) {
+
+    (function( $, window, undefined ) {
+        // Define defaults
+        var boxHeight   = 0;
+        var boxPosition = 0;
+        var heightArray = new Array();
+        var i           = 0;
+        var heightClass = elem.substring(1);
+
+        // Loop trough stuff
+        $(elem).each(function() {
+            // Get element properties
+            var thisHeight   = $(this).height();
+            var thisPosition = $(this).position().top;
+
+            // Check for new position
+            if(thisPosition > boxPosition) {
+                // Set new position, reset height and add index
+                boxPosition = thisPosition;
+                boxHeight   = 0;
+
+                i++;
+            }
+
+            // Check (and set) for higher height
+            if(thisHeight > boxHeight) {
+                boxHeight = thisHeight;
+            }
+
+            // Set level class
+            $(this).addClass(heightClass +'-'+ i);
+
+            // Add or replace index height
+            heightArray[i] = boxHeight;
+        });
+
+        // Loop trough all the indexes
+        for(i = 0; i < heightArray.length; i++) {
+            // Set height for the index
+            $('.'+ heightClass +'-'+ i).css({
+                height: heightArray[i] +'px'
+            });
+        }
+    })(jQuery, window);
+
+}
+
+jQuery('.infobubble').on('click', function(e) {
+    var thisId = jQuery(this).data('trigger');
+
+    var isVisable     = jQuery('.show-infocontent').is(':visible');
+    var isNextVisable = jQuery('#'+ thisId).is(':visible');
+    var isOnElement   = jQuery(this).is(':hover');
+    var isHuman       = true;
+
+    if (e.originalEvent === undefined) {
+        isHuman = false;
+    }
+
+    if(isHuman && isOnElement) {
+        return false;
+    }
+
+    if(isVisable && !isNextVisable) {
+        jQuery('.show-infocontent').removeClass('show-infocontent');
+    }
+
+    var thisPos = jQuery(this).offset();
+    var relativeToPos = jQuery('.has-in-page-nav .article-content').offset();
+
+    var thisWidth   = jQuery(this).outerWidth();
+
+    var bubbleTop  = thisPos.top - relativeToPos.top + (thisWidth + 10);
+    var bubbleLeft = (thisPos.left - relativeToPos.left) + (thisWidth + 10);
+
+    jQuery('#'+ thisId).toggleClass('show-infocontent');
+
+    var bubbleWidth = jQuery('#'+ thisId).outerWidth(true);
+
+    jQuery('#'+ thisId).css({
+        top:  bubbleTop,
+        left: bubbleLeft
+    });
+
+    var realBubbleLeft = (thisPos.left + thisWidth + 10);
+    var browserRight   = jQuery(window).width();
+
+    var diff = browserRight - realBubbleLeft;
+
+    if(diff < bubbleWidth) {
+        bubbleLeft = (thisPos.left - relativeToPos.left) - (bubbleWidth + 10);
+
+        jQuery('#'+ thisId).css({
+            left: bubbleLeft
+        });
+    }
+});
+
+jQuery('.infobubble').mouseenter(function() {
+    jQuery(this).trigger('click');
+}).mouseleave(function() {
+    jQuery(this).trigger('click');
+});
+
+
+
+jQuery(".readmore").on("click",function(e){
+	e.preventDefault();
+	jQuery(".more").slideToggle();
+	jQuery(this).remove();
+});
+/*
+jQuery(".cvdm-accordion h2").on("click",function(e){
+	e.preventDefault();
+	jQuery(this).next("span").slideToggle();
+});*/

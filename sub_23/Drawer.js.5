@@ -1,0 +1,57 @@
+define(["require", "exports", "esri/widgets/support/widget"], function (require, exports, widget_1) {
+    Object.defineProperty(exports, "__esModule", { value: true });
+    var CSS = {
+        active: "is-active"
+    };
+    exports.default = (function (props) {
+        var headerText = props.portal.name ? props.portal.name : props.i18n.header.agol;
+        var headerContent = (props.portal.description && props.portal.showHomePageDescription) ? props.portal.description : null;
+        var headerDesc = headerContent ? (widget_1.tsx("span", { class: "menu-desc side-nav-link", innerHTML: headerContent })) : null;
+        // Does the user have essential apps? If org user and signed in but without essential apps
+        // hide. Otherwise show
+        var isOrg = props.portal && props.portal.isOrganization ? props.portal.isOrganization : false;
+        var isLicensed = (props.config.appSignInResponse && props.config.appSignInResponse.name && props.config.appSignInResponse.name === "identity-manager:not-authorized") && isOrg ? false : true;
+        // Show item info if viewing a map or scene
+        var id = props.config.id || props.config.webmap || props.config.webscene;
+        var url = document.location.pathname.replace("/webmap", "");
+        url = url.replace("viewer.html", "item.html");
+        var itemInfo = (props.mapItem && props.mapItem.title) ? (widget_1.tsx("div", null,
+            widget_1.tsx("a", { href: url + "?id=" + id, class: "btn-transparent side-nav-link btn text-left btn-fill" },
+                props.i18n.header.details,
+                widget_1.tsx("div", { class: "font-size--3 text-ellipsis text-light-gray" }, props.mapItem.title)))) : null;
+        // Add link to main page if we are on the item or map pages
+        var isMain = document.location.href.indexOf("index.html");
+        var mainSiteLink = (isMain === -1) ? (widget_1.tsx("a", { href: props.portal.url, class: "side-nav-link text-left" }, props.i18n.header.main)) : null;
+        // Add links to the index page open the map and scene viewers without a map or scene id
+        var sceneViewerLink = (isMain !== -1 && isLicensed) ? (widget_1.tsx("a", { href: props.portal.url + "/home/webscene/viewer.html", class: "side-nav-link text-left" }, props.i18n.ui.scene)) : null;
+        var mapViewerLink = (isMain !== -1 && isLicensed) ? (widget_1.tsx("a", { href: "viewer.html", class: "side-nav-link text-left" }, props.i18n.ui.map)) : null;
+        // Add link to help doc
+        var helpLink = (widget_1.tsx("a", { target: "_blank", href: "https://www.esri.com/en-us/arcgis/products/arcgis-online/resources", class: "side-nav-link text-left" }, props.i18n.ui.help));
+        var termsOfUse = (widget_1.tsx("a", { target: "_blank", href: "https://www.esri.com/en-us/legal/terms/master-agreement-product", class: "side-nav-link text-left" }, props.i18n.ui.terms));
+        return {
+            render: function () {
+                var _a;
+                var activeClasses = (_a = {},
+                    _a[CSS.active] = props.active,
+                    _a);
+                window.calcite.init();
+                return (widget_1.tsx("div", { class: "drawer drawer-left", classes: activeClasses, tabindex: "0" },
+                    widget_1.tsx("nav", { class: "drawer-nav", role: "navigation" },
+                        widget_1.tsx("aside", { class: "side-nav" },
+                            widget_1.tsx("button", { class: "btn btn-transparent right btn-back text-darkest-gray", onclick: props.onCloseDrawer },
+                                widget_1.tsx("svg", { xmlns: "http://www.w3.org/2000/svg", width: "32", height: "32", viewBox: "0 0 32 32", class: "svg-icon" },
+                                    widget_1.tsx("path", { d: "M18.404 16l9.9 9.9-2.404 2.404-9.9-9.9-9.9 9.9L3.696 25.9l9.9-9.9-9.9-9.898L6.1 3.698l9.9 9.899 9.9-9.9 2.404 2.406-9.9 9.898z" }))),
+                            widget_1.tsx("h2", { class: "side-nav-title" }, headerText),
+                            headerDesc,
+                            mapViewerLink,
+                            sceneViewerLink,
+                            mainSiteLink,
+                            itemInfo,
+                            helpLink,
+                            widget_1.tsx("button", { class: "side-nav-link btn btn-transparent btn-fill text-left", onclick: props.onRedirect }, props.i18n.footer.fullsite),
+                            termsOfUse))));
+            }
+        };
+    });
+});
+//# sourceMappingURL=Drawer.js.map

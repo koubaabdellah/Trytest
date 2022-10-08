@@ -1,0 +1,106 @@
+jQuery(function($){
+
+	//Show search bar
+	$('.search a.search-icon').on('click', function() {
+		if($(this).hasClass('active')) {
+			$('.search a.search-icon').each(function(e) {
+				$(this).removeClass('active');
+			})
+		} else {
+			$('.search a.search-icon').each(function(e) {
+				$(this).addClass('active');
+			})
+		}
+		if(!$(this).parents('.search').find('.search-bar').hasClass('active')) {			
+			if($('.navbar-toggler .hamburger').hasClass('active')) {
+				$('.navbar-toggler .hamburger').click();
+			}
+			$('.search-bar').addClass('active');
+		} else {
+			$('.search-bar').removeClass('active');
+		}
+	});
+
+	//Hamburger toggle
+	$('.navbar-toggler').on('click', function() {
+		if($('.search-bar').hasClass('active')) {
+			$('.search-bar').removeClass('active');
+		}
+		$(this).find('.hamburger').toggleClass('active');
+		if($(this).find('.hamburger').hasClass('active')) {
+			$(this).find('span').text('Sluiten');
+		} else {
+			$(this).find('span').text('Menu');
+		}
+	});
+
+	//Accordion
+	$('.card-header').on('click', function() {
+		if(!$(this).parents('.card').hasClass('active')) {
+			$(this).parents('.card').addClass('active');
+			$(this).find('.arrow').removeClass('down');
+			$(this).find('.arrow').addClass('up');
+			$(this).parents('.card').find('.collapse').slideDown();
+		} else {
+			$(this).parents('.card').removeClass('active');
+			$(this).find('.arrow').removeClass('up');
+			$(this).find('.arrow').addClass('down');
+			$(this).parents('.card').find('.collapse').slideUp();
+		}
+	});
+
+	//Side column mobile open/close
+	$('.side-column .show-tags').on('click', function() {
+		$(this).parents('.side-column').toggleClass('open');
+		if($(this).find('.arrow').hasClass('up')) {
+			$(this).find('.arrow').removeClass('up');
+			$(this).find('.arrow').addClass('down');
+		} else {
+			$(this).find('.arrow').addClass('up');
+			$(this).find('.arrow').removeClass('down');
+		}
+	});
+
+	//read more / less
+	$('.read-more').on('click', function(e) {
+		$(this).hide();
+		$('.line.more').hide();
+		$('.line.less').show();
+		$('.read-more-content').show();
+		$('.read-less').show();
+	})
+
+	$('.read-less').on('click', function(e) {
+		$(this).hide();
+		$('.line.more').show();
+		$('.line.less').hide();
+		$('.read-more-content').hide();
+		$('.read-more').show();
+	})
+
+	// footer accordion
+	$('.footer-row .accordion-title').on('click', function(e) {
+		var accItems = $(this).parents('.footer-row').find('.accordion-items');
+		var arrow = $(this).parents('.footer-row').find('.arrow')
+		if(accItems.is(':hidden')) {
+			accItems.slideDown();
+			arrow.css('transform', 'translateY(-50%) rotate(180deg)');
+		} else {
+			accItems.slideUp();
+			arrow.css('transform', 'translateY(-50%) rotate(0deg)');
+		}
+	})
+
+	$('.footer-row .accordion-title2').on('click', function(e) {
+		var accItems = $(this).parents('.footer-row').find('.accordion-items2');
+		var arrow = $(this).parents('.footer-row').find('.arrow2')
+		if(accItems.is(':hidden')) {
+			accItems.slideDown();
+			arrow.css('transform', 'translateY(-50%) rotate(180deg)');
+		} else {
+			accItems.slideUp();
+			arrow.css('transform', 'translateY(-50%) rotate(0deg)');
+		}
+	})
+
+}); 

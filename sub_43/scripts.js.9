@@ -1,0 +1,101 @@
+$.randomizeBackground = function(){
+        const choices = ['#c9e1eb', '#c9ebdb', '#ebc9c9', '#ebe6c9', '#c9d2eb', '#c9ebcb', '#8d97f5', '#f98a8a']
+        const index = Math.floor(Math.random() * choices.length);
+        let newColor = choices[index];
+        $( "body" ).animate({
+          backgroundColor: newColor,
+          color: newColor,
+        }, 1000 );
+
+    };
+
+$.loadFont = function(){
+
+    const language = $("html").attr("lang")
+
+    var fontChoice;
+    const latin_others = [
+        'bs', 'cs', 'hr', 'lt', 'lv', 'mt', 'my',
+        'pl', 'ro', 'sk', 'sl', 'tr', 'vi'
+    ]
+
+    const arabic_script = [
+        "ar", "fa", 'ur'
+    ]
+
+    const hebrew_script = [
+        "he",
+    ]
+
+    if (latin_others.includes(language)) {
+        fontChoice = new FontFace('spartanthin', 'url("/css/LeagueSpartan-ExtraLight.ttf")');
+        $('#social-desc').css("font-size",'21px');
+        $('#infotext').css("font-size",'29px');
+        $('.follow').css("font-size",'24px');
+        $('.copyright').css("font-size",'19px');
+    }
+    else if (arabic_script.includes(language)) {
+        fontChoice = new FontFace('spartanthin', 'url("/css/Amiri-Regular.ttf")');
+        $('#social-desc').css("font-size",'21px');
+        $('#infotext').css("font-size",'29px');
+        $('.follow').css("font-size",'24px');
+        $('.copyright').css("font-size",'19px');
+    }
+    else if (hebrew_script.includes(language)) {
+        fontChoice = new FontFace('spartanthin', 'url("/css/Assistant-ExtraLight.ttf")');
+        $('#social-desc').css("font-size",'23px');
+        $('#infotext').css("font-size",'32px');
+        $('.follow').css("font-size",'27px');
+        $('.copyright').css("font-size",'21px');
+    }
+    else {
+        fontChoice = new FontFace('spartanthin', 'url("/css/spartan-variablefont_wght-webfont.woff")');
+    }
+
+    fontChoice.load().then(function(loadedFont) {
+        document.fonts.add(loadedFont)
+        $('body').css("font-family",'spartanthin');
+
+    }).catch(function(error) {
+        console.log('Failed to load font: ' + error)
+    })
+
+
+}
+
+$( document ).ready(function() {
+
+    $.loadFont();
+
+    $("#content").click(function(){
+        $.randomizeBackground();
+    });
+
+    $(".social-text").mouseover(function() {
+        $(".social-icon").addClass("highlighted")
+    })
+    .mouseout(function() {
+        $(".social-icon").removeClass("highlighted")
+    })
+
+    $("img").mouseover(function() {
+        let text = $(this).attr("alt");
+        $("#social-desc").text(text);
+    })
+    .mouseout(function(){
+        $("#social-desc").html("&nbsp;")
+    })
+    .click(function(event){
+        event.stopPropagation();
+    });
+
+    $("#infotext").click(function(event){
+        event.stopPropagation();
+    });
+
+
+
+
+
+});
+

@@ -1,0 +1,169 @@
+/*
+ *   Copyright (c) 2022 Esri
+ *   All rights reserved.
+
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+
+ *   http://www.apache.org/licenses/LICENSE-2.0
+
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ */
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        if (typeof b !== "function" && b !== null)
+            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+define(["require", "exports", "esri/core/accessorSupport/decorators", "esri/widgets/Widget", "esri/widgets/support/widget", "TemplatesCommonLib/baseClasses/support/domHelper", "esri/core/watchUtils", "../utilites/utils"], function (require, exports, decorators_1, Widget_1, widget_1, domHelper_1, watchUtils_1, utils_1) {
+    "use strict";
+    Widget_1 = __importDefault(Widget_1);
+    var CSS = {
+        theme: 'app-header',
+        logo: "embed-app__header__logo",
+        calciteStyles: {
+            buttonLink: 'btn-link',
+            right: 'right',
+            iconDesc: 'icon-ui-description',
+            fade: 'fade-in',
+            topNavLink: 'top-nav-link',
+            topNav: 'top-nav',
+            topNavTitle: 'top-nav-title',
+            ellipsis: 'text-fade'
+        }
+    };
+    var Header = /** @class */ (function (_super) {
+        __extends(Header, _super);
+        //--------------------------------------------------------------------------
+        //
+        //  Public Methods
+        //
+        //--------------------------------------------------------------------------
+        function Header(props) {
+            var _this = this;
+            var _a;
+            _this = _super.call(this, props) || this;
+            _this.view = null;
+            _this.title = (_a = props === null || props === void 0 ? void 0 : props.config) === null || _a === void 0 ? void 0 : _a.title;
+            _this._onTitleUpdate = _this._onTitleUpdate.bind(_this);
+            return _this;
+        }
+        Header.prototype.postInitialize = function () {
+            this.own((0, watchUtils_1.init)(this, "config.title", this._onTitleUpdate));
+        };
+        Header.prototype.render = function () {
+            var _a = this.config, title = _a.title, titleLink = _a.titleLink, theme = _a.theme, showIntroduction = _a.showIntroduction, header = _a.header;
+            var titleNode = titleLink ? ((0, widget_1.tsx)("a", { target: "_blank", rel: "noopener noreferer", href: titleLink }, title)) : (title);
+            var headerLogo = this.renderHeaderLogo();
+            var color = theme === "light" ? "inverse" : "neutral";
+            var infoButton = (showIntroduction && this.detailPanel) ? ((0, widget_1.tsx)("div", { class: "info-button", key: "info-button" },
+                (0, widget_1.tsx)("calcite-button", { appearance: "transparent", color: color, bind: this, id: "infoButton", onclick: this._showDetailPanel, title: this.config.bundle.tools.splash, label: this.config.bundle.tools.splash, "aria-label": this.config.bundle.tools.splash, "aria-expanded": "true" },
+                    (0, widget_1.tsx)("calcite-icon", { icon: "information-f", scale: "m" })))) : (0, widget_1.tsx)("div", null);
+            header ? document.body.classList.remove('no-header') : document.body.classList.add("no-header");
+            return ((0, widget_1.tsx)("header", { theme: theme, class: this.classes(header ? "" : "hide", CSS.calciteStyles.topNav, CSS.theme) },
+                (0, widget_1.tsx)("span", { style: "display:inherit;width:100%;", class: this.classes(CSS.calciteStyles.ellipsis) },
+                    headerLogo,
+                    (0, widget_1.tsx)("h1", { title: title, class: this.classes(CSS.calciteStyles.topNavTitle, CSS.calciteStyles.ellipsis) }, titleNode)),
+                infoButton));
+        };
+        Header.prototype.createInfoButton = function () {
+            var _this = this;
+            var infoButtonDiv = document.createElement("div");
+            infoButtonDiv.classList.add("info-button");
+            var button = document.createElement("calcite-button");
+            button.classList.add("info-button", "esri-widget--button", "esri-widget", "esri-component", "infoButton");
+            button.appearance = "clear";
+            button.color = "neutral";
+            button.id = "infoButton";
+            button.addEventListener("click", function (e) {
+                _this._showDetailPanel(e);
+            });
+            button.title = this.config.bundle.tools.splash;
+            button.label = this.config.bundle.tools.splash;
+            button.iconStart = "information";
+            return button;
+        };
+        Header.prototype.renderHeaderLogo = function () {
+            var _a, _b, _c, _d;
+            var _e = this.config, customTheme = _e.customTheme, applySharedTheme = _e.applySharedTheme;
+            var sharedLink = (_d = (_c = (_b = (_a = this === null || this === void 0 ? void 0 : this.portal) === null || _a === void 0 ? void 0 : _a.portalProperties) === null || _b === void 0 ? void 0 : _b.sharedTheme) === null || _c === void 0 ? void 0 : _c.logo) === null || _d === void 0 ? void 0 : _d.link;
+            var logo = customTheme === null || customTheme === void 0 ? void 0 : customTheme.logo;
+            var link = ((customTheme === null || customTheme === void 0 ? void 0 : customTheme.applySharedTheme) || applySharedTheme) ? sharedLink : customTheme === null || customTheme === void 0 ? void 0 : customTheme.logoLink;
+            var token = (this === null || this === void 0 ? void 0 : this.portal.get("credential.token")) || null;
+            if (token && logo) {
+                logo = "".concat(logo, "?token=").concat(token);
+            }
+            var logoImg = logo ? ((0, widget_1.tsx)("img", { class: this.classes(CSS.logo), src: logo, alt: "" })) : null;
+            if (logoImg) {
+                logoImg = link ? ((0, widget_1.tsx)("a", { rel: "noreferrer noopener", target: "_blank", href: link }, logoImg)) : (logoImg);
+            }
+            return logoImg;
+        };
+        Header.prototype._showDetailPanel = function (e) {
+            // add class to detail panel to add close button and position at top of panel
+            var node = this.detailPanel.container;
+            var button = document.getElementById("infoButton");
+            var closeButton = document.getElementById("panelClose");
+            (0, utils_1.removeFocus)();
+            if (node && !node.classList.contains("hide")) {
+                this.detailPanel.hidePanel();
+                (0, utils_1.setFieldFocus)(button);
+                button.setAttribute("aria-expanded", "false");
+            }
+            else {
+                this.detailPanel.showPanel();
+                (0, utils_1.setFieldFocus)(closeButton);
+                button.setAttribute("aria-expanded", "true");
+            }
+        };
+        Header.prototype._onTitleUpdate = function () {
+            if (this === null || this === void 0 ? void 0 : this.title) {
+                (0, domHelper_1.setPageTitle)(this.config.title);
+            }
+        };
+        ;
+        __decorate([
+            (0, decorators_1.property)()
+        ], Header.prototype, "config", void 0);
+        __decorate([
+            (0, decorators_1.property)()
+        ], Header.prototype, "detailPanel", void 0);
+        __decorate([
+            (0, decorators_1.property)()
+        ], Header.prototype, "view", void 0);
+        __decorate([
+            (0, decorators_1.property)()
+        ], Header.prototype, "title", void 0);
+        __decorate([
+            (0, decorators_1.property)()
+        ], Header.prototype, "portal", void 0);
+        Header = __decorate([
+            (0, decorators_1.subclass)('app.Header')
+        ], Header);
+        return Header;
+    }((Widget_1.default)));
+    return Header;
+});

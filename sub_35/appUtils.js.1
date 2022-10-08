@@ -1,0 +1,254 @@
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __generator = (this && this.__generator) || function (thisArg, body) {
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    function verb(n) { return function (v) { return step([n, v]); }; }
+    function step(op) {
+        if (f) throw new TypeError("Generator is already executing.");
+        while (_) try {
+            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+            if (y = 0, t) op = [op[0] & 2, t.value];
+            switch (op[0]) {
+                case 0: case 1: t = op; break;
+                case 4: _.label++; return { value: op[1], done: false };
+                case 5: _.label++; y = op[1]; op = [0]; continue;
+                case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                default:
+                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
+                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
+                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                    if (t[2]) _.ops.pop();
+                    _.trys.pop(); continue;
+            }
+            op = body.call(thisArg, _);
+        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
+        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
+    }
+};
+define(["require", "exports", "esri/portal/PortalItem"], function (require, exports, PortalItem) {
+    Object.defineProperty(exports, "__esModule", { value: true });
+    function handleOpenDrawer() {
+        var selectors = document.querySelectorAll("div.drawer.drawer-left");
+        for (var i = 0; i < selectors.length; ++i) {
+            selectors[i].classList.add("is-active");
+        }
+    }
+    exports.handleOpenDrawer = handleOpenDrawer;
+    function handleCloseDrawer() {
+        var selectors = document.querySelectorAll(".is-active");
+        for (var i = 0; i < selectors.length; ++i) {
+            selectors[i].classList.remove("is-active");
+        }
+    }
+    exports.handleCloseDrawer = handleCloseDrawer;
+    function handleRedirectSite() {
+        // 5 min cookie - we used to set a session cookie
+        // but in many situations it was never expiring. Possibly due to
+        // session restore in the browser.
+        var date = new Date();
+        date.setTime(date.getTime() + (5000 * 60));
+        document.cookie = "mobile_redirect=false;expires=" + date.toUTCString();
+        window.location.reload();
+    }
+    exports.handleRedirectSite = handleRedirectSite;
+    function handleUpdate() {
+        window.calcite.init();
+    }
+    exports.handleUpdate = handleUpdate;
+    function createCustomSections(boilerplate) {
+        var sections = [], results = boilerplate.results;
+        if (!boilerplate.portal.user) { // only add for anonymous user
+            if (results && results.defaultGroup && results.defaultGroup.id && results.defaultGroup.title) {
+                sections.push({
+                    name: results.defaultGroup.title,
+                    baseQuery: "group:\"" + results.defaultGroup.id + "\""
+                });
+            }
+        }
+        return sections;
+    }
+    exports.createCustomSections = createCustomSections;
+    function createItemMappings(state) {
+        var preventAccess = false;
+        if (state && state.boilerplate && state.boilerplate.config && state.boilerplate.config.appSignInResponse && state.boilerplate.config.appSignInResponse.name && state.boilerplate.config.appSignInResponse.name === "identity-manager:not-authorized") {
+            preventAccess = true;
+        }
+        var appLink = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" class="svg-icon"><path d="M26 30H2V6h14V4H0v28h28V18h-2zM21 8C12.715 8 6 14.717 6 23c0 .336.029.668.051 1h4A11.464 11.464 0 0 1 10 23c0-6.065 4.936-11 11-11h3.004l-6 6h4L30 10l-7.996-8h-4l6 6H21z"/></svg>';
+        return [{
+                asynchronous: false,
+                name: state.i18n.ui.mapExtTip,
+                allowed: function (item) {
+                    return (item.type === "Web Map" && !preventAccess) ? true : false;
+                },
+                icon: appLink,
+                onAction: function (item) {
+                    if (state.boilerplate.settings && state.boilerplate.settings.environment && state.boilerplate.settings.environment.isEsri) {
+                        var url = state.boilerplate.portal.url + "/home/webmap/viewer.html?webmap=" + item.id;
+                        var modifiedUrl = (window.location.protocol === "http:") ? url.replace("https://", "http://") : url;
+                        window.open(modifiedUrl);
+                    }
+                    else {
+                        window.location.href = "viewer.html?webmap=" + item.id;
+                    }
+                }
+            }, {
+                asynchronous: false,
+                name: state.i18n.ui.sceneExtTip,
+                icon: appLink,
+                allowed: function (item) {
+                    return (item.type === "Web Scene" && !preventAccess) ? true : false;
+                },
+                onAction: function (item) {
+                    window.open(state.boilerplate.portal.url + "/home/webscene/viewer.html?webscene=" + item.id);
+                }
+            }, {
+                asynchronous: false,
+                icon: appLink,
+                name: state.i18n.ui.appExtTip,
+                allowed: function (item) {
+                    return item.type === "Web Mapping Application" ? true : false;
+                },
+                onAction: function (item) {
+                    window.location.href = item.url;
+                }
+            }, {
+                asynchronous: false,
+                name: state.i18n.items.nativeApps.collector,
+                allowed: function (item) {
+                    return (item.typeKeywords.indexOf("Collector") > -1 && !preventAccess) ? true : false;
+                },
+                onAction: function (item) {
+                    window.open("" + state.boilerplate.config.collectorScheme + item.id);
+                }
+            }, {
+                asynchronous: false,
+                name: state.i18n.items.presentation,
+                allowed: function (item) {
+                    return (item.typeKeywords.indexOf("Presentation Map") > -1 && !preventAccess) ? true : false;
+                },
+                onAction: function (item) {
+                    window.open(state.boilerplate.portal.url + "/apps/presentation/index.html?webmap=" + item.id);
+                }
+            }, {
+                asynchronous: false,
+                icon: appLink,
+                name: state.i18n.items.dashboard,
+                allowed: function (item) {
+                    return (item.type === "Dashboard" && !preventAccess) ? true : false;
+                },
+                onAction: function (item) {
+                    window.open(state.boilerplate.portal.url + "/apps/opsdashboard/index.html#/" + item.id);
+                }
+            }, {
+                asynchronous: false,
+                name: state.i18n.items.nativeApps.survey123,
+                allowed: function (item) {
+                    return (item.typeKeywords.indexOf("Form") > -1 && item.typeKeywords.indexOf("Survey123") > -1 && !preventAccess) ? true : false;
+                },
+                onAction: function (item) {
+                    window.open("" + state.boilerplate.config.survey123Scheme + item.id);
+                }
+            }, {
+                asynchronous: false,
+                name: state.i18n.items.nativeApps.workforce,
+                allowed: function (item) {
+                    return (item.typeKeywords.indexOf("Workforce Project") > -1 && !preventAccess) ? true : false;
+                },
+                onAction: function (item) {
+                    window.open(document.location.protocol + "//workforce.arcgis.com/projects/" + item.id + "/dispatch/assignments");
+                }
+            }, {
+                asynchronous: false,
+                name: state.i18n.items.layer,
+                icon: appLink,
+                allowed: function (item) {
+                    return (isLayer(item.type) && !preventAccess) ? true : false;
+                },
+                onAction: function (item) {
+                    if (item.typeKeywords.indexOf("Elevation 3D Layer") > -1 || item.typeKeywords.indexOf("Scene Service") > -1) {
+                        window.location.href = state.boilerplate.portal.url + "/home/webscene/viewer.html?layers=" + item.id;
+                    }
+                    else {
+                        window.location.href = "viewer.html?id=" + item.id;
+                    }
+                }
+            }, {
+                asynchronous: false,
+                name: state.i18n.items.nativeApps.navigator,
+                //  icon: appLink,
+                allowed: function (item) {
+                    return (isLayer(item.type) && (item.typeKeywords.indexOf("Route Layer") > -1) && !preventAccess) ? true : false;
+                },
+                onAction: function (item) {
+                    window.open(item.navigationScheme);
+                }
+            }];
+    }
+    exports.createItemMappings = createItemMappings;
+    function generateNavigatorStops(item) {
+        return __awaiter(this, void 0, void 0, function () {
+            var navigatorScheme, portalItem, result, data, stopLayer_1, urlParams_1;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        navigatorScheme = "arcgis-navigator://";
+                        portalItem = new PortalItem({
+                            id: item.id
+                        });
+                        return [4 /*yield*/, portalItem.load()];
+                    case 1:
+                        result = _a.sent();
+                        return [4 /*yield*/, result.fetchData()];
+                    case 2:
+                        data = _a.sent();
+                        if (data && data.layers) {
+                            stopLayer_1 = null;
+                            data.layers.some(function (layer) {
+                                if (layer.layerDefinition.name === "Stops") {
+                                    stopLayer_1 = layer;
+                                    return true;
+                                }
+                            });
+                            if (stopLayer_1) {
+                                urlParams_1 = "";
+                                stopLayer_1.featureSet.features.forEach(function (feature, index) {
+                                    var sep = (index === 0) ? "?" : "&";
+                                    urlParams_1 += sep + "stop=" + feature.geometry.y + "," + feature.geometry.x + "&stopname=" + feature.attributes.Name;
+                                });
+                                return [2 /*return*/, result.navigatorUrl = navigatorScheme + encodeURI(urlParams_1)];
+                            }
+                        }
+                        else {
+                            return [2 /*return*/, null];
+                        }
+                        return [2 /*return*/];
+                }
+            });
+        });
+    }
+    exports.generateNavigatorStops = generateNavigatorStops;
+    function isLayer(layerType) {
+        var supportedTypes = [
+            "Map Service",
+            "Feature Service",
+            "Feature Collection",
+            "Scene Service",
+            "Image Service",
+            "Stream Service",
+            "Vector Tile Service",
+            "WMTS",
+            "WMS"
+        ];
+        return supportedTypes.indexOf(layerType) > -1;
+    }
+    exports.isLayer = isLayer;
+});
+//# sourceMappingURL=appUtils.js.map

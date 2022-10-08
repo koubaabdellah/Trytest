@@ -1,0 +1,181 @@
+﻿define({
+  root: {
+    regions: "Regions", // arcgisonline.gallery.area
+    header: {
+      sectionTitles: {
+        all: "ArcGIS Online", // arcgisonline.arcgisOnline
+        myContent: "My Content", // arcgisonline.contentPage.myContent
+        myFavorites: "My Favorites", // arcgisonline.contentPage.myFavorites
+        myGroups: "My Groups", // arcgisonline.contentPage.myGroupsContent
+        myOrganization: "My Organization", // arcgisonline.contentPage.myOrganizationsContent
+        livingAtlas: "Living Atlas", // arcgisonline.badges.livingAtlas
+        subscription: "Subscription Content" //
+      },
+      browse: "Browse", // arcgisonline.common.browser
+      search: "Search", // arcgisonline.common.search
+      filterFolders: "Filter folders", // arcgisonline.itemProperties.filterFolders
+      allFolders: "All My Content", // arcgisonline.contentPage.allMyContent
+      filterGroups: "Filter groups",
+      allGroups: "All My Groups' Content" // arcgisonline.contentPage.allMyGroupsContent
+    },
+    resultCount: "Items",
+    itemTotalInfo: "${from}-${to} of ${total}",
+    itemLimitReached: "${limit}+",
+    searchPlaceholders: {
+      generic: "Enter search terms" // arcgisonline.browseItemsDlg.placeholder
+    },
+    filterChips: {
+      mapArea: "Within Map Area", // arcgisonline.addContentPanel.withinMapArea
+      type: "Type", // arcgisonline.items.type
+      dateModified: "Modified", // arcgisonline.items.modified
+      dateCreated: "Created", // arcgisonline.manageLicenses.session.createdLabel
+      access: "Shared", // arcgisonline.items.shared
+      group: "Group", // arcgisonline.items.group
+      folder: "Folder", // arcgisonline.itemProperties.folder
+      status: "Status", // arcgisonline.collaborations.statusLabel
+      clearAll: "Clear filters", // arcgisonline.GroupWidget.clearAll
+      category: "Category", // arcgisonline.contentCategories.chipText
+      region: "Region", // arcgisonline.organizationSetup.regionSetting
+      tagged: "Tagged"
+    },
+    sortOptions: {
+      sort: "Sort",
+      sortBy: "Sort content by:",
+      sortDir: "Sort direction:",
+      relevance: "Relevance", // arcgisonline.sortDropdown.relevance
+      title: "Title", // arcgisonline.sortDropdown.title
+      owner: "Owner", // arcgisonline.sortDropdown.owner
+      created: "Date created", // arcgisonline.sortDropdown.created
+      modified: "Date modified", // arcgisonline.sortDropdown.modified
+      numviews: "View count", // arcgisonline.sortDropdown.views
+      avgrating: "Rating", // arcgisonline.sortDropdown.rating
+      ascending: {
+        relevance: "Least to most relevant",
+        title: "Alphabetical",
+        owner: "Alphabetical",
+        created: "Least recent",
+        modified: "Least recent",
+        numviews: "Least to most",
+        avgrating: "Lowest to highest rated"
+      },
+      descending: {
+        relevance: "Most to least relevant",
+        title: "Reverse-alphabetical",
+        owner: "Reverse-alphabetical",
+        created: "Most recent", // arcgisonline.galleryPage.mostRecent
+        modified: "Most recent", // arcgisonline.galleryPage.mostRecent
+        numviews: "Most to least",
+        avgrating: "Highest to lowest rated"
+      }
+    },
+    itemDetails: {
+      addToMap: "Add to Map", // arcgisonline.items.addToMap
+      removeFromMap: "Remove from Map",
+      by: "by", // arcgisonline.itemProperties.by ( by <author> )
+      lastModified: "Updated", // arcgisonline.contentPage.modified
+      noSnippet: "A brief summary of the item is not available.", // arcgisonline.itemProperties.summaryUnavailable
+      details: "Description", // arcgisonline.tocPanel.description
+      termsOfUse: "Terms of Use", // arcgisonline.itemProperties.access
+      attribution: "Credits (Attribution)", // arcgisonline.itemProperties.credits
+      noTermsOfUse: "No special restrictions or limitations on using the item's content have been provided.", // arcgisonline.itemProperties.attributionUnavailable
+      noAttribution: "No acknowledgements.", // arcgisonline.itemProperties.creditsUnavailable
+      noDescription: "An in-depth description of the item is not available.", // arcgisonline.itemProperties.descriptionUnavailable
+      views: "View count", // arcgisonline.sortDropdown.views
+      created: "Created", // arcgisonline.manageLicenses.session.createdLabel
+      sharedWith: "Shared with", // arcgisonline.filters.access
+      shared: {
+        public: "Everyone (public)", // arcgisonline.groupsPage.everyone
+        org: "Organization", // arcgisonline.createAccount.organizationLabel
+        shared: "The item is not shared.", // arcgisonline.itemProperties.itemNotShared
+        private: "The item is not shared." // arcgisonline.itemProperties.itemNotShared
+      },
+      viewUser: "View user profile", // argisonline.viewsWidget.viewUserprofile
+      viewOrg: "Visit organization",
+      addToFavorites: "Add to Favorites", // arcgisonline.common.favorite
+      removeFromFavorites: "Remove from Favorites", // arcgisonline.common.unfavorite
+      isFavorite: "Item in Favorites", // arcgisonline.common.isFavorite
+      notFavorite: "Item not in Favorites", // arcgisonline.common.notFavorite
+      managedBy: "Managed by:"
+    },
+    results: {
+      loadingItems: "Loading items..",
+      requestError: "There was an error with the request.",
+      tooManyGroups: 'Too many groups for "All My Groups\' Content." Select a group to show its content.',
+      noItemsFound: "No items found that meet your criteria. Try clearing some filters to show more items.", // arcgisonline.GroupWidget.noItems
+      empty: "Enter some terms above to begin your search."
+    },
+    search: "Search", // arcgisonline.search.searchTitle
+    close: "Close", // arcgisonline.common.close
+    filterPane: {
+      clearSelection: "Clear select",
+      selectAll: "Select all on page",
+      filter: "Filter", // arcgisonline.FilterDlg.filter
+      filters: "Filters", // arcgisonline.GroupsWidget.filters
+      mapArea: "Only show content within map area",
+      orgGroups: "My organization's groups", // arcgisonline.GroupsWidget.myOrganizationsGroups
+      categories: "Categories", // arcgisonline.contentCategories.categories
+      groupCategories: "Group categories" // arcgisonline.groupCategories.categories
+    },
+    viewDetails: "View item details",
+    viewFullDetails: "View full item details",
+    groupAddDisclaimer: "List only shows items that can be added to the current group.",
+    learnMore: "Learn more",
+    back: "Back",
+    compact: "Table", // arcgisonline.viewToggle.table
+    compactView: "Compact view",
+    list: "List", // arcgisonline.viewToggle.list
+    listView: "List view",
+    showing: "Showing",
+    viewResults: "View results",
+    itemsSelected: {
+      en: "${num} item selected",
+      enPlural: "${num} items selected",
+      other: "Items selected: ${num}"
+    },
+    itemsSelectedMax: {
+      en: "${num}/${max} item selected",
+      enPlural: "${num}/${max} items selected",
+      other: "Items selected: ${num}/${max}"
+    },
+    deselect: "Deselect"
+  },
+  ar: 1,
+  bg: 1,
+  bs: 1,
+  ca: 1,
+  cs: 1,
+  da: 1,
+  de: 1,
+  el: 1,
+  es: 1,
+  et: 1,
+  fi: 1,
+  fr: 1,
+  he: 1,
+  hr: 1,
+  hu: 1,
+  id: 1,
+  it: 1,
+  ja: 1,
+  ko: 1,
+  lt: 1,
+  lv: 1,
+  nl: 1,
+  nb: 1,
+  pl: 1,
+  "pt-br": 1,
+  "pt-pt": 1,
+  ro: 1,
+  ru: 1,
+  sl: 1,
+  sk: 1,
+  sr: 1,
+  sv: 1,
+  th: 1,
+  tr: 1,
+  uk: 1,
+  vi: 1,
+  "zh-cn": 1,
+  "zh-hk": 1,
+  "zh-tw": 1
+});

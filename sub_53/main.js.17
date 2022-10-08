@@ -1,0 +1,104 @@
+﻿jQuery(document).ready(function () {
+
+    // Header menu
+    jQuery('.btn--menu').click(function () {
+        jQuery('.header-menu').toggleClass('active');
+        jQuery('.btn--menu').toggleClass('open');
+    });
+
+    //Footer menu
+    jQuery('.footer-item').click(function () {
+        var $li = jQuery('.footer-item ul');
+        jQuery(this).toggleClass('active');
+    });
+
+    //Scroll to manifest card
+    jQuery('.section-method').click(function () {
+        jQuery('html, body').animate({
+            scrollTop: jQuery('#manifest-card').offset().top - 100
+        }, 500);
+    });
+
+    //Scroll to section for
+    jQuery('#menu-item-187 a').click(function (e) {
+        if (jQuery('#post-103').length) {
+            e.preventDefault();
+            jQuery('html, body').animate({
+                scrollTop: jQuery('#post-103').offset().top - 50
+            }, 500);
+        }
+    });
+
+    //Scroll to section products
+    jQuery('#menu-item-188 a').click(function (e) {
+        if (jQuery('#products').length) {
+            e.preventDefault();
+            jQuery('html, body').animate({
+                scrollTop: jQuery('#products').offset().top - 50
+            }, 500);
+        }
+    });
+
+    //Scroll to section also
+    /*jQuery('#menu-item-189 a').click(function(e){
+		if( window.location.hash ) {
+			e.preventDefault();
+			jQuery('html, body').animate({
+				scrollTop: jQuery('#also').offset().top - 50
+			}, 500);
+		}
+	});*/
+
+    /*if(jQuery(window).width() > 1060){
+		jQuery('#products .section-cards .col-2:nth-child(4) h3').text('Gegevens-bescherming');
+		jQuery('#products .section-cards .col-2:nth-child(5) h3').text('Keten-problematiek');
+	} else {
+		jQuery('#products .section-cards .col-2:nth-child(4) h3').text('Gegevensbescherming');
+		jQuery('#products .section-cards .col-2:nth-child(5) h3').text('Ketenproblematiek');
+	}
+	
+	jQuery( window ).resize(function() {
+		if(jQuery(window).width() > 1060){
+			jQuery('#products .section-cards .col-2:nth-child(4) h3').text('Gegevens-bescherming');
+			jQuery('#products .section-cards .col-2:nth-child(5) h3').text('Keten-problematiek');
+		} else {
+			jQuery('#products .section-cards .col-2:nth-child(4) h3').text('Gegevensbescherming');
+			jQuery('#products .section-cards .col-2:nth-child(5) h3').text('Ketenproblematiek');
+		} 
+	});*/
+
+    jQuery('select[name="workshop-select"]').prepend('<option value="" default selected>Kies een workshop</option>');
+    jQuery('select[name="workshop-select"]').css('color', '#888888');
+    jQuery('select[name="workshop-select"]').on('change', function () {
+        jQuery(this).css('color', '#141414');
+    });
+});
+
+function doSearch(event) {
+    event.preventDefault();
+    var form = event.target;
+    document.querySelector('.result').innerHTML = '';
+    document.querySelector('.search form').classList.add('covered');
+    jQuery.ajax({
+        url: form.action,
+        method: form.method,
+        data: new FormData(form),
+        processData: false,
+        contentType: false,
+        success: function (data, status, jqXHR) {
+            var domParser = new DOMParser();
+            var dom = domParser.parseFromString(data, 'text/html');
+            var html = dom.querySelector('.result');
+            document.querySelector('.result').replaceWith(html);
+        },
+        error: function (jqXHR, status, error) { alert(status + ': ' + error); },
+        complete: function (jqXHR, status) {
+            document.querySelector('.search form').classList.remove('covered');
+        },
+    });
+    return false;
+}
+
+function focusSearch(event) {
+    document.querySelector('#search').focus();
+}

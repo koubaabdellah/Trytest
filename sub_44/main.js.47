@@ -1,0 +1,265 @@
+require([
+  "dojo/topic", "dojo/_base/lang", "dojo/_base/kernel", "dojo/dom-attr",
+  "esri/request", "esri/IdentityManager", "esri/arcgis/OAuthInfo",
+  "app/localizepage", "app/telemetry", "app/globalNav",
+  "dojo/domReady!"
+], function (topic, lang, kernel, domAttr, esriRequest, esriId, esriOAuthInfo, LocalizePage, Telemetry, Nav) {
+  var htmlNode,
+    ipInfo = {
+      clientip: "000.000.00.000",
+      country: "US"
+    },
+    OPTOUT = false,
+    OPTIN = false;
+
+  init();
+
+  function checkSignInStatus() {
+    var url = "https://" + window.location.hostname;
+    if (window.isDebug) {
+      url = "https://devext.arcgis.com";
+    }
+
+    // register the OAuthInfo object
+    var params = {
+      appId: "arcgisonline",
+      portalUrl: url,
+      locale: kernel.locale,
+      popup: false
+    };
+    var oAuthInfo = new esriOAuthInfo(params);
+    esriId.registerOAuthInfos([oAuthInfo]);
+
+    // ensure we aren't going to use the sign in page when we check for credentials
+    esriId.useSignInPage = false;
+
+    // check for an existing credential for a signed in user
+    esriId.checkSignInStatus(url + "/sharing").then(function (credential) {
+      // if a credential is found, we should forward on to the home app,
+      // otherwise do nothing, user isn't signed in
+      if (credential) {
+        window.location.href = "https://" + window.location.hostname + "/home";
+      }
+    }, function () {
+      // do nothing, user isn't signed in
+    });
+  }
+
+  function init() {
+    if (window.location && window.location.href.indexOf("locale=hi") > -1) {
+      history.replaceState({}, "ArcGIS", window.location.search.replace("locale=hi", "locale=en"));
+    }
+
+    if (kernel.locale && kernel.locale === "hi") {
+      kernel.locale = "en";
+    }
+
+    checkSignInStatus();
+
+    if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+      document.body.classList.add("mobile");
+    }
+    // -- Animate Featured Blocks on Load of Strings --
+    topic.subscribe("translation/complete", function () {
+      Array.prototype.slice.call(document.querySelectorAll(".intro-transition"))
+        .forEach(function (el, ind) {
+          setTimeout(function () {
+            el.classList.remove("hide");
+          }, (ind + 1) * 200);
+        });
+    });
+
+    LocalizePage.initialize();
+    Nav.initialize();
+
+    htmlNode = document.getElementsByTagName("html")[0];
+
+    var rtlLocales = ["ar", "he"];
+    var isRightToLeft = false;
+
+    // special case to change font because Avenir has issues with Lithuania
+    if (kernel.locale == "lt") {
+      document.body.className += " lith";
+    }
+
+    if (kernel.locale == "lt" || kernel.locale == "vi" || kernel.locale == "lv") {
+      document.getElementsByTagName("html")[0].classList.add(kernel.locale);
+    }
+
+    for (i = 0; i < rtlLocales.length; i++) {
+      var rLocale = rtlLocales[i];
+      if (kernel.locale && kernel.locale.indexOf(rLocale) !== -1) {
+        if (kernel.locale.indexOf("-") !== -1) {
+          if (kernel.locale.indexOf(rLocale + "-") !== -1) {
+            isRightToLeft = true;
+          }
+        }
+        else {
+          isRightToLeft = true;
+        }
+      }
+    };
+
+    if (isRightToLeft) {
+      htmlNode.setAttribute("dir", "rtl");
+      htmlNode.className = ipInfo.country + " esriRtl";
+
+      var learnMoreLink = document.getElementsByClassName("arcgis-online-learn-more-link")[0];
+      if (learnMoreLink) {
+        learnMoreLink.innerHTML = learnMoreLink.innerHTML.replace("→", "&#8592;");
+      }
+    }
+    else {
+      htmlNode.setAttribute("dir", "ltr");
+      htmlNode.className = ipInfo.country + " esriLtr";
+    }
+
+    htmlNode.className += " " + kernel.locale.split("-")[0];
+
+    //set the help urls
+    var appLocale = lang.clone(kernel.locale);
+    if (appLocale === "nb") {
+      appLocale = "no";
+    }
+    var helpLocales = { "ar": 1, "da": 1, "de": 1, "es": 1, "en": 1, "fr": 1, "it": 1, "ja": 1, "ko": 1, "ru": 1, "nl": 1, "no": 1, "pl": 1, "pt-br": 1, "pt-pt": 1, "ro": 1, "sv": 1, "zh-cn": 1 };
+
+    if (helpLocales[appLocale]) {
+      var helpLinks = document.querySelectorAll(".translated-help-link");
+      for (var i = 0, len = helpLinks.length; i < len; i++) {
+        domAttr.set(helpLinks[i], "target", "_help_window");
+        domAttr.set(helpLinks[i], "href", ("http://resources.arcgis.com/" + appLocale + "/help/arcgisonline/"));
+      }
+    }
+    // ---------------------------------------------------
+    getIPAndInititateTracking();
+  }
+
+  function getIPAndInititateTracking() {
+    //get the country code from service
+    var apiAddress = window.location.protocol + "//" + window.location.host + "/sharing/geoip.jsp";
+    var isLocalhost = window.isDebug;
+    //fix for dev
+    if (isLocalhost) {
+      apiAddress = "http://www.arcgis.com/sharing/geoip.jsp";
+    }
+    esriRequest({
+      "url": (apiAddress),
+      "content": {
+        "f": "json"
+      }
+    }, {
+      usePost: false
+    }).then(function (result) {
+      setLocationFromIP(result);
+      if (location.pathname === "/index.html" || location.pathname === "/" || isLocalhost) {
+        initiateTelemetry(result.country && result.country.toLowerCase());
+      }
+    });
+  }
+
+  function initiateTelemetry(country) {
+    var telemetry = Telemetry.init({ ipLocation: country, disabled: false });
+    telemetry.logEvent({
+      eventType: "workflow",
+      category: "wwwIndexPage",
+      action: "start"
+    });
+    // Add workflow tracking to sign in buttons and learn more link
+    document.getElementsByClassName("arcgis-online-learn-more-link")[0].addEventListener("click", function () {
+      telemetry.logEvent({ eventType: "workflow", category: "wwwIndexPage", label: "learn more", action: "finish" });
+    });
+    document.getElementsByClassName("arcgis-online-signin-btn")[0].addEventListener("click", signin.bind(null, telemetry));
+    document.getElementsByClassName("esri-header-account-control--signin")[0].addEventListener("click", signin.bind(null, telemetry));
+    // Track all other link and button clicks
+    Array.prototype.slice.call(document.querySelectorAll("[data-telem-click]"))
+      .forEach(function (el, ind) {
+        el.addEventListener("click", function (e) {
+          telemetry.logEvent({ label: el.getAttribute("data-telem-click"), category: "wwwIndexPage", action: "click" });
+        });
+      });
+  }
+
+  function signin(telemetry) {
+    telemetry.logEvent({ eventType: "workflow", category: "wwwIndexPage", label: "sign in", action: "finish" });
+    setTimeout(function () {
+      window.location = getRelativeUrl("home/signin.html?useLandingPage=true");
+    }, 1);
+  }
+
+  function getRelativeUrl(path) {
+    return (window.location.protocol + "//" + window.location.hostname + "/" + (path || ""));
+  }
+
+  function setLocationFromIP(data) {
+    ipInfo = data;
+    var list = "./js/app/optinlist.js";
+
+    esriRequest({
+      "url": list,
+      "content": {
+        "f": "json"
+      }
+    }, { usePost: false }).then(function (data) {
+      //check for optin
+      OPTOUT = !data.optinlist[ipInfo.country];
+      var optout = (OPTOUT) ? "opted-out" : "";
+      //not rtl, use ltr tag
+      htmlNode.className = (htmlNode.className.indexOf("esriRtl") == -1) ?
+        ipInfo.country + " esriLtr " + optout : ipInfo.country + " esriRtl " + optout;
+
+      htmlNode.className += " " + kernel.locale.split("-")[0];
+
+      var uso = (ipInfo && ipInfo.country && ipInfo.country.toLowerCase() === "us");
+    });
+  }
+
+  function goRTL() {
+    htmlNode.setAttribute("dir", "rtl");
+    htmlNode.className = ipInfo.country + " esriRtl";
+  }
+
+  function goLTR() {//US standard
+    htmlNode.setAttribute("dir", "ltr");
+    htmlNode.className = ipInfo.country + " esriLtr";
+  }
+
+  function searchClick() {
+    var txt = document.getElementById("search-text");
+    if (!txt) {
+      return;
+    }
+    if (!txt.style.display) {
+
+      if (!txt.value) {
+        txt.setAttribute("placeholder", document.getElementById("search-box-placeholder").innerHTML);
+      }
+      document.getElementById("search-wrapper").className = "open";
+      txt.style.width = "0px";
+      txt.style.display = "block";
+      document.getElementById("search-button").disabled = true;
+      setTimeout(_animateTxtBox, 1, 2, txt);
+
+      txt.focus();
+    } else {
+      document.getElementById("search-form").submit();
+    }
+  }
+
+  function _animateTxtBox(increment, txt) {
+    txt = txt || document.getElementById("search-text");
+    increment = increment || 2;
+    txt.style.width = parseFloat(txt.style.width) + increment + "%";
+    if (parseInt(txt.style.width) <= 100) {
+      setTimeout(_animateTxtBox, 1, increment, txt);
+    } else {
+      txt.className = "open";
+      document.getElementById("search-button").disabled = false;
+    }
+  }
+
+  function _validEmail(elem) {
+    var reg = /^([a-zA-Z0-9_\.\-\+])+\@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})+$/;
+    return (reg.test(elem) && elem[0] != "." && elem.indexOf(".@") == -1);
+  }
+});
+

@@ -1,0 +1,201 @@
+$(document).ready(function() {
+
+  function removeLocalStorageSigninKeys(){
+	if (localStorage.getItem('agol_token')){
+		localStorage.removeItem('agol_token');
+	}
+	if (localStorage.getItem('culture')){
+		localStorage.removeItem('culture');
+	}
+	if (localStorage.getItem('customUrl')){ //for org url
+		localStorage.removeItem('customUrl');
+
+	}
+	if ($.cookie && $.cookie ("esri_auth_extn")) {
+	    $.removeCookie ("esri_auth_extn", {domain: '.arcgis.com', path:"/"});
+	}
+	if (localStorage.getItem('reload')){
+		localStorage.removeItem('reload');
+	}
+  }
+  
+  function getUserDisplayName(user) {
+      var fullName = user && user.fullName || "",
+  	      firstName = fullName;
+
+      // Format the name that shows in user profile dropdown
+      // If '_', assume the name is before the '_',
+      // If ',', assume the name is after the first ','
+      // else use the name before the first space
+      // issue: https://devtopia.esri.com/WebGIS/arcgis-portal-app/issues/705
+
+      if (fullName.indexOf("_") > -1) {
+        firstName = fullName.split("_")[0];
+      } else if (fullName.indexOf(",") > -1) {
+        firstName = fullName.split(",").slice(1).join(" ");
+      } else if (fullName.indexOf(" ") > -1) {
+        //firstName = fullName.split(" ").slice(0, -1).join(" ");
+        firstName = fullName.split(" ")[0];
+      }
+      return firstName.replace(/(?:(?:^|\n)\s+|\s+(?:$|\n))/g, "").replace(/\s+/g, " ");
+    };
+
+
+  function  getOrgHostname (data) {
+    if (data) {
+      return data.urlKey ? data.urlKey + "." + data.customBaseUrl : data.portalHostname;
+    } else {
+      return "www.arcgis.com";
+    }
+  }
+
+
+  function  showSignInLink () {
+    $(".logged-in-navigation").addClass ("hide-if-logged-out");
+    $(".logged-out-navigation").removeClass ("hide-if-logged-in");
+
+    $("#login-link").attr ("href", sitecfg["agolSignin"]+"?returnUrl="+encodeURIComponent(window.location.href));
+	 $("#login-link > a").attr ("linkType", "fix");
+
+	removeLocalStorageSigninKeys();
+  }
+  
+  function showUserInfo(params){
+	  $.getJSON(proxyURL + "https:"+portalHostname + "/sharing/rest/portals/self?Duration=0", params, function (data) {
+						var firstName = getUserDisplayName(data && data.user),
+						orgHostname = getOrgHostname (data),
+						text = firstName;
+						if(data.error){
+							showSignInLink();
+							return;
+						}
+						sitecfg["isValidToken"] = true;
+						$(".logged-out-navigation").addClass ("hide-if-logged-in");
+						$(".logged-in-navigation").removeClass ("hide-if-logged-out");
+
+						//$(".result").html(text);
+						$(".logged-in-navigation .user-nav-image").attr ("src",avatarurl);
+						$(".logged-in-navigation .user-nav-name").html ("<span>"+ text +"</span>");
+
+						$("#agolProfile").attr ("href", "//" + orgHostname + sitecfg["agolProfile"]);
+						$("#agolHelp").attr ("href", sitecfg["agolHelp"]);
+						$(".js-log-out").each(function(){$(this).attr("href", "https://" + orgHostname + sitecfg["agolSignout"]+"?redirect_uri=https:"+sitecfg["portalHostname"] + sitecfg["agolSignout"]+"?redirect_uri="+encodeURIComponent(window.location.href))});
+
+						$(".myconsole").css ("display", "block");
+
+						if(data.subscriptionInfo && (data.subscriptionInfo.type.toLowerCase() === "trial" && data.subscriptionInfo.state.toLowerCase() === "active")){
+							var trialDownloadString = (window.localeJsonObj['docConfig'] && window.localeJsonObj[docConfig['locale']]['trial-downloads'])?window.localeJsonObj[docConfig['locale']]['trial-downloads'] : "Trial Downloads";
+							$(".myconsole li:last").before('<li><a href="' + sitecfg["trialDownloadUrl"] + '">' + trialDownloadString +'</a></li>');
+						}
+						
+						console.log("data is: ",JSON.stringify(data.subscriptionInfo));
+						if(!localStorage.getItem('culture'))
+							localStorage.setItem('culture',data.user.culture);
+							
+						if(!localStorage.getItem('customUrl') && data.urlKey !== undefined)
+							localStorage.setItem('customUrl', "https://" + data.urlKey  + "." + data.customBaseUrl);
+
+						if(data.subscriptionInfo){
+							// Org account
+							console.log("org acct");
+							$(".public-and-org-only, .org-only").removeClass("hide")
+							$(".anonymous-only, .anonymous-and-public-only").addClass("hide")
+							$("a#nav-gallery").css("display","inline-block");
+							data.subscriptionInfo.accountId = data.Id;
+							var isCookieChanged = ($.cookie ("esri_auth_extn") && JSON.parse($.cookie ("esri_auth_extn")).accountId != data.Id) ? true : false
+							if (!($.cookie && $.cookie ("esri_auth_extn")) || isCookieChanged) {
+								console.log("setting esri_auth");
+								$.cookie ("esri_auth_extn", JSON.stringify(data.subscriptionInfo), {domain: '.arcgis.com', path:"/"});
+							}
+						} else {
+							//public account
+				
+							$(".public-and-org-only").removeClass("hide")
+							$(".anonymous-only").addClass("hide")
+							$(".org-only").addClass("hide")
+
+							if ($.cookie && $.cookie ("esri_auth_extn")) {
+							  $.removeCookie ("esri_auth_extn", {domain: '.arcgis.com', path:"/"});
+							}
+						}
+
+						}).fail(function() {
+							showSignInLink();
+						});
+  }
+  
+  $("#agolLogout").on("click", function(){  
+	  removeLocalStorageSigninKeys();
+  });
+  
+  /* login */
+
+  $(".myconsole").css ("display", "none");
+  var avatarurl = "/assets/img/no-user-thumb.jpg",
+	  avatar = "<img width='16px' height='16px' alt='' src='" + avatarurl +"' />";
+			
+  var params = {f:"json"},
+	  portalHostname = sitecfg["portalHostname"],
+	  firstName,
+	  text;
+ 
+  var proxyURL = (navigator.userAgent.match(/msie/i)) ? "/apps/proxy/proxy.php?" : "";
+
+  $.ajaxSetup({async:false});
+  /* Step 1: Check if local storage has valid unexpired token
+  var tokenVal = "";
+  if(localStorage.getItem('agol_token')){
+	tokenVal  = JSON.parse(localStorage.getItem('agol_token'));
+	if(parseInt(tokenVal.expires_in) <= 0){
+		removeLocalStorageSigninKeys();
+		tokenVal = "";
+	}
+	else
+		params.token = tokenVal.token
+  }
+  Step 2: Make call to /platformself to get the user token if/he she is signed in already. Otherwise, show signin link.
+  if(tokenVal === ""){*/
+	 // console.log(new Date().getTime());
+	  $.ajax({
+				   url: proxyURL + "https:"+portalHostname + "/sharing/rest/oauth2/platformSelf",
+				   type: 'POST',
+				   dataType: 'JSON',
+				   cache: false,
+				   data: params,
+				   xhrFields: {
+					   withCredentials: true
+				   },
+				   beforeSend: function(request) {
+						request.setRequestHeader("Referer", window.location.hostname);
+						request.setRequestHeader("X-Esri-Auth-Client-Id", "esriapps");
+						request.setRequestHeader("X-Esri-Auth-Redirect-Uri",window.location.href);
+						//console.log("request: ",request);
+				   },
+				   success: function (response) { 
+					
+						//console.log("from platformself "+JSON.stringify(response));
+						if(response.token){
+							params.token = response.token;
+							localStorage.setItem('agol_token',JSON.stringify({'token':response.token, 'expires_in':response.expires_in}));
+							//Step 3: Make call to /portals/self to get user info with the token recd. from /platformself as payload.
+							 //console.log(new Date().getTime());
+							 showUserInfo(params);
+						} else {
+							showSignInLink();
+						}
+						$.ajaxSetup({async:true});
+				   },
+				   error: function (data) {
+					   //console.log(data);
+						 showSignInLink();   
+				   }
+		 });  
+ /* } else {
+	  showUserInfo(params);
+  } */
+  setTimeout(function(){ 
+		if(window.location.pathname.split("/").length >3)
+			$(".esri-header-account, .esri-header-lineBreak").addClass ("hide");
+	  }, 900);
+  
+});

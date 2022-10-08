@@ -1,0 +1,2370 @@
+var sVersie = '1.09.11.03';
+
+var Interface = Interface || {};
+Interface.itemIds = new Array();    // ids of the Woning fields
+Interface.html = new Array();
+Interface.variable = new Array();
+var editing = false;
+var idCont = 0; //counts how many houses are there
+var contEvent = 0;
+var idsOntbonden = new Array();
+var flags = new Array();
+var globalYearRange = '';
+
+var leegstandTermijn = new Array();
+leegstandTermijn['2022'] = 3;
+leegstandTermijn['2021'] = 3;
+leegstandTermijn['2020'] = 3;
+leegstandTermijn['2019'] = 3;
+leegstandTermijn['2018'] = 3;
+leegstandTermijn['2017'] = 3;
+leegstandTermijn['2016'] = 3;
+leegstandTermijn['2015'] = 3;
+leegstandTermijn['2014'] = 3;
+leegstandTermijn['2013'] = 3;
+leegstandTermijn['2012'] = 3;
+leegstandTermijn['2011'] = 3;
+leegstandTermijn['2010'] = 2;
+leegstandTermijn['2009'] = 2;
+leegstandTermijn['2008'] = 2;
+leegstandTermijn['2007'] = 2;
+leegstandTermijn['2006'] = 2;
+leegstandTermijn['2005'] = 2;
+leegstandTermijn['2004'] = 2;
+
+/**
+ *
+ * toont versienummer van hulpmiddel op ontwikkel omgeving.
+ *
+ */
+Interface.initVersion = function () {
+  var html = 'Versie: ' + sVersie;
+  $('#divVersie').append('<p />');
+  $('#divVersie p').append(html);
+};
+
+
+/**
+ *
+ * builds the aangiftejaar select.
+ * called from util.js initializeInterface()
+ *
+ */
+Interface.buildYear = function () {
+
+  var todaysYear = new Date().getFullYear();
+  var yearFrom = todaysYear - 3;
+  var html = '<option value=0>Kies jaar</option>';
+  for (var i = todaysYear; i >= yearFrom; i--) {
+    html += '<option value=\'' + i + '\'>' + i + '</option>';
+  }
+  $('#selAangifteJaar').empty();
+  $(html).appendTo('#selAangifteJaar');
+
+};
+
+/**
+ *
+ * Renumbers the wonings (when a user deletes one)
+ *
+ */
+Interface.woningNumber = function () {
+  var cont = 1;
+
+  for (var i = 0; i < Interface.itemIds.length; i++) {
+    if ($('#number-Woning' + Interface.itemIds[i])) {
+
+      $('#number-Woning' + Interface.itemIds[i]).html(cont);
+      cont++;
+    }
+  }
+};
+
+/**
+ *
+ * Loads the html into objects
+ *
+ */
+Interface.loadHtml = function () {
+  Interface.html['divBijleen-Woning'] = $('#divBijleen-Woning').html();
+  Interface.html['divV0-3-deletableWon-Woning'] = $('#divV0-3-deletableWon-Woning').html();
+  Interface.html['divV4Container'] = $('#divV4Container').html();
+  Interface.html['divV1Container'] = $('#divV1Container').html();
+  Interface.html['divV3Container'] = $('#divV3Container').html();
+  Interface.html['divV2Container'] = $('#divV2Container').html();
+  Interface.html['divV5Container'] = $('#divV5Container').html();
+  Interface.html['divV7-1'] = $('#divV7-1').html();
+  Interface.html['divV7-2'] = $('#divV7-2').html();
+  Interface.html['divV7-3'] = $('#divV7-3').html();
+
+};
+
+/**
+ *
+ * creates variables with dates to be used in the validations and berekening
+ *
+ */
+Interface.loadUtilVariables = function () {
+  Interface.variable['jan12004'] = stringToDate('1/1/2004');
+  Interface.variable['jan12006'] = stringToDate('1/1/2006');
+  Interface.variable['dec312009'] = stringToDate('31/12/2009');
+  Interface.variable['oct12009'] = stringToDate('1/10/2009');
+  Interface.variable['jan12010'] = stringToDate('1/1/2010');
+  Interface.variable['dec312010'] = stringToDate('31/12/2010');
+  Interface.variable['jan12011'] = stringToDate('1/1/2011');
+  Interface.variable['dec312011'] = stringToDate('31/12/2011');
+  Interface.variable['dec312012'] = stringToDate('31/12/2012');
+  Interface.variable['jan12013'] = stringToDate('1/1/2013');
+  Interface.variable['dec312013'] = stringToDate('31/12/2013');
+  Interface.variable['jan12014'] = stringToDate('1/1/2014');
+  Interface.variable['dec312014'] = stringToDate('31/12/2014');
+
+  Interface.variable['aangiftejaar'] = parseInt($('#selAangifteJaar').val());
+  Interface.variable['dec31aangifte'] = stringToDate('31/12/' + Interface.variable['aangiftejaar']);
+  Interface.variable['leegstandtermijn'] = leegstandTermijn[$('#selAangifteJaar').val()];
+};
+
+
+/**
+ *
+ * updates the datum of the first question of aankoop and verkoop event everytime the user changes those dates in the panel woninginitiatie
+ *
+ */
+Interface.updateEventDatum = function (id) {
+  //var woningId=$("#id-Woning"+id).val();
+  var woningId = 'idx' + id;
+  //woningId=woningId.replace(/ /g,"_");
+  var aankoopdatum = $('#date-Woning' + id).val();
+  var verkoopdatum = $('#dateVerkoop-Woning' + id).val();
+  try {
+    $('#txtV1-1b-Woning' + woningId + '-workflow-' + id + '-event-0').val(aankoopdatum);
+  } catch (err) {
+  }
+  try {
+    $('#txtV2-1a-Woning' + woningId + '-workflow-' + id + '-event-0').val(verkoopdatum);
+  } catch (err) {
+  }
+  try {
+    $('#txtV2-4-Woning' + woningId + '-workflow-' + id + '-event-0').html(Interface.leegstandtermijnVerkoop(verkoopdatum));
+  } catch (err) {
+  }
+};
+/**
+ *
+ * add a new set of inputs to add a new woning
+ * called from the "Woning toevoegen" button
+ *
+ */
+
+Interface.leegstandtermijnVerkoop = function (verkoopdatum) {
+  var verkoopDate = stringToDate(verkoopdatum);
+  var verkoopYear = verkoopDate.getFullYear().toString();
+  var leegstandtermijn = leegstandTermijn[verkoopYear] ? leegstandTermijn[verkoopYear] : 2;
+  return leegstandtermijn;
+};
+
+Interface.appendWoning = function () {
+  var html = Interface.html['divV0-3-deletableWon-Woning'];
+
+  html = html.replace(/-Woning/g, '-Woning' + idCont);
+  $('<div id=\'item' + idCont + '\'>' + html + '</div>').appendTo($('#ulV0-3'));
+
+
+  $('#btnAddWoning').attr('disabled', 'disabled');
+  $('#btnAddWoning').addClass('buttonDisabled');
+  $('#btnVerder1').attr('disabled', 'disabled');
+  $('#btnVerder1').addClass('buttonDisabled');
+  $('#txtAddwoning').addClass('buttonDisabled');
+  $('#txtVerder').addClass('buttonDisabled');
+
+
+  var todaysYear = new Date().getFullYear();
+  var yearFrom = todaysYear - 50;
+
+  addDatepicker($('#date-Woning' + idCont), yearFrom + ':' + todaysYear);
+  addDatepicker($('#dateVerkoop-Woning' + idCont));
+
+  var id = idCont;
+  Interface.addHandlers(idCont, '');
+
+  $('#date-Woning' + idCont).change(function () {
+    var aankoopdate = stringToDate($(this).val());
+
+    Interface.checkVerder1();
+    Interface.updateEventDatum(id);
+    if (aankoopdate == '') {
+      show_hide_error(false, '#divV1-1b-error-3-Woning' + id);
+    }
+
+  });
+  $('#date-Woning' + idCont).keyup(function () {
+
+
+    var val = stringToDate($(this).val());
+    if ((val != '') && (val != 'Invalid Date') && (val != 'Invalid Year')) {
+
+
+      Interface.checkVerder1();
+    }
+  });
+
+  $('#id-Woning' + idCont).blur(function () {
+    Interface.checkVerder1();
+  });
+  $('input[name=radV0-3c-Woning' + idCont + ']').click(function () {
+    if ($('input[name=radV0-3c-Woning' + id + ']:checked').val() == 'ja') {
+
+      $('#divV0-3d-Woning' + id).removeClass('hidden');
+    } else {
+      //var woningIdMachine = $("#id-Woning"+id).val().replace(/ /g,"_");
+      var woningIdMachine = 'idx' + id;
+      if (Bijleen.Woningen[woningIdMachine]) {
+        if (Bijleen.Woningen[woningIdMachine].Verkoop) {
+          if (confirm('Weet u zeker dat u de verkoopgegevens wilt verwijderen?')) {
+            Bijleen.Woningen[woningIdMachine].Verkoop = new Array();
+            Bijleendata.Woningen[woningIdMachine].woning_verkoopdatum = '';
+
+            $('#divV2-Woning' + woningIdMachine + '-workflow-' + id + '-event-0').remove();
+            $('#divV0-3d-Woning' + id).addClass('hidden');
+            $('#pDeletable-Woning' + woningIdMachine + '-Verkoop0').remove();
+            for (var h = 0; h < mainWorkflow.length; h++) {
+              if (mainWorkflow[h].woningidMachine == woningIdMachine) {
+                mainWorkflow[h]['verkoop'] = new Array();
+              }
+              break;
+            }
+          } else {
+            $('input[id=radV0-3cja-Woning' + id + ']').attr('checked', 'checked');
+          }
+        }
+      } else {
+        $('#divV0-3d-Woning' + id).addClass('hidden');
+
+      }
+    }
+    Interface.checkVerder1();
+  });
+  $('#dateVerkoop-Woning' + idCont).change(function () {
+
+    Interface.updateEventDatum(id);
+    Interface.checkVerder1();
+  });
+  $('#dateVerkoop-Woning' + idCont).keyup(function () {
+    var val = stringToDate($(this).val());
+    if ((val != '') && (val != 'Invalid Date') && (val != 'Invalid Year')) {
+      Interface.checkVerder1();
+    }
+  });
+  Interface.itemIds[Interface.itemIds.length] = idCont;
+  Interface.woningNumber();
+  idCont++;
+  showObjects();
+};
+/**
+ *
+ * appends a set of inputs to add a new ontbonden koop
+ *
+ */
+Interface.appendOntbonden = function () {
+  var nextId = '';
+  if (idsOntbonden.length == 0) {
+    nextId = 0;
+  } else {
+    nextId = idsOntbonden[idsOntbonden.length - 1] + 1;
+  }
+  idsOntbonden[idsOntbonden.length] = nextId;
+
+  var html = Interface.html['divV4Container'];
+  html = html.replace(/-Ontbonden/g, '-Ontbonden' + nextId);
+  $('<div id=\'ontbonden' + nextId + '\'>' + html + '</div>').insertBefore($('#divAddOntbonden'));
+  $('#number-Ontbonden' + nextId).html(idsOntbonden.length);
+  Interface.addHandlers('', 'ontbonden', nextId);
+  showObjects();
+
+};
+/**
+ *
+ * Removes an ontbonden koop when the user deletes it
+ *
+ */
+Interface.removeOntbonden = function (id) {
+
+  if (idsOntbonden.length > 1) {
+    $('#ontbonden' + id).remove();
+    Bijleen.EindControle.OntbondenKoop['num' + id] = '';
+    idsOntbonden = $.grep(idsOntbonden, function (value) {
+
+      return value != id;
+    });
+    Interface.renumberOntbonden();
+    if (idsOntbonden.length == 1) {
+      $('.verwijderOnt').addClass('hidden');
+    }
+  } else {
+
+    alert('U wilt een koop die ontbonden is verwijderen. Dit kan helaas niet met \'verwijderen\'. U moet de vraag over de ontbonden koop met \'nee\' beantwoorden.');
+  }
+  showObjects();
+};
+/**
+ *
+ * Renumbers the other ontbonden koops when the user delets one
+ *
+ */
+Interface.renumberOntbonden = function () {
+
+  var cont = 1;
+
+  for (var i = 0; i < idsOntbonden.length; i++) {
+    if ($('#number-Ontbonden' + idsOntbonden[i])) {
+
+      $('#number-Ontbonden' + idsOntbonden[i]).html(cont);
+      cont++;
+    }
+  }
+
+};
+/**
+ *
+ * checks if the woningid is filled in and valid, and if the aankoopdate is filled and valid
+ * called from Interface.appendWoning
+ *
+ */
+Interface.checkIfHouseInfoIsComplete = function (id) {
+
+  var good = true;
+  show_hide_error(good, '#divV1-1a-error-Woning' + id);
+  show_hide_error(good, '#divV1-1b-error-1-Woning' + id);
+  show_hide_error(good, '#divV1-1b-error-2-Woning' + id);
+  show_hide_error(good, '#divV0-3c-error-1-Woning' + id);
+  show_hide_error(good, '#divV0-3d-error-1-Woning' + id);
+  show_hide_error(good, '#divV0-3d-error-2-Woning' + id);
+  show_hide_error(good, '#divV2-1a-error-1-Woning' + id);
+  show_hide_error(good, '#divV2-1a-error-2-Woning' + id);
+  show_hide_error(good, '#divV0-3c-error-1');
+
+  var woningid = $('#id-Woning' + id).val();
+  woningid = trim(woningid);
+  if (woningid == '') {
+    good = false;
+  }
+
+  if (good) {
+    //check that the woning id is not 0
+    woningid = woningid.replace(/[^a-zA-Z0-9 ]/g, '');
+
+    if ((woningid == '0') || (woningid == '')) {
+      good = false;
+    }
+    show_hide_error(good, '#divV1-1a-error-2-Woning' + id);
+
+
+  }
+  if (good) {
+    $('#id-Woning' + id).val(woningid);
+  }
+  if (good) {
+    for (var i = 0; i < Interface.itemIds.length; i++) {
+      var val = '';
+
+      try {
+        val = $('#id-Woning' + Interface.itemIds[i]).val();
+      } catch (ex) {
+      }
+
+
+      if ((val == woningid) && (Interface.itemIds[i] != id)) {
+
+        good = false;
+        break;
+      }
+    }
+
+    show_hide_error(good, '#divV1-1a-error-Woning' + id);
+  }
+  if (good) {
+    var aankoopdate = $('#date-Woning' + id).val();
+    aankoopdate = stringToDate(aankoopdate);
+    good = alertInvalidDate(aankoopdate, '#divV1-1b-error-3-Woning' + id, '#date-Woning' + id);
+  }
+  if (good) {
+
+    if ((aankoopdate == '') || (aankoopdate == 'Invalid Date')) {
+      good = false;
+    }
+
+  }
+
+  var aangifteJaar = Interface.variable['dec31aangifte'];
+  if (aangifteJaar == 'Invalid Date') aangifteJaar = '';
+  var jan1 = Interface.variable['jan12004'];
+
+  if (good) {
+    if (aankoopdate.getTime() > aangifteJaar.getTime()) good = false;
+
+    show_hide_error(good, '#divV1-1b-error-1-Woning' + id);
+  }
+  if (good) {
+    var isverkocht = $('input[name=radV0-3c-Woning' + id + ']:checked').val();
+    if (isverkocht == undefined) {
+      good = false;
+    }
+    if (isverkocht == 'ja') {
+      var verkoopdatum = $('#dateVerkoop-Woning' + id).val();
+      verkoopdatum = stringToDate(verkoopdatum);
+      good = alertInvalidDate(verkoopdatum, '#divV0-3d-error-3-Woning' + id, '#dateVerkoop-Woning' + id);
+
+
+      if ((verkoopdatum == '')) {
+        good = false;
+      }
+      if (good) {
+
+        if (verkoopdatum.getTime() < jan1.getTime()) {
+          good = false;
+          show_hide_error(good, '#divV0-3d-error-1-Woning' + id);
+        }
+      }
+      if (good) {
+        if (verkoopdatum.getTime() <= aankoopdate.getTime()) {
+          good = false;
+          show_hide_error(good, '#divV0-3d-error-2-Woning' + id);
+        }
+      }
+    }
+  }
+
+  if (!good) {
+    $('#btnAddWoning').attr('disabled', 'disabled');
+    $('#btnAddWoning').addClass('buttonDisabled');
+    $('#btnVerder1').attr('disabled', 'disabled');
+    $('#btnVerder1').addClass('buttonDisabled');
+    $('#txtAddwoning').addClass('buttonDisabled');
+    $('#txtVerder').addClass('buttonDisabled');
+  } else {
+    $('#btnAddWoning').removeAttr('disabled');
+    $('#btnAddWoning').removeClass('buttonDisabled');
+    $('#txtAddwoning').removeClass('buttonDisabled');
+  }
+  return good;
+  showObjects();
+};
+
+/**
+ *
+ * deletes the desired house
+ *
+ */
+Interface.deleteWoning = function (id) {
+
+  if (confirm('Weet u zeker dat u deze woning wilt verwijderen?')) {
+    var id = id.substr(7);
+    var idWoningMachine = 'idx' + id;
+    //var idWoningMachine=$("#id-Woning"+id).val().replace(/ /g,"_");
+    var deletable = true;
+    if (deletable) {
+      $('#divHouseContainer-Woning' + idWoningMachine).remove();
+      $('div#item' + id).remove();
+
+      Interface.itemIds = $.grep(Interface.itemIds, function (value) {
+
+        return value != id;
+      });   //remove the deleted id from the array
+
+      try {
+        $('#divV6').addClass('hidden');
+      } catch (err) {
+      }
+      var g = Interface.itemIds.length;
+      if (g == 0) {
+        $('#btnAddWoning').removeAttr('disabled');
+        $('#btnAddWoning').removeClass('buttonDisabled');
+        $('#btnVerder1').attr('disabled', 'disabled');
+        $('#btnVerder1').addClass('buttonDisabled');
+        $('#txtAddwoning').addClass('buttonDisabled');
+        $('#txtVerder').addClass('buttonDisabled');
+
+      } else {
+        for (var ii = 0; ii < Interface.itemIds.length; ii++) {
+
+          Interface.checkIfHouseInfoIsComplete(Interface.itemIds[ii]);
+        }
+      }
+      var temp = new Array();
+      for (var h = 0; h < mainWorkflow.length; h++) {
+        if (mainWorkflow[h].woningidMachine != idWoningMachine) {
+          temp[temp.length] = mainWorkflow[h];
+        }
+      }
+      mainWorkflow = temp;
+
+      Bijleendata.removeData(idWoningMachine);
+      Bijleen.removeData(idWoningMachine);
+      Interface.woningNumber();
+      Interface.checkVerder1();
+    }
+  }
+  showObjects();
+
+};
+
+/**
+ *
+ * disables or enables the button Verder 1
+ *
+ */
+Interface.checkVerder1 = function () {
+  var size = Interface.itemIds.length;
+  for (var i = (Interface.itemIds.length - 1); i >= 0; i--) {
+
+    if (($('#id-Woning' + Interface.itemIds[i]).val() != '') && ($('#date-Woning' + Interface.itemIds[i]).val() != '')) {
+
+      $('#btnVerder1').removeAttr('disabled');
+      $('#btnVerder1').removeClass('buttonDisabled');
+      $('#txtVerder').removeClass('buttonDisabled');
+    } else {
+      $('#btnVerder1').attr('disabled', 'disabled');
+      $('#btnVerder1').addClass('buttonDisabled');
+      $('#txtVerder').addClass('buttonDisabled');
+    }
+
+    var good = Interface.checkIfHouseInfoIsComplete(Interface.itemIds[i]);
+    if (!good) {
+      break;
+    }
+  }
+
+
+  if (size == 0) {
+    $('#btnVerder1').attr('disabled', 'disabled');
+    $('#btnVerder1').addClass('buttonDisabled');
+    $('#txtVerder').addClass('buttonDisabled');
+    $('#btnBereken').attr('disabled', 'disabled');
+    $('#btnBereken').addClass('buttonDisabled');
+
+  }
+
+  showObjects();
+};
+
+/**
+ *
+ * checks if 3 houses are "in bezit" at the same time
+ *
+ */
+Interface.check3HousesAtTheSameTime = function () {
+
+  function funcSortBijleendata(a, b) {
+    return a.aankoop > b.aankoop;
+  }
+
+  var maxaankoop = stringToDate('1/1/1900');
+  var temp = new Array();
+  for (var i = 0; i < Interface.itemIds.length; i++) {
+    var aankoop = stringToDate($('#date-Woning' + Interface.itemIds[i]).val());
+    var isverkocht = $('input[name=radV0-3c-Woning' + Interface.itemIds[i] + ']:checked').val();
+    var verkoop = stringToDate($('#dateVerkoop-Woning' + Interface.itemIds[i]).val());
+
+    var idx = temp.length;
+    temp[idx] = {};
+    temp[idx]['aankoop'] = aankoop;
+    if (isverkocht == 'ja') {
+      temp[idx]['verkoop'] = verkoop;
+    } else {
+      temp[idx]['verkoop'] = '';
+    }
+    if (aankoop > maxaankoop) {
+      maxaankoop = aankoop;
+    }
+
+  }
+  temp = temp.sort(funcSortBijleendata);
+  var aantal = 0;
+  for (var i = 0; i < temp.length; i++) {
+
+    aantal++;
+    if (temp[i].verkoop != '') {
+      aantal--;
+    }
+  }
+  $('#spanDatumGekochtError').html(dateToStringAstext(maxaankoop));
+  if (aantal >= 3) {
+    return false;
+  } else {
+    return true;
+  }
+
+};
+/**
+ *
+ * creates Bijleendata objects from the filled in houses and aankoopdatums
+ * adds the houses to the workflow
+ * called from the click of Verder 1 button
+ *
+ */
+
+Interface.verder1 = function () {
+
+  editing = false;
+  var good = true;
+  var sold;
+  good = Interface.check3HousesAtTheSameTime();
+  show_hide_error(good, '#divV0-3c-error-1');
+
+
+  if (good) {
+    $('#btnVerder1').attr('disabled', 'disabled');
+  }
+
+
+  if (good) {
+    for (var i = 0; i < Interface.itemIds.length; i++) {
+      var idMachine = 'idx' + Interface.itemIds[i];
+      //idMachine = idMachine.replace(/ /g,"_");
+      show_hide_error(true, '#divV1-1b-error-4-Woning' + Interface.itemIds[i]); //hide the error if he wants to change the aankoopdatum
+      var idx = Interface.itemIds[i];
+      sold = $('input[name=radV0-3c-Woning' + idx + ']:checked').val();
+
+      Bijleendata.newWoning(idMachine, $('#id-Woning' + idx).val(), $('#date-Woning' + idx).val(), sold, $('#dateVerkoop-Woning' + idx).val(), idx);
+
+
+      var idxWorkflow = 0;
+      for (var h = 0; h < mainWorkflow.length; h++) {
+        if (mainWorkflow[h].woningidMachine == idMachine) {
+          idxWorkflow = h;
+        }
+      }
+
+      var exists = Bijleen.Woningen[idMachine];
+
+      if (!exists) {
+
+        Bijleen.init(Bijleendata.Woningen[idMachine].woningidMachine);
+        Workflow.newWorkflowEvent(Bijleendata.Woningen[idMachine].woningidMachine);
+        Interface.showWoningInfo(Bijleendata.Woningen[idMachine].woningidMachine);
+        Interface.addHandlers(Bijleendata.Woningen[idMachine].woningidMachine, 'woningOverview', '');
+
+
+      } else {
+
+        var extraId = '-workflow-' + idxWorkflow + '-event-0';
+        $('#text-Woning' + idMachine).html(Bijleendata.Woningen[idMachine].woningid);
+
+
+        try {
+          Interface.showFirstQuestion('aankoop', idMachine, extraId);
+        } catch (err) {
+        }
+        ;
+
+        if (sold == 'ja') {
+
+          var exists = Bijleen.Woningen[Bijleendata.Woningen[idMachine].woningidMachine].Verkoop.length;
+
+          if (exists == 0) {
+
+            Interface.deleteEvent('Woning' + idMachine + '-Verkoop0');
+            Bijleen.initVerkoop(idMachine);
+
+            Workflow.pushEvent(idMachine, 'verkoop');
+            Interface.showWoningInfo(Bijleendata.Woningen[idMachine].woningidMachine);
+
+
+            if ($('#divV2-Woning' + idMachine + '-workflow-' + idxWorkflow + '-event-0').length == 0) {
+
+              if ($('#divV1-Woning' + idMachine + '-workflow-' + idxWorkflow + '-event-0').length > 0) {
+
+                Interface.createNewEvent('verkoop', idMachine, idx, 0);
+              }
+            }
+            //							Workflow.showNextActiveBlock();
+          } else {
+
+            var verkoopdatum = stringToDate($('#dateVerkoop-Woning' + idx).val());
+
+            if (dateToString(verkoopdatum) != dateToString(Bijleen.Woningen[idMachine].Verkoop[0].verkoopdatum)) {
+
+              if (parseInt(verkoopdatum.getFullYear()) > Interface.variable['aangiftejaar']) {
+                Interface.deleteEvent('Woning' + idMachine + '-Verkoop0');
+              } else {
+
+                $('#txtV2-1a-Woning' + idMachine + '-workflow-' + idxWorkflow + '-event-0').val($('#dateVerkoop-Woning' + idx).val());
+                $('#txtV2-4-Woning' + idMachine + '-workflow-' + idxWorkflow + '-event-0').html(Interface.leegstandtermijnVerkoop($('#dateVerkoop-Woning' + idx).val()));
+
+                Bijleen.Woningen[idMachine].Verkoop[0].verkoopdatum = verkoopdatum;
+                Bijleen.Woningen[idMachine].Verkoop[0].eventdatum = verkoopdatum;
+
+
+                //Workflow.showNextActiveBlock();
+              }
+
+            }
+          }
+
+        }
+      }
+    }
+  }
+
+
+  if (good) {
+
+    $('#wijzigWoning').removeClass('hidden');
+    $('#fsWoninginit').addClass('checkBackground');
+    Workflow.searchNextWorkflow();
+
+    Workflow.showNextActiveBlock();
+
+
+    blockDiv('#panelWoningContainer');
+
+    toggleObj('#parentPanelWoningContainer');
+    toggleClass('#fsWoninginitiatielegend');
+
+    for (var l in Bijleendata.Woningen) {
+      var ank = Bijleendata.Woningen[l].woning_aankoopdatum;
+
+      var mon6 = ank.getMonth() + 6;
+      var verk = Bijleendata.Woningen[l].woning_verkoopdatum;
+
+      var year6 = ank.getFullYear();
+      if (mon6 > 11) {
+        mon6 -= 12;
+
+        year6++;
+      }
+      var ank6 = new Date(year6, mon6, ank.getDate());
+
+      if (ank6 > Interface.variable['dec31aangifte']) {
+        ank6 = Interface.variable['dec31aangifte'];
+        //ank=Interface.variable["dec31aangifte"];
+      }
+
+      if (ank6 < Interface.variable['jan12004']) {
+        ank6 = Interface.variable['jan12004'];
+      }
+      if (ank < Interface.variable['jan12004']) {
+        ank = Interface.variable['jan12004'];
+      }
+
+
+      if (dateToString(verk) != '') {
+        if (verk >= Interface.variable['dec31aangifte']) {
+          verk = Interface.variable['dec31aangifte'];
+        }
+      } else {
+        verk = Interface.variable['dec31aangifte'];
+      }
+
+      $('.spanaankooporaangiftedatum-Woning' + l).html(dateToStringAstext(ank));
+      $('.spanaankoop6datum-Woning' + l).html(dateToStringAstext(ank6));
+      $('.spanverkoopofaanigfte-Woning' + l).html(dateToStringAstext(verk));
+
+    }
+
+
+  }
+
+
+  $('#btnVerder1').removeAttr('disabled');
+  $('#txtVerder').removeClass('buttonDisabled');
+
+
+  showObjects();
+
+};
+
+/**
+ *
+ * creates one block per house
+ * appends an aankoop event to each house
+ *
+ */
+Interface.showWoningInfo = function (idWoningMachine) {
+
+  var html = Interface.html['divBijleen-Woning'];
+  var woningid = Bijleendata.Woningen[idWoningMachine].woningid;
+
+  html = html.replace(/Woning/g, 'Woning' + idWoningMachine);
+  $('#woningContainer').removeClass('hidden');
+
+  if ($('#divHouseContainer-Woning' + idWoningMachine).length == 0) {
+
+    $(html).appendTo($('#woningContainer'));
+
+    $('#text-Woning' + idWoningMachine).html(woningid);
+
+    $('#title-Woning' + idWoningMachine + ' a').click(function () {
+      var css = $('#title-Woning' + idWoningMachine + ' a').attr('class');
+      if (css.indexOf('greyLink') == -1) {
+        showHideWoning(idWoningMachine, 'toggle');
+      }
+
+    });
+
+    Interface.appendEvent(idWoningMachine, 'aankoop');
+
+
+  }
+
+  var isverkocht = Bijleendata.Woningen[idWoningMachine].woning_verkoopdatum;
+
+  if (dateToString(isverkocht) != '') {
+
+    Interface.appendEvent(idWoningMachine, 'verkoop');
+
+  } else {
+    try {
+      $('#pDeletable-Woningsss-Verkoop0').remove();
+    } catch (err) {
+    }
+  }
+
+  showObjects();
+};
+
+
+/**
+ *
+ * add a new set of inputs to add a new event per house
+ *
+ */
+
+Interface.appendEvent = function (idWoningMachine, eventt) {
+  var eventCapital = eventt.charAt(0).toUpperCase() + eventt.substr(1);
+  var nextEventId = 0;
+
+  Workflow.pushEvent(idWoningMachine, eventt);
+
+
+  showObjects();
+};
+
+/**
+ *
+ * deletes the desired event
+ *
+ */
+Interface.deleteEvent = function (idLi) {
+
+  var idP = '#pDeletable-' + idLi;
+  var eve = idLi.substring(idLi.lastIndexOf('-') + 1);
+  eve = eve.replace(/[0-9]/g, '');
+
+  var idWoning = idLi.substring(idLi.indexOf('Woning') + 6, idLi.lastIndexOf('-'));
+
+  var idEve = idLi.substr(idLi.indexOf(eve) + eve.length);
+  idEve = parseInt(idEve);
+
+
+  Workflow.removeAction(idWoning, eve, idEve);
+  Bijleen.removeEvent(idWoning, eve, idEve);
+
+  showObjects();
+
+};
+/**
+ *
+ * Checks the answers to the questions of the Woning Panel and adds/removes the events from mainWorkflow
+ * Called from Interface.verder2
+ * @param idx = index of the mainWorkflow that corresponds to this house
+ */
+Interface.checkForEvents = function (idWoningMachine, idx) {
+  //check if has verbouwing
+  var verbouwing_jn = $('input[name=radVPanel1-Woning' + idWoningMachine + ']:checked').val();
+
+
+  if (verbouwing_jn == 'nee') {
+    var len = mainWorkflow[idx].verbouwing.length;
+    for (var i = (len - 1); i >= 0; i--) {
+
+      Interface.deleteEvent('Woning' + idWoningMachine + '-Verbouwing' + i);
+    }
+    mainWorkflow[idx].verbouwing = new Array();
+  } else {
+    var howmanyVerbouwings = mainWorkflow[idx].verbouwing.length;
+    var morethan1_verbouwing = $('input[name=radVPanel2-Woning' + idWoningMachine + ']:checked').val();
+    var newnumberverbouwing = $('#txtVPanel3-Woning' + idWoningMachine).val();
+
+    if (morethan1_verbouwing == 'nee') {
+      newnumberverbouwing = 1;
+    }
+    var diff = newnumberverbouwing - howmanyVerbouwings;
+
+    if (diff > 0) {
+      for (var i = 0; i < diff; i++) {
+        Interface.appendEvent(idWoningMachine, 'verbouwing');
+      }
+    } else {
+      diff = Math.abs(diff);
+      for (var i = 0; i < diff; i++) {
+        Interface.deleteEvent('Woning' + idWoningMachine + '-Verbouwing' + (mainWorkflow[idx].verbouwing.length - 1));
+      }
+    }
+
+  }
+  //end verbouwing
+
+  //check if has aflossing
+
+  var aflossing_jn = $('input[name=radVPanel4-Woning' + idWoningMachine + ']:checked').val();
+  if (aflossing_jn == 'nee') {
+    var len = mainWorkflow[idx].aflossing.length;
+    for (var i = (len - 1); i >= 0; i--) {
+      Interface.deleteEvent('Woning' + idWoningMachine + '-Aflossing' + i);
+    }
+    mainWorkflow[idx].aflossing = new Array();
+  } else {
+    var howmanyAflossing = mainWorkflow[idx].aflossing.length;
+    var morethan1_aflossing = $('input[name=radVPanel5-Woning' + idWoningMachine + ']:checked').val();
+    var newnumberaflossing = $('#txtVPanel6-Woning' + idWoningMachine).val();
+
+    if (morethan1_aflossing == 'nee') {
+      newnumberaflossing = 1;
+    }
+    var diff = newnumberaflossing - howmanyAflossing;
+
+    if (diff > 0) {
+      for (var i = 0; i < diff; i++) {
+        Interface.appendEvent(idWoningMachine, 'aflossing');
+      }
+    } else {
+      diff = Math.abs(diff);
+      for (var i = 0; i < diff; i++) {
+        Interface.deleteEvent('Woning' + idWoningMachine + '-Aflossing' + (mainWorkflow[idx].aflossing.length - 1));
+      }
+    }
+
+  }
+  //end aflossing
+
+};
+/**
+ * checks if all the panel questions are answered. Shows fout meldings if necessary
+ * @param idWoningMachine
+ * @param idx = index of the mainWorkflow
+ */
+Interface.allPanelQuestionsAnswered = function (idWoningMachine, idx) {
+  var good = true;
+  show_hide_error(good, '#divVPanel1-Error-Woning' + idWoningMachine);
+  show_hide_error(good, '#divVPanel2-Error-Woning' + idWoningMachine);
+  show_hide_error(good, '#divVPanel3-Error-Woning' + idWoningMachine);
+  show_hide_error(good, '#divVPanel3-1-Error-Woning' + idWoningMachine);
+  show_hide_error(good, '#divVPanel4-Error-Woning' + idWoningMachine);
+  show_hide_error(good, '#divVPanel5-Error-Woning' + idWoningMachine);
+  show_hide_error(good, '#divVPanel6-Error-Woning' + idWoningMachine);
+  show_hide_error(good, '#divVPanel6-Error-1-Woning' + idWoningMachine);
+
+
+  var p1 = $('input[name=radVPanel1-Woning' + idWoningMachine + ']:checked').val();
+
+  if (p1 == undefined) {
+    good = false;
+    show_hide_error(good, '#divVPanel1-Error-Woning' + idWoningMachine);
+  }
+  if (p1 == 'ja') {
+    var p2 = $('input[name=radVPanel2-Woning' + idWoningMachine + ']:checked').val();
+    if (p2 == undefined) {
+      good = false;
+      show_hide_error(good, '#divVPanel2-Error-Woning' + idWoningMachine);
+    }
+    if (p2 == 'ja') {
+      var p3 = $('#txtVPanel3-Woning' + idWoningMachine).val();
+      p3 = parseInt(p3);
+      if (isNaN(p3)) {
+        good = false;
+        show_hide_error(good, '#divVPanel3-Error-Woning' + idWoningMachine);
+      } else {
+        if (p3 > 20) {
+          good = false;
+          show_hide_error(good, '#divVPanel3-Error-1-Woning' + idWoningMachine);
+        }
+      }
+      if (good) {
+        $('#txtVPanel3-Woning' + idWoningMachine).val(p3);
+      }
+    }
+
+  }
+
+  var p4 = $('input[name=radVPanel4-Woning' + idWoningMachine + ']:checked').val();
+  if (p4 == undefined) {
+    good = false;
+    show_hide_error(good, '#divVPanel4-Error-Woning' + idWoningMachine);
+  }
+  if (p4 == 'ja') {
+    var p5 = $('input[name=radVPanel5-Woning' + idWoningMachine + ']:checked').val();
+    if (p5 == undefined) {
+      good = false;
+      show_hide_error(good, '#divVPanel5-Error-Woning' + idWoningMachine);
+    }
+    if (p5 == 'ja') {
+      var p6 = $('#txtVPanel6-Woning' + idWoningMachine).val();
+      p6 = parseInt(p6);
+      if (isNaN(p6)) {
+        good = false;
+        show_hide_error(good, '#divVPanel6-Error-Woning' + idWoningMachine);
+      } else {
+        if (p6 > 20) {
+          good = false;
+          show_hide_error(good, '#divVPanel6-Error-1-Woning' + idWoningMachine);
+        }
+      }
+      if (good) {
+        $('#txtVPanel6-Woning' + idWoningMachine).val(p6);
+      }
+    }
+
+  }
+  return good;
+};
+/**
+ *
+ * Called from button Opslaan of each house
+ * Disables the initial event panel of the house and appends the event blocks
+ * Shows the next active event
+ *
+ */
+Interface.verder2 = function (idWoningMachine) {
+  editing = false;
+
+  $('#btnVerder2-Woning' + idWoningMachine).attr('disabled', 'disabled');
+  $('#btnVerder2-Woning' + idWoningMachine).addClass('buttonDisabled');
+  $('#waitingVerder2-Woning' + idWoningMachine).removeClass('hidden');
+
+  //setTimeout: ivm bovenstaande removeClass hidden. Scherm wordt pas bijgewerkt als een nieuwe functie wordt aangeroepen.
+  setTimeout(function () {
+    var idx = '';
+    for (var i = 0; i < mainWorkflow.length; i++) {
+      if (mainWorkflow[i].woningidMachine == idWoningMachine) {
+        idx = i;
+        break;
+      }
+    }
+    var good = Interface.allPanelQuestionsAnswered(idWoningMachine, idx);
+    if (good) {
+      Interface.checkForEvents(idWoningMachine, idx);
+
+      for (var i in mainWorkflow[idx]) {
+        if ((i == 'aankoop') || (i == 'verkoop') || (i == 'aflossing') || (i == 'verbouwing')) {
+          for (var j = 0; j < mainWorkflow[idx][i].length; j++) {
+            if (mainWorkflow[idx][i][j] == 1) {
+              var ide = j;
+
+              var div = '#div' + i + 'Container-Woning' + idWoningMachine + '-workflow-' + idx + '-event-' + ide;
+
+              var eve = i;
+              blockDiv('#divBijleenInner-Woning' + idWoningMachine);
+              Interface.createNewEvent(i, idWoningMachine, idx, ide);
+              toggleObj(div);
+
+              toggleClass('#div4check' + i + '-Woning' + idWoningMachine + '-workflow-' + idx + '-event-' + ide);
+              blockDiv(div);
+            }
+          }
+        }
+      }
+
+      if (stringToDate($('#date-Woning' + idx).val()) >= new Date(2013, 9, 1) && stringToDate($('#date-Woning' + idx).val()) <= new Date(2014, 11, 31)) {
+        $('#divV1-11-Woningidx' + idx + '-workflow-' + idx + '-event-0 .eenmalig_verhoogde_schenking').addClass('hidden');
+        $('#divV1-11-Woningidx' + idx + '-workflow-' + idx + '-event-0 .tijdelijk_verruimde_schenking').removeClass('hidden');
+      } else {
+        $('#divV1-11-Woningidx' + idx + '-workflow-' + idx + '-event-0 .eenmalig_verhoogde_schenking').removeClass('hidden');
+        $('#divV1-11-Woningidx' + idx + '-workflow-' + idx + '-event-0 .tijdelijk_verruimde_schenking').addClass('hidden');
+      }
+
+      Workflow.showNextActiveBlock();
+      $('#wijzigEvent-Woning' + idWoningMachine).removeClass('hidden');
+      $('.wijzig').removeClass('hidden');
+    }
+    $('#btnVerder2-Woning' + idWoningMachine).removeAttr('disabled');
+    $('#btnVerder2-Woning' + idWoningMachine).removeClass('buttonDisabled');
+    $('#waitingVerder2-Woning' + idWoningMachine).addClass('hidden');
+    showObjects();
+  }, 0);
+};
+
+
+/**
+ *
+ * Displays the first question of an event
+ * @param event = name of the event (aankoop, verkoop. aflossing, verbouwing
+ * @param idWoning = woning id
+ * @param extraId = extra id of the woning (ei: -workflow-0-event-0)
+ *
+ */
+Interface.showFirstQuestion = function (event, idWoning, extraId) {
+
+  switch (event) {
+    case 'aankoop':
+
+      Workflow.showNextQuestion('#initAankoop', Workflow.aankoopWorkflow, idWoning, extraId);
+      break;
+    case 'verkoop':
+
+      Workflow.showNextQuestion('#divV2-1a', Workflow.verkoopWorkflow, idWoning, extraId);
+      break;
+    case 'aflossing':
+
+      Workflow.showNextQuestion('#initAflossing', Workflow.aflossingWorkflow, idWoning, extraId);
+      break;
+    case 'verbouwing':
+
+      Workflow.showNextQuestion('#initVerbouwing', Workflow.verbouwingWorkflow, idWoning, extraId);
+      break;
+    case 'eindcontrole':
+      Workflow.showNextQuestion('#initEindcontrole', Workflow.eindcontroleWorkflow, idWoning, extraId);
+      break;
+
+  }
+};
+/**
+ *
+ * creates one block per event per house
+ *
+ */
+Interface.createNewEvent = function (val, woningidMachine, idxWorkflow, idEvent) {
+
+  var extraId = '-workflow-' + idxWorkflow + '-event-' + idEvent;
+  if (val != '0') {
+    var html = '';
+    switch (val) {
+      case 'aankoop':
+        html = Interface.html['divV1Container'];
+        html = html.replace(/Woning/g, 'Woning' + woningidMachine + extraId);
+        $('#divV1-Woning' + woningidMachine + extraId).remove();
+        $(html).appendTo($('#divBijleenContainer-Woning' + woningidMachine));
+        $('#divV1-Woning' + woningidMachine + extraId).removeClass('hidden');
+        Interface.addHandlers(woningidMachine, 'aankoop', extraId);
+        var aankoop = dateToString(Bijleendata.Woningen[woningidMachine].woning_aankoopdatum);
+        $('#txtV1-1b-Woning' + woningidMachine + extraId).val(aankoop);
+        Interface.showFirstQuestion('aankoop', woningidMachine, extraId);
+
+        break;
+      case 'verkoop':
+        html = Interface.html['divV2Container'];
+        html = html.replace(/Woning/g, 'Woning' + woningidMachine + extraId);
+        $('#divV2-Woning' + woningidMachine + extraId).remove();
+        $(html).appendTo($('#divBijleenContainer-Woning' + woningidMachine));
+        $('#divV2-' + 'Woning' + woningidMachine + extraId).removeClass('hidden');
+
+        Interface.addHandlers(woningidMachine, 'verkoop', extraId);
+        var verkoop = dateToString(Bijleendata.Woningen[woningidMachine].woning_verkoopdatum);
+        $('#txtV2-1a-Woning' + woningidMachine + extraId).val(verkoop);
+        $('#txtV2-4-Woning' + woningidMachine + extraId).html(Interface.leegstandtermijnVerkoop(verkoop));
+        Interface.showFirstQuestion('verkoop', woningidMachine, extraId);
+
+        break;
+      case 'aflossing':
+
+        html = Interface.html['divV3Container'];
+        html = html.replace(/Woning/g, 'Woning' + woningidMachine + extraId);
+        $('#divV3-Woning' + woningidMachine + extraId).remove();
+        $(html).appendTo($('#divBijleenContainer-Woning' + woningidMachine));
+        $('#divV3-' + 'Woning' + woningidMachine + extraId).removeClass('hidden');
+        Interface.addHandlers(woningidMachine, 'aflossing', extraId);
+        Interface.showFirstQuestion('aflossing', woningidMachine, extraId);
+        $('#spanTitleAflossingNumber-Woning' + woningidMachine + extraId).html(idEvent + 1);
+
+        break;
+      case 'verbouwing':
+        html = Interface.html['divV5Container'];
+        html = html.replace(/Woning/g, 'Woning' + woningidMachine + extraId);
+        $('#divV5-Woning' + woningidMachine + extraId).remove();
+        $(html).appendTo($('#divBijleenContainer-Woning' + woningidMachine));
+        $('#divV5-' + 'Woning' + woningidMachine + extraId).removeClass('hidden');
+        Interface.addHandlers(woningidMachine, 'verbouwing', extraId);
+        Interface.showFirstQuestion('verbouwing', woningidMachine, extraId);
+        $('#spanTitleVerbouwingNumber-Woning' + woningidMachine + extraId).html(idEvent + 1);
+
+        break;
+
+    }
+  }
+  showObjects();
+};
+/**
+ *
+ * Called from a "Wijzig invoer" button
+ * @param div = block that will be edited
+ * @param op = block from which the function was called
+ *
+ */
+Interface.editData = function (div, op) {
+
+  editing = true;
+  for (var i = 0; i < mainWorkflow.length; i++) {
+    if (mainWorkflow[i].active == 1) {
+      mainWorkflow[i].active = 0;
+    }
+  }
+
+  Workflow.disableAllHouses();
+  Workflow.disableAllEvents();
+
+  $('#btnBereken').addClass('buttonDisabled');
+  $('#btnBereken').attr('disabled', 'disabled');
+  unblockDiv(div);
+
+  try {
+    blockDiv('#divV6');
+  } catch (err) {
+  }
+  ;
+  $('.wijzig').addClass('hidden');
+
+
+  switch (op) {
+    case '#panelWoningContainer':
+
+      Interface.checkVerder1();
+      $('#fsWoninginit').removeClass('checkBackground');
+
+
+      break;
+    case '#divAccordion-Woning':
+      var id = div.substr(20);
+
+      unblockDiv(div);
+      showHideWoning(id, 'show');
+      Workflow.disableAllEvents();
+
+      break;
+
+
+    case '#divV1Save-Woning':
+      var extraId = div.substr(div.indexOf('-Woning'));
+
+      var idW = extraId.substring(7, extraId.indexOf('-workflow'));
+      showHideWoning(idW, 'show');
+      unblockDiv('#divV1' + extraId);
+      $('#divV1Save' + extraId).removeClass('hidden');
+      $('#divaankoopContainer' + extraId).removeClass('hidden');
+
+
+      break;
+
+    case '#divV2Save-Woning':
+      var extraId = div.substr(div.indexOf('-Woning'));
+
+      var idW = extraId.substring(7, extraId.indexOf('-workflow'));
+      showHideWoning(idW, 'show');
+      unblockDiv('#divV2' + extraId);
+      $('#divV2Save' + extraId).removeClass('hidden');
+      $('#divverkoopContainer' + extraId).removeClass('hidden');
+
+
+      break;
+    case '#divV3Save-Woning':
+      var extraId = div.substr(div.indexOf('-Woning'));
+
+      var idW = extraId.substring(7, extraId.indexOf('-workflow'));
+      showHideWoning(idW, 'show');
+      unblockDiv('#divV3' + extraId);
+      $('#divV3Save' + extraId).removeClass('hidden');
+      $('#divaflossingContainer' + extraId).removeClass('hidden');
+
+
+      break;
+    case '#divV5Save-Woning':
+      var extraId = div.substr(div.indexOf('-Woning'));
+
+      var idW = extraId.substring(7, extraId.indexOf('-workflow'));
+      showHideWoning(idW, 'show');
+      unblockDiv('#divV5' + extraId);
+      $('#divV5Save' + extraId).removeClass('hidden');
+      $('#divverbouwingContainer' + extraId).removeClass('hidden');
+
+
+      break;
+
+  }
+
+
+};
+/**
+ *
+ * add handlers to the objects
+ *
+ */
+
+Interface.addBasicHandlers = function () {
+
+  Interface.appendWoning(); //show the first block to insert woninginfo
+  /* -- start handlers for Geschikt block */
+  $('#selAangifteJaar').change(function () {
+    Interface.loadUtilVariables();
+
+    $('.aangifteJaar').html(Interface.variable['aangiftejaar']);
+    $('.leegstandTermijn-V6-1').html(Interface.variable['leegstandtermijn'] + 1);
+    $('.leegstandTermijn').html(Interface.variable['leegstandtermijn']);
+
+    Workflow.showNextQuestion('#divAangiftejaar', Workflow.geschiktheid, 0);
+
+
+  });
+  $('.inputDate').focus(function () {
+
+    cleanDateField($(this));
+  });
+
+
+  $('input[name=radV8-2]').click(function () {
+    Workflow.showNextQuestion('#divV8-2', Workflow.geschiktheid, 0);
+  });
+
+  $('input[name=radV8-3]').click(function () {
+    Workflow.showNextQuestion('#divV8-3', Workflow.geschiktheid, 0);
+  });
+
+  $('input[name=radV8-4]').click(function () {
+    Workflow.showNextQuestion('#divV8-4', Workflow.geschiktheid, 0);
+  });
+  $('input[name=radV8-5]').click(function () {
+    Workflow.showNextQuestion('#divV8-5', Workflow.geschiktheid, 0);
+  });
+  $('input[name=radV8-6]').click(function () {
+    Workflow.showNextQuestion('#divV8-6', Workflow.geschiktheid, 0);
+  });
+  $('#btnGoToBereken').click(function () {
+
+    Workflow.showNextQuestion('#divEbutton', Workflow.geschiktheid, 0);
+  });
+  $('.btnSluiten').click(function () {
+
+    document.location.href = '//www.belastingdienst.nl';
+  });
+  /* end handlers geschikt */
+
+
+  $('#fsWoninginitiatielegend').click(function () {
+    toggleClass('#fsWoninginitiatielegend');
+    toggleObj('#parentPanelWoningContainer');
+
+  });
+  $('#btnAddWoning').click(function () {
+
+    Interface.appendWoning();
+    $('.verwijderWon').removeClass('hidden');
+
+  });
+  $('#btnwijzigWoning').click(function () {
+    $('#wijzigWoning').addClass('hidden');
+
+    Interface.editData('#panelWoningContainer', '#panelWoningContainer');
+  });
+  $('#btnVerder1').click(function () {
+    Interface.verder1();
+
+
+  });
+
+
+  /* --handlers for eindcontrole --*/
+
+  addDatepicker($('#txtV6-3'));
+  $('#btnEindcontrole').click(function () {
+    //Workflow.next("#btnEindcontrole", Workflow.eindcontroleWorkflow, 0);
+
+  });
+  $('input[name=radV6-0]').click(function () {
+
+    Workflow.showNextQuestion('#divV6-0', Workflow.eindcontroleWorkflow, 0);
+
+  });
+  $('input[name=radV6-1]').click(function () {
+    Workflow.showNextQuestion('#divV6-1', Workflow.eindcontroleWorkflow, 0);
+  });
+
+  $('#selV6-2').change(function () {
+    Workflow.showNextQuestion('#divV6-2', Workflow.eindcontroleWorkflow, 0);
+  });
+  $('#txtV6-3').change(function () {
+    Workflow.showNextQuestion('#divV6-3', Workflow.eindcontroleWorkflow, 0);
+
+  });
+  $('#txtV6-3').keyup(function () {
+    var a = stringToDate($('#txtV6-3').val());
+
+    if ((a != '') && (a != 'Invalid Date') && (a != 'Invalid Year')) {
+      Workflow.showNextQuestion('#divV6-3', Workflow.eindcontroleWorkflow, 0);
+      $('#txtV6-3').val(dateToString(a));
+    }
+  });
+  $('#txtV6-5').keyup(function () {
+    Workflow.showNextQuestion('#divV6-5', Workflow.eindcontroleWorkflow, 0);
+  });
+  $('#txtV6-5').blur(function () {
+    rewriteBedrag('#txtV6-5');
+  });
+  $('#btnV6Save').click(function () {
+
+    SluitHelp();
+
+    var good = Workflow.validateAllFields(Workflow.eindcontroleWorkflow, '', '');
+
+    if (good) {
+      if ($('input[name=radV6-0]:checked').val() == 'ja') {
+        good = Workflow.validateAllOntbonden();
+      }
+    }
+
+    if (good) {
+      Bijleen.addEindControle();
+      $('#diveindcontroleContainer').addClass('hidden');
+
+
+      $('#div4checkeindcontrole-Woning').removeClass('titleWonBottom');
+      $('#div4checkeindcontrole-Woning').addClass('titleWonRight');
+      $('#fieldsetdivV6').addClass('checkBackground');
+      blockDiv('#diveindcontroleContainer');
+
+      Bereken();
+
+      if (canContinue) {
+        showResults();
+
+        $.scrollTo('#divResults', 0, { axis: 'y' });
+
+      }
+    }
+    showObjects();
+  });
+  /* -- end handlers for eindcontrole --*/
+
+  $('#btnBereken').click(function () {
+    $('#divV6Save').removeClass('hidden'); //show the Toon Resultaat knop
+    $('#divVBereken').addClass('hidden');
+    $('.wijzig').addClass('hidden');
+    $('#divV6').removeClass('hidden');
+    $('#fieldsetdivV6').removeClass('checkBackground');
+
+    $.scrollTo('#divV6', 0, { axis: 'y' });
+    $('#div4checkeindcontrole-Woning').removeClass('titleWonRight');
+    $('#div4checkeindcontrole-Woning').addClass('titleWonBottom');
+    unblockDiv('#divV6');
+    Interface.showFirstQuestion('eindcontrole', '', '');
+    $('#div4checkeindcontrole-Woning').removeClass('hidden');
+    if ($('input[name=radV6-0]:checked').val() == undefined) {
+      Workflow.showNextQuestion('#initEindcontrole', Workflow.eindcontroleWorkflow, '', '');
+    }
+    Interface.checkForToonResultaten();
+
+    var wonSelected = $('#selV6-2 option:selected').val();
+    $('#selV6-2').empty();
+    $('<option value=\'0\'>Kies een woning</option>').appendTo('#selV6-2');
+
+    for (var i in Bijleendata.Woningen) {
+      if (Bijleendata.Woningen[i].woning_verkoopdatum == '') {
+        var aankoopdatum = Bijleendata.Woningen[i].woning_aankoopdatum;
+
+        var twoYearsLess = Interface.variable['dec31aangifte'].getFullYear() - 2;
+        var twoYearsLessDatum = new Date(twoYearsLess, 11, 31);
+
+
+        if (aankoopdatum <= twoYearsLessDatum) {
+          var str = '<option value=\'' + Bijleendata.Woningen[i].woningidMachine + '\'';
+          if (Bijleendata.Woningen[i].woningidMachine == wonSelected) {
+            str += ' selected=\'selected\'';
+          }
+          str += '>' + Bijleendata.Woningen[i].woningid + '</option>';
+          $(str).appendTo('#selV6-2');
+        }
+
+
+      }
+
+
+    }
+
+
+  });
+
+  $('#aEindControle').click(function () {
+    toggleObj('#diveindcontroleContainer');
+    toggleClass('#div4checkeindcontrole-Woning');
+
+  });
+
+
+  $('#btnwijzigAll').click(function () {
+
+    $('#divResults').addClass('hidden');
+    $('#diveindcontroleContainer').removeClass('hidden');
+    $('#divV6').addClass('hidden');
+    $('.wijzig').removeClass('hidden');
+
+    $('#parentPanelWoningContainer').removeClass('hidden');
+    $('#fsWoninginitiatielegend').addClass('titleWonBottom');
+    $('#fsWoninginitiatielegend').removeClass('titleWonRight');
+
+    //toggleClass("#fsWoninginitiatielegend");
+
+    $('#divVBereken').removeClass('hidden');
+    additionaleVragen['finankosten'] = new Array();
+    additionaleVragen['6maandenhoofdverblijf'] = new Array();
+    additionaleVragen['aankoopverplichting'] = new Array();
+    $('#addVraagContainer').empty();
+
+    for (var i in Bijleendata.Woningen) {
+      if (Bijleendata.Woningen[i].woning_verkoopdatum == '') {
+        Bijleen.initVerkoop(i);
+      }
+    }
+    Bijleen.initEindControle();
+
+    $.scrollTo('#fsWoninginitiatie', 0, { axis: 'y' });
+
+    Interface.disappearAndClear('#divV6-5');
+    Interface.disappearAndClear('#divV6-3');
+    Interface.disappearAndClear('#divV6-2');
+    Interface.disappearAndClear('#divV6-1');
+
+  });
+
+  $('#aSpecificatie').click(function () {
+    var w = 500;
+    var h = 600;
+    var ven = window.open('readdata.html', 'ven', 'width=' + w + ',height=' + h + ',scrollbars=yes');
+    center(ven, w, h);
+  });
+  $('#btnNewBerekening').click(function () {
+    document.location.reload();
+  });
+
+
+};
+
+Interface.checkForToonResultaten = function () {
+  var good = true;
+  var css = '';
+  //check if there are additionale vragen
+  if (canContinue) {
+    good = true;
+  } else {
+    good = false;
+  }
+  if (good) {
+    css = ($('#divV6-0').attr('class'));
+    if (css.indexOf('hidden') == -1) {
+      var rad = $('input[name=radV6-0]:checked').val();
+      if (rad == undefined) {
+
+        good = false;
+      }
+    }
+
+  }
+  if (good) {
+    css = ($('#divV6-1').attr('class'));
+    if (css.indexOf('hidden') == -1) {
+      var rad = $('input[name=radV6-1]:checked').val();
+      if (rad == undefined) {
+
+        good = false;
+      }
+    }
+
+  }
+  if (good) {
+    css = ($('#divV6-2').attr('class'));
+
+    if (css.indexOf('hidden') == -1) {
+
+      var rad = $('#selV6-2').val();
+
+      if (rad == '0') {
+
+        good = false;
+      }
+    }
+
+  }
+  if (good) {
+    css = ($('#divV6-3').attr('class'));
+    if (css.indexOf('hidden') == -1) {
+      var rad = $('#txtV6-3').val();
+      rad = stringToDate(rad);
+      if ((rad == '') || (rad == 'Invalid Date') || (rad == 'Invalid Year')) {
+
+        good = false;
+      }
+    }
+
+  }
+  if (good) {
+    css = ($('#divV6-5').attr('class'));
+    if (css.indexOf('hidden') == -1) {
+      var rad = $('#txtV6-5').val();
+      rad = validateBedrag('#txtV6-5');
+      if ((rad == '')) {
+
+        good = false;
+      }
+    }
+
+  }
+
+
+  if (good) {
+    $('#btnV6Save').removeClass('hidden');
+  } else {
+    $('#btnV6Save').addClass('hidden');
+  }
+
+};
+/**
+ *
+ * add handlers to specific objects
+ * @param idWoning = idWoningMachine
+ * @param eventType = event that triggers the function (aankoop, verkoop, etc)
+ * @param extraOption = in the case of aankoop, verkoop, etc, is the extra id of the objects (-workflow-x). In the case of Ontbonden is the id of the ontbonden
+ *
+ */
+
+Interface.addHandlers = function (idWoning, eventType, extraOption) {
+
+  if (extraOption == undefined) extraOption = '';
+  extraOption += '';
+  var idxEvent = 0;
+
+  if (extraOption != '') {
+    try {
+      idxEvent = extraOption.substr(extraOption.lastIndexOf('-') + 1);
+    } catch (err) {
+    }
+  }
+
+  $('.inputDate').focus(function () {
+
+    cleanDateField($(this));
+  });
+
+  $('.aangifteJaar').html(Interface.variable['aangiftejaar']);
+  $('.leegstandTermijn').html(Interface.variable['leegstandtermijn']);
+
+  if (Bijleendata.Woningen[idWoning]) {
+    var verk = Bijleendata.Woningen[idWoning].woning_verkoopdatum;
+
+    if (dateToString(verk) != '') {
+      if (verk >= Interface.variable['dec31aangifte']) {
+        verk = Interface.variable['dec31aangifte'];
+      }
+    } else {
+      verk = Interface.variable['dec31aangifte'];
+    }
+
+    $('.spanverkoopofaanigfte-Woning' + idWoning + extraOption).html(dateToStringAstext(verk));
+
+  }
+  switch (eventType) {
+
+    case 'woningOverview':
+
+
+      $('#btnVerder2-Woning' + idWoning).click(function () {
+
+        blockDiv('#divAccordionInner-Woning' + idWoning);
+
+        Interface.verder2(idWoning);
+
+      });
+      $('input[name=radVPanel1-Woning' + idWoning + extraOption + ']').click(function () {
+
+        show_hide_error(true, '#divVPanel1-Error-Woning' + idWoning);
+
+        Workflow.showNextQuestion('#divVPanel11', Workflow.panelWoning, idWoning, extraOption);
+      });
+      $('input[name=radVPanel2-Woning' + idWoning + extraOption + ']').click(function () {
+        show_hide_error(true, '#divVPanel2-Error-Woning' + idWoning);
+
+        Workflow.showNextQuestion('#divVPanel22', Workflow.panelWoning, idWoning, extraOption);
+      });
+      $('#txtVPanel3-Woning' + idWoning + extraOption).keyup(function () {
+
+        show_hide_error(true, '#divVPanel3-Error-Woning' + idWoning);
+        show_hide_error(true, '#divVPanel3-Error-1-Woning' + idWoning);
+        Workflow.showNextQuestion('#divVPanel33', Workflow.panelWoning, idWoning, extraOption);
+
+      });
+
+      $('#txtVPanel3-Woning' + idWoning + extraOption).change(function () {
+
+        Workflow.showNextQuestion('#divVPanel33', Workflow.panelWoning, idWoning, extraOption);
+      });
+      $('input[name=radVPanel4-Woning' + idWoning + extraOption + ']').click(function () {
+        show_hide_error(true, '#divVPanel4-Error-Woning' + idWoning);
+
+        Workflow.showNextQuestion('#divVPanel44', Workflow.panelWoning, idWoning, extraOption);
+      });
+      $('input[name=radVPanel5-Woning' + idWoning + extraOption + ']').click(function () {
+        show_hide_error(true, '#divVPanel5-Error-Woning' + idWoning);
+
+        Workflow.showNextQuestion('#divVPanel55', Workflow.panelWoning, idWoning, extraOption);
+      });
+      $('#txtVPanel6-Woning' + idWoning + extraOption).click(function () {
+        show_hide_error(true, '#divVPanel6-Error-Woning' + idWoning);
+        show_hide_error(true, '#divVPanel6-Error-1-Woning' + idWoning);
+        Workflow.showNextQuestion('#divVPanel66', Workflow.panelWoning, idWoning, extraOption);
+      });
+
+      $('#btnwijzigEvent-Woning' + idWoning).click(function () {
+        $('#wijzigEvent-Woning' + idWoning).addClass('hidden');
+        Interface.editData('#divAccordion-Woning' + idWoning, '#divAccordion-Woning');
+      });
+
+
+      break;
+    case 'aankoop':
+      /* -- handlers for aankoop --*/
+
+
+      $('#aAankoop-Woning' + idWoning + extraOption).click(function () {
+        var css = $('#aAankoop-Woning' + idWoning + extraOption).attr('class');
+        if (css.indexOf('greyLink') == -1) {
+          toggleObj('#divaankoopContainer-Woning' + idWoning + extraOption);
+
+          toggleClass('#div4checkaankoop-Woning' + idWoning + extraOption);
+
+        }
+      });
+
+      flags['divV0-5-Woning' + idWoning + extraOption] = 0;
+      $('#txtV0-5-Woning' + idWoning + extraOption).keyup(function () {
+
+        if (flags['divV0-5-Woning' + idWoning + extraOption] == 0) {
+          Workflow.showNextQuestion('#divV0-5', Workflow.aankoopWorkflow, idWoning, extraOption);
+          flags['divV0-5-Woning' + idWoning + extraOption] = 1;
+        }
+      });
+      $('#txtV0-5-Woning' + idWoning + extraOption).blur(function () {
+        Workflow.showNextQuestion('#divV0-5', Workflow.aankoopWorkflow, idWoning, extraOption);
+        rewriteBedrag('#txtV0-5-Woning' + idWoning + extraOption);
+      });
+
+
+      $('input[name=radV1-1f-Woning' + idWoning + extraOption + ']').click(function () {
+
+        Workflow.showNextQuestion('#divV1-1f', Workflow.aankoopWorkflow, idWoning, extraOption);
+
+
+      });
+
+
+      $('input[name=radV1-1c-Woning' + idWoning + extraOption + ']').click(function () {
+
+        Workflow.showNextQuestion('#divV1-1c', Workflow.aankoopWorkflow, idWoning, extraOption);
+
+
+      });
+      flags['divV1-1d-Woning' + idWoning + extraOption] = 0;
+      $('#txtV1-1d-Woning' + idWoning + extraOption).keyup(function () {
+        if (flags['divV1-1d-Woning' + idWoning + extraOption] == 0) {
+          Workflow.showNextQuestion('#divV1-1d', Workflow.aankoopWorkflow, idWoning, extraOption);
+          flags['divV1-1d-Woning' + idWoning + extraOption] = 1;
+        }
+      });
+      $('#txtV1-1d-Woning' + idWoning + extraOption).blur(function () {
+        Workflow.showNextQuestion('#divV1-1d', Workflow.aankoopWorkflow, idWoning, extraOption);
+        rewriteBedrag('#txtV1-1d-Woning' + idWoning + extraOption);
+      });
+      flags['divV1-2-Woning' + idWoning + extraOption] = 0;
+      $('#txtV1-2-Woning' + idWoning + extraOption).keyup(function () {
+        if (flags['divV1-2-Woning' + idWoning + extraOption] == 0) {
+          if ($(this).val().length > 0) {
+            Workflow.showNextQuestion('#divV1-2', Workflow.aankoopWorkflow, idWoning, extraOption);
+            flags['divV1-2-Woning' + idWoning + extraOption] = 1;
+          }
+        }
+      });
+      $('#txtV1-2-Woning' + idWoning + extraOption).blur(function () {
+
+        Workflow.showNextQuestion('#divV1-2', Workflow.aankoopWorkflow, idWoning, extraOption);
+
+        rewriteBedrag('#txtV1-2-Woning' + idWoning + extraOption);
+      });
+      flags['divV1-3-Woning' + idWoning + extraOption] = 0;
+      $('#txtV1-3-Woning' + idWoning + extraOption).keyup(function () {
+        if (flags['divV1-3-Woning' + idWoning + extraOption] == 0) {
+          if ($(this).val().length > 0) {
+            Workflow.showNextQuestion('#divV1-3', Workflow.aankoopWorkflow, idWoning, extraOption);
+            flags['divV1-3-Woning' + idWoning + extraOption] = 1;
+          }
+        }
+      });
+      $('#txtV1-3-Woning' + idWoning + extraOption).blur(function () {
+        Workflow.showNextQuestion('#divV1-3', Workflow.aankoopWorkflow, idWoning, extraOption);
+        rewriteBedrag('#txtV1-3-Woning' + idWoning + extraOption);
+      });
+      flags['divV1-4-Woning' + idWoning + extraOption] = 0;
+      $('#txtV1-4-Woning' + idWoning + extraOption).keyup(function () {
+        if (flags['divV1-4-Woning' + idWoning + extraOption] == 0) {
+          if ($(this).val().length > 0) {
+            Workflow.showNextQuestion('#divV1-4', Workflow.aankoopWorkflow, idWoning, extraOption);
+            flags['divV1-4-Woning' + idWoning + extraOption] = 1;
+          }
+        }
+      });
+      $('#txtV1-4-Woning' + idWoning + extraOption).blur(function () {
+        Workflow.showNextQuestion('#divV1-4', Workflow.aankoopWorkflow, idWoning, extraOption);
+        rewriteBedrag('#txtV1-4-Woning' + idWoning + extraOption);
+      });
+
+      $('input[name=radV1-5-Woning' + idWoning + extraOption + ']').click(function () {
+
+        Workflow.showNextQuestion('#divV1-5', Workflow.aankoopWorkflow, idWoning, extraOption);
+
+
+      });
+      flags['divV1-6-Woning' + idWoning + extraOption] = 0;
+      $('#txtV1-6-Woning' + idWoning + extraOption).keyup(function () {
+        if (flags['divV1-6-Woning' + idWoning + extraOption] == 0) {
+          Workflow.showNextQuestion('#divV1-6', Workflow.aankoopWorkflow, idWoning, extraOption);
+          flags['divV1-6-Woning' + idWoning + extraOption] = 1;
+        }
+      });
+      $('#txtV1-6-Woning' + idWoning + extraOption).blur(function () {
+        Workflow.showNextQuestion('#divV1-6', Workflow.aankoopWorkflow, idWoning, extraOption);
+        rewriteBedrag('#txtV1-6-Woning' + idWoning + extraOption);
+      });
+      flags['divV1-7-Woning' + idWoning + extraOption] = 0;
+      $('#txtV1-7-Woning' + idWoning + extraOption).keyup(function () {
+        if (flags['divV1-7-Woning' + idWoning + extraOption] == 0) {
+          Workflow.showNextQuestion('#divV1-7', Workflow.aankoopWorkflow, idWoning, extraOption);
+          flags['divV1-7-Woning' + idWoning + extraOption] = 1;
+        }
+      });
+      $('#txtV1-7-Woning' + idWoning + extraOption).blur(function () {
+        Workflow.showNextQuestion('#divV1-7', Workflow.aankoopWorkflow, idWoning, extraOption);
+        rewriteBedrag('#txtV1-7-Woning' + idWoning + extraOption);
+        //check if the finankosten value is ok
+        validateFinankosten(idWoning, extraOption);
+      });
+
+      $('input[name=radV1-8-Woning' + idWoning + extraOption + ']').click(function () {
+
+        Workflow.showNextQuestion('#divV1-8', Workflow.aankoopWorkflow, idWoning, extraOption);
+
+
+      });
+      flags['divV1-9-Woning' + idWoning + extraOption] = 0;
+      $('#txtV1-9-Woning' + idWoning + extraOption).keyup(function () {
+        if (flags['divV1-9-Woning' + idWoning + extraOption] == 0) {
+          Workflow.showNextQuestion('#divV1-9', Workflow.aankoopWorkflow, idWoning, extraOption);
+          flags['divV1-9-Woning' + idWoning + extraOption] = 1;
+        }
+      });
+      $('#txtV1-9-Woning' + idWoning + extraOption).blur(function () {
+        Workflow.showNextQuestion('#divV1-9', Workflow.aankoopWorkflow, idWoning, extraOption);
+        rewriteBedrag('#txtV1-9-Woning' + idWoning + extraOption);
+        validateFinankosten(idWoning, extraOption);
+      });
+
+      $('input[name=radV1-11-Woning' + idWoning + extraOption + ']').click(function () {
+
+        Workflow.showNextQuestion('#divV1-11', Workflow.aankoopWorkflow, idWoning, extraOption);
+
+
+      });
+      flags['divV1-12-Woning' + idWoning + extraOption] = 0;
+      $('#txtV1-12-Woning' + idWoning + extraOption).keyup(function () {
+        if (flags['divV1-12-Woning' + idWoning + extraOption] == 0) {
+          Workflow.showNextQuestion('#divV1-12', Workflow.aankoopWorkflow, idWoning, extraOption);
+          flags['divV1-12-Woning' + idWoning + extraOption] = 1;
+        }
+      });
+      $('#txtV1-12-Woning' + idWoning + extraOption).blur(function () {
+        Workflow.showNextQuestion('#divV1-12', Workflow.aankoopWorkflow, idWoning, extraOption);
+        rewriteBedrag('#txtV1-12-Woning' + idWoning + extraOption);
+      });
+      $('#btnV1Save-Woning' + idWoning + extraOption).click(function () {
+        var good = Workflow.validateAllFields(Workflow.aankoopWorkflow, idWoning, extraOption);
+
+        if (good) {
+          Workflow.endOfAction('aankoop', idWoning, idxEvent);
+
+          Bijleen.addAankoop(idWoning, Bijleendata.Woningen[idWoning].woningid, extraOption, idxEvent);
+
+          Workflow.showNextActiveBlock();
+
+          $('#divV1Save-Woning' + idWoning + extraOption).addClass('hidden');
+          $('#wijzigV1-Woning' + idWoning + extraOption).removeClass('hidden');
+
+          //prevent that the user changes the aankoopdatum in the woning panel
+          var idx = idWoning.substr(3);
+          $('#date-Woning' + idx).on('click', function () {
+
+            preventFromChangeAankoop(idx);
+
+
+          });
+          $('#date-Woning' + idx).next('.ui-datepicker-trigger').on('click', function () {
+            preventFromChangeAankoop(idx);
+
+
+          });
+        }
+        showObjects();
+      });
+      $('#btnwijzigV1-Woning' + idWoning + extraOption).click(function () {
+        $('#wijzigV1-Woning' + idWoning + extraOption).addClass('hidden');
+
+        Interface.editData('#divV1Save-Woning' + idWoning + extraOption, '#divV1Save-Woning');
+
+      });
+      /* -- end handlers for aankoop --*/
+      break;
+    case 'verkoop':
+
+      addDatepicker($('#txtV2-5-Woning' + idWoning + extraOption));
+      $('#aVerkoop-Woning' + idWoning + extraOption).click(function () {
+        var css = $('#aVerkoop-Woning' + idWoning + extraOption).attr('class');
+        if (css.indexOf('greyLink') == -1) {
+          toggleObj('#divverkoopContainer-Woning' + idWoning + extraOption);
+
+          toggleClass('#div4checkverkoop-Woning' + idWoning + extraOption);
+        }
+      });
+
+      /* -- handlers for verkoop */
+
+
+      $('#btnVerkoop-Woning' + idWoning + extraOption).click(function () {
+        Workflow.showNextQuestion('#btnVerkoop', Workflow.verkoopWorkflow, idWoning, extraOption);
+
+
+      });
+      flags['divV2-1a-Woning' + idWoning + extraOption] = 0;
+      $('#txtV2-1a-Woning' + idWoning + extraOption).change(function () {
+        if (flags['divV2-1a-Woning' + idWoning + extraOption] == 0) {
+          Workflow.showNextQuestion('#divV2-1a', Workflow.verkoopWorkflow, idWoning, extraOption);
+          flags['divV2-1a-Woning' + idWoning + extraOption] = 1;
+        }
+      });
+      $('input[name=radV2-1c-Woning' + idWoning + extraOption + ']').click(function () {
+        Workflow.showNextQuestion('#divV2-1c', Workflow.verkoopWorkflow, idWoning, extraOption);
+      });
+      flags['divV2-2-Woning' + idWoning + extraOption] = 0;
+      $('#txtV2-2-Woning' + idWoning + extraOption).keyup(function () {
+        if (flags['divV2-2-Woning' + idWoning + extraOption] == 0) {
+          Workflow.showNextQuestion('#divV2-2', Workflow.verkoopWorkflow, idWoning, extraOption);
+          flags['divV2-2-Woning' + idWoning + extraOption] = 1;
+        }
+      });
+      $('#txtV2-2-Woning' + idWoning + extraOption).blur(function () {
+        Workflow.showNextQuestion('#divV2-2', Workflow.verkoopWorkflow, idWoning, extraOption);
+        rewriteBedrag('#txtV2-2-Woning' + idWoning + extraOption);
+      });
+      flags['divV2-3a-Woning' + idWoning + extraOption] = 0;
+      $('#txtV2-3a-Woning' + idWoning + extraOption).keyup(function () {
+        if (flags['divV2-3a-Woning' + idWoning + extraOption] == 0) {
+          Workflow.showNextQuestion('#divV2-3a', Workflow.verkoopWorkflow, idWoning, extraOption);
+          flags['divV2-3a-Woning' + idWoning + extraOption] = 1;
+        }
+      });
+      $('#txtV2-3a-Woning' + idWoning + extraOption).blur(function () {
+        Workflow.showNextQuestion('#divV2-3a', Workflow.verkoopWorkflow, idWoning, extraOption);
+        rewriteBedrag('#txtV2-3a-Woning' + idWoning + extraOption);
+      });
+      $('input[name=radV2-3b-Woning' + idWoning + extraOption + ']').click(function () {
+        Workflow.showNextQuestion('#divV2-3b', Workflow.verkoopWorkflow, idWoning, extraOption);
+      });
+      flags['divV2-3c-Woning' + idWoning + extraOption] = 0;
+      $('#txtV2-3c-Woning' + idWoning + extraOption).keyup(function () {
+        if (flags['divV2-3c-Woning' + idWoning + extraOption] == 0) {
+          Workflow.showNextQuestion('#divV2-3c', Workflow.verkoopWorkflow, idWoning, extraOption);
+          flags['divV2-3c-Woning' + idWoning + extraOption] = 1;
+        }
+      });
+      $('#txtV2-3c-Woning' + idWoning + extraOption).blur(function () {
+        Workflow.showNextQuestion('#divV2-3c', Workflow.verkoopWorkflow, idWoning, extraOption);
+        rewriteBedrag('#txtV2-3c-Woning' + idWoning + extraOption);
+      });
+      $('input[name=radV2-4-Woning' + idWoning + extraOption + ']').click(function () {
+        Workflow.showNextQuestion('#divV2-4', Workflow.verkoopWorkflow, idWoning, extraOption);
+      });
+      $('#txtV2-5-Woning' + idWoning + extraOption).change(function () {
+
+        Workflow.showNextQuestion('#divV2-5', Workflow.verkoopWorkflow, idWoning, extraOption);
+      });
+      flags['divV2-5-Woning' + idWoning + extraOption] = 0;
+      $('#txtV2-5-Woning' + idWoning + extraOption).keyup(function () {
+        if (flags['divV2-5-Woning' + idWoning + extraOption] == 0) {
+
+          Workflow.showNextQuestion('#divV2-5', Workflow.verkoopWorkflow, idWoning, extraOption);
+          flags['divV2-5-Woning' + idWoning + extraOption] = 1;
+        }
+        var a = stringToDate($('#txtV2-5-Woning' + idWoning + extraOption).val());
+        if ((a != '') && (a != 'Invalid Date') && (a != 'Invalid Year')) {
+          Workflow.showNextQuestion('#divV2-5', Workflow.verkoopWorkflow, idWoning, extraOption);
+          $('#txtV2-5-Woning' + idWoning + extraOption).val(dateToString(a));
+
+
+        }
+      });
+      flags['divV2-7-Woning' + idWoning + extraOption] = 0;
+      $('#txtV2-7-Woning' + idWoning + extraOption).keyup(function () {
+        if (flags['divV2-7-Woning' + idWoning + extraOption] == 0) {
+          Workflow.showNextQuestion('#divV2-7', Workflow.verkoopWorkflow, idWoning, extraOption);
+          flags['divV2-7-Woning' + idWoning + extraOption] = 1;
+        }
+      });
+      $('#txtV2-7-Woning' + idWoning + extraOption).blur(function () {
+        Workflow.showNextQuestion('#divV2-7', Workflow.verkoopWorkflow, idWoning, extraOption);
+        rewriteBedrag('#txtV2-7-Woning' + idWoning + extraOption);
+      });
+      $('#btnV2Save-Woning' + idWoning + extraOption).click(function () {
+        var good = Workflow.validateAllFields(Workflow.verkoopWorkflow, idWoning, extraOption);
+
+        if (good) {
+          Workflow.endOfAction('verkoop', idWoning, idxEvent);
+          Bijleendata.Woningen[idWoning].woning_verkoopdatum = stringToDate($('#txtV2-1a-Woning' + idWoning + extraOption).val());
+          Bijleen.addVerkoop(idWoning, Bijleendata.Woningen[idWoning].woningid, extraOption, idxEvent);
+          Workflow.showNextActiveBlock();
+
+          $('#divV2Save-Woning' + idWoning + extraOption).addClass('hidden');
+          $('#wijzigV2-Woning' + idWoning + extraOption).removeClass('hidden');
+        }
+        showObjects();
+      });
+      $('#btnwijzigV2-Woning' + idWoning + extraOption).click(function () {
+        $('#wijzigV2-Woning' + idWoning + extraOption).addClass('hidden');
+
+        Interface.editData('#divV2Save-Woning' + idWoning + extraOption, '#divV2Save-Woning');
+
+      });
+      /* -- end handlers for verkoop */
+      break;
+    case 'aflossing':
+
+      addDatepicker($('#txtV3-2-Woning' + idWoning + extraOption));
+      $('#aAflossing-Woning' + idWoning + extraOption).click(function () {
+        var css = $('#aAflossing-Woning' + idWoning + extraOption).attr('class');
+        if (css.indexOf('greyLink') == -1) {
+
+          toggleObj('#divaflossingContainer-Woning' + idWoning + extraOption);
+          toggleClass('#div4checkaflossing-Woning' + idWoning + extraOption);
+        }
+      });
+      /* -- handlers for aflossing --*/
+      $('#btnAflossing-Woning' + idWoning + extraOption).click(function () {
+        Workflow.showNextQuestion('#btnAflossing', Workflow.aflossingWorkflow, idWoning, extraOption);
+
+
+      });
+      flags['divV3-1b-Woning' + idWoning + extraOption] = 0;
+      $('#txtV3-1b-Woning' + idWoning + extraOption).keyup(function () {
+        if (flags['divV3-1b-Woning' + idWoning + extraOption] == 0) {
+          Workflow.showNextQuestion('#divV3-1b', Workflow.aflossingWorkflow, idWoning, extraOption);
+          flags['divV3-1b-Woning' + idWoning + extraOption] = 1;
+        }
+      });
+      $('#txtV3-1b-Woning' + idWoning + extraOption).blur(function () {
+        Workflow.showNextQuestion('#divV3-1b', Workflow.aflossingWorkflow, idWoning, extraOption);
+        rewriteBedrag('#txtV3-1b-Woning' + idWoning + extraOption);
+      });
+
+      $('#txtV3-2-Woning' + idWoning + extraOption).change(function () {
+        Workflow.showNextQuestion('#divV3-2', Workflow.aflossingWorkflow, idWoning, extraOption);
+
+
+      });
+      flags['divV3-2-Woning' + idWoning + extraOption] = 0;
+      $('#txtV3-2-Woning' + idWoning + extraOption).keyup(function () {
+        if (flags['divV3-2-Woning' + idWoning + extraOption] == 0) {
+          Workflow.showNextQuestion('#divV3-2', Workflow.aflossingWorkflow, idWoning, extraOption);
+          flags['divV3-2-Woning' + idWoning + extraOption] = 1;
+        }
+
+        var a = stringToDate($('#txtV3-2-Woning' + idWoning + extraOption).val());
+        if ((a != '') && (a != 'Invalid Date') && (a != 'Invalid Year')) {
+          $('#txtV3-2-Woning' + idWoning + extraOption).val(dateToString(a));
+          Workflow.showNextQuestion('#divV3-2', Workflow.aflossingWorkflow, idWoning, extraOption);
+        }
+
+      });
+
+      $('#btnV3Save-Woning' + idWoning + extraOption).click(function () {
+        var good = Workflow.validateAllFields(Workflow.aflossingWorkflow, idWoning, extraOption);
+
+        if (good) {
+          Workflow.endOfAction('aflossing', idWoning, idxEvent);
+
+          Bijleen.addAflossing(idWoning, Bijleendata.Woningen[idWoning].woningid, extraOption, idxEvent);
+
+          Workflow.showNextActiveBlock();
+
+          $('#divV3Save-Woning' + idWoning + extraOption).addClass('hidden');
+          $('#wijzigV3-Woning' + idWoning + extraOption).removeClass('hidden');
+
+        }
+        showObjects();
+      });
+      $('#btnwijzigV3-Woning' + idWoning + extraOption).click(function () {
+        $('#wijzigV3-Woning' + idWoning + extraOption).addClass('hidden');
+
+        Interface.editData('#divV3Save-Woning' + idWoning + extraOption, '#divV3Save-Woning');
+
+      });
+      /* -- end handlers for aflossing -- */
+      break;
+    case 'ontbonden':
+      addDatepicker($('#txtV4-2-Ontbonden' + extraOption));
+
+      $('#txtV4-1-Ontbonden' + extraOption).keyup(function () {
+
+
+      });
+      $('#txtV4-1-Ontbonden' + extraOption).blur(function () {
+
+        rewriteBedrag('#txtV4-1-Ontbonden' + extraOption);
+      });
+      $('#txtV4-2-Ontbonden' + extraOption).change(function () {
+        var a = stringToDate($('#txtV4-2-Ontbonden' + extraOption).val());
+        $('#txtV4-2-Ontbonden' + extraOption).val(dateToString(a));
+
+      });
+      $('#btnV4Save-Ontbonden' + extraOption).click(function () {
+
+      });
+
+      /*---end handlers for ontbonden koop --*/
+      break;
+    case 'verbouwing':
+      addDatepicker($('#txtV5-2-Woning' + idWoning + extraOption));
+      addDatepicker($('#txtV5-5-Woning' + idWoning + extraOption));
+      addDatepicker($('#txtV5-10-Woning' + idWoning + extraOption));
+
+      $('#aVerbouwing-Woning' + idWoning + extraOption).click(function () {
+        var css = $('#aVerbouwing-Woning' + idWoning + extraOption).attr('class');
+        if (css.indexOf('greyLink') == -1) {
+
+          toggleObj('#divverbouwingContainer-Woning' + idWoning + extraOption);
+          toggleClass('#div4checkverbouwing-Woning' + idWoning + extraOption);
+        }
+      });
+
+      /* -- handlers for verbowuing --*/
+      $('#btnVerbouwing-Woning' + idWoning + extraOption).click(function () {
+        Workflow.showNextQuestion('#btnVerbouwing', Workflow.verbouwingWorkflow, idWoning, extraOption);
+
+      });
+      $('#txtV5-2-Woning' + idWoning + extraOption).change(function () {
+        Workflow.showNextQuestion('#divV5-2', Workflow.verbouwingWorkflow, idWoning, extraOption);
+      });
+      flags['divV5-2-Woning' + idWoning + extraOption] = 0;
+      $('#txtV5-2-Woning' + idWoning + extraOption).keyup(function () {
+        if (flags['divV5-2-Woning' + idWoning + extraOption] == 0) {
+          Workflow.showNextQuestion('#divV5-2', Workflow.verbouwingWorkflow, idWoning, extraOption);
+          flags['divV5-2-Woning' + idWoning + extraOption] = 1;
+        }
+        var a = stringToDate($('#txtV5-2-Woning' + idWoning + extraOption).val());
+        if ((a != '') && (a != 'Invalid Date') && (a != 'Invalid Year')) {
+          $('#txtV5-2-Woning' + idWoning + extraOption).val(dateToString(a));
+          Workflow.showNextQuestion('#divV5-2', Workflow.verbouwingWorkflow, idWoning, extraOption);
+        }
+      });
+      flags['divV5-3-Woning' + idWoning + extraOption] = 0;
+      $('#txtV5-3-Woning' + idWoning + extraOption).keyup(function () {
+        if (flags['divV5-3-Woning' + idWoning + extraOption] == 0) {
+          Workflow.showNextQuestion('#divV5-3', Workflow.verbouwingWorkflow, idWoning, extraOption);
+          flags['divV5-3-Woning' + idWoning + extraOption] = 1;
+        }
+
+      });
+      $('#txtV5-3-Woning' + idWoning + extraOption).blur(function () {
+        Workflow.showNextQuestion('#divV5-3', Workflow.verbouwingWorkflow, idWoning, extraOption);
+        rewriteBedrag('#txtV5-3-Woning' + idWoning + extraOption);
+      });
+      $('input[name=radV5-4-Woning' + idWoning + extraOption + ']').click(function () {
+        Workflow.showNextQuestion('#divV5-4', Workflow.verbouwingWorkflow, idWoning, extraOption);
+      });
+      $('#txtV5-5-Woning' + idWoning + extraOption).change(function () {
+
+        Workflow.showNextQuestion('#divV5-5', Workflow.verbouwingWorkflow, idWoning, extraOption);
+      });
+      flags['divV5-5-Woning' + idWoning + extraOption] = 0;
+      $('#txtV5-5-Woning' + idWoning + extraOption).keyup(function () {
+        if (flags['divV5-5-Woning' + idWoning + extraOption] == 0) {
+
+          Workflow.showNextQuestion('#divV5-5', Workflow.verbouwingWorkflow, idWoning, extraOption);
+          flags['divV5-5-Woning' + idWoning + extraOption] = 1;
+        }
+        var a = stringToDate($('#txtV5-5-Woning' + idWoning + extraOption).val());
+        if ((a != '') && (a != 'Invalid Date') && (a != 'Invalid Year')) {
+          $('#txtV5-5-Woning' + idWoning + extraOption).val(dateToString(a));
+          Workflow.showNextQuestion('#divV5-5', Workflow.verbouwingWorkflow, idWoning, extraOption);
+        }
+      });
+
+      flags['divV5-6-Woning' + idWoning + extraOption] = 0;
+      $('#txtV5-6-Woning' + idWoning + extraOption).keyup(function () {
+        if (flags['divV5-6-Woning' + idWoning + extraOption] == 0) {
+          Workflow.showNextQuestion('#divV5-6', Workflow.verbouwingWorkflow, idWoning, extraOption);
+          flags['divV5-6-Woning' + idWoning + extraOption] = 1;
+        }
+      });
+      $('#txtV5-6-Woning' + idWoning + extraOption).blur(function () {
+        Workflow.showNextQuestion('#divV5-6', Workflow.verbouwingWorkflow, idWoning, extraOption);
+        rewriteBedrag('#txtV5-6-Woning' + idWoning + extraOption);
+        validateFinankostenVerbouwing(idWoning, extraOption);
+      });
+      $('input[name=radV5-7-Woning' + idWoning + extraOption + ']').click(function () {
+        Workflow.showNextQuestion('#divV5-7', Workflow.verbouwingWorkflow, idWoning, extraOption);
+      });
+      $('input[name=radV5-8-Woning' + idWoning + extraOption + ']').click(function () {
+        Workflow.showNextQuestion('#divV5-8', Workflow.verbouwingWorkflow, idWoning, extraOption);
+      });
+      flags['divV5-9-Woning' + idWoning + extraOption] = 0;
+      $('#txtV5-9-Woning' + idWoning + extraOption).keyup(function () {
+        if (flags['divV5-9-Woning' + idWoning + extraOption] == 0) {
+          Workflow.showNextQuestion('#divV5-9', Workflow.verbouwingWorkflow, idWoning, extraOption);
+          flags['divV5-9-Woning' + idWoning + extraOption] = 1;
+        }
+      });
+      $('#txtV5-9-Woning' + idWoning + extraOption).blur(function () {
+        Workflow.showNextQuestion('#divV5-9', Workflow.verbouwingWorkflow, idWoning, extraOption);
+        rewriteBedrag('#txtV5-9-Woning' + idWoning + extraOption);
+      });
+      $('#txtV5-10-Woning' + idWoning + extraOption).change(function () {
+
+        Workflow.showNextQuestion('#divV5-10', Workflow.verbouwingWorkflow, idWoning, extraOption);
+      });
+      flags['divV5-10-Woning' + idWoning + extraOption] = 0;
+      $('#txtV5-10-Woning' + idWoning + extraOption).keyup(function () {
+        if (flags['divV5-10-Woning' + idWoning + extraOption] == 0) {
+          Workflow.showNextQuestion('#divV5-10', Workflow.verbouwingWorkflow, idWoning, extraOption);
+          flags['divV5-10-Woning' + idWoning + extraOption] = 1;
+        }
+        var a = stringToDate($('#txtV5-10-Woning' + idWoning + extraOption).val());
+        if ((a != '') && (a != 'Invalid Date') && (a != 'Invalid Year')) {
+          $('#txtV5-10-Woning' + idWoning + extraOption).val(dateToString(a));
+          Workflow.showNextQuestion('#divV5-10', Workflow.verbouwingWorkflow, idWoning, extraOption);
+        }
+      });
+      $('input[name=radV5-11-Woning' + idWoning + extraOption + ']').click(function () {
+        Workflow.showNextQuestion('#divV5-11', Workflow.verbouwingWorkflow, idWoning, extraOption);
+      });
+
+      flags['divV5-12-Woning' + idWoning + extraOption] = 0;
+      $('#txtV5-12-Woning' + idWoning + extraOption).keyup(function () {
+        if (flags['divV5-12-Woning' + idWoning + extraOption] == 0) {
+          Workflow.showNextQuestion('#divV5-12', Workflow.verbouwingWorkflow, idWoning, extraOption);
+          flags['divV5-12-Woning' + idWoning + extraOption] = 1;
+        }
+      });
+      $('#txtV5-12-Woning' + idWoning + extraOption).blur(function () {
+        Workflow.showNextQuestion('#divV5-12', Workflow.verbouwingWorkflow, idWoning, extraOption);
+        rewriteBedrag('#txtV5-12-Woning' + idWoning + extraOption);
+        validateFinankostenVerbouwing(idWoning, extraOption);
+      });
+
+      $('#btnV5Save-Woning' + idWoning + extraOption).click(function () {
+        var good = Workflow.validateAllFields(Workflow.verbouwingWorkflow, idWoning, extraOption);
+        if (good) {
+          Workflow.endOfAction('verbouwing', idWoning, idxEvent);
+          Bijleen.addVerbouwing(idWoning, Bijleendata.Woningen[idWoning].woningid, extraOption, idxEvent);
+          Workflow.showNextActiveBlock();
+          $('#divV5Save-Woning' + idWoning + extraOption).addClass('hidden');
+          $('#wijzigV5-Woning' + idWoning + extraOption).removeClass('hidden');
+
+        }
+        showObjects();
+      });
+      $('#btnwijzigV5-Woning' + idWoning + extraOption).click(function () {
+        $('#wijzigV5-Woning' + idWoning + extraOption).addClass('hidden');
+
+        Interface.editData('#divV5Save-Woning' + idWoning + extraOption, '#divV5Save-Woning');
+
+      });
+      /* -- end handlers for verbowuing --*/
+      break;
+  }
+};
+
+
+/**
+ *
+ * hides a complete block
+ *
+ */
+Interface.reset = function (block) {
+  //hides the inner blocks and cleans the inputs
+  var obj = block + ' .blockInner';
+  $(obj).addClass('hidden');
+  Interface.clear(obj);
+};
+/**
+ * adds class hidden and clears a field
+ * @param obj
+ */
+Interface.disappearAndClear = function (obj) {
+  $(obj).addClass('hidden');
+  Interface.clear(obj);
+
+};
+/**
+ *
+ * clears all the fields of a block
+ *
+ */
+Interface.clear = function (block) {
+
+  obj = block + ' input[type=text]';
+  $(obj).val('');
+
+  obj = block + ' input[type=radio]';
+  $(obj).removeAttr('checked');
+
+  obj = block + ' select option:eq(0)';
+  $(obj).attr('selected', 'selected');
+
+  obj = block + ' .error';
+  $(obj).addClass('hidden');
+
+  var idxFlag = block.substr(1);
+
+  if (flags[idxFlag] != undefined) {
+    if (flags[idxFlag] == 1) {
+      flags[idxFlag] = 0;
+    }
+  }
+};
+
+/**
+ *
+ * creates blocks of info for the workflow
+ *
+ * @param current is the id of the object calling the function
+ * @param visible is a comma separated ids of the objects that should be visible when the user answers the question
+ * @param hidden is a comma separated ids of the objects that should be hidden if the answer is wrong
+ * @param condition is the name of the condition that has to be fulfilled for the workflow to proceed (fields_conditions.js)
+ * @param validation is the name of the validation of the fields that has to be correct for the workflow to continue (fields_validators.js)
+ * @returns object
+ *
+ */
+Interface.block = function (current, visible, hidden, condition, validation) {
+  this.current = current;
+  this.visible = visible.split(',');
+  this.hidden = hidden.split(',');
+  this.condition = condition;
+  this.validation = validation;
+  return this;
+
+};
+
+Interface.hideAllErrors = function (div, idWoning, extraId) {
+  var obj = '';
+  if (idWoning != 0) {
+    obj = obj + '-Woning' + idWoning + extraId;
+  }
+
+  try {
+    $(div + obj + ' .message_err').addClass('hidden');
+    $(div + obj + ' .imgError').addClass('hidden');
+
+  } catch (err) {
+
+  }
+  ;
+};

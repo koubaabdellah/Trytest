@@ -1,0 +1,445 @@
+define(["require", "exports", "tslib", "esri/core/accessorSupport/decorators", "esri/widgets/support/widget", "../BaseComponent", "./ThemeConfig/ThemeConfigViewModel", "./ThemeConfig/assets", "../../utils/contrastUtil", "../../widgets/Tips/TipItem", "../../utils/focusUtils", "../../utils/appUtils", "../../utils/utils"], function (require, exports, tslib_1, decorators_1, widget_1, BaseComponent, ThemeConfigViewModel_1, assets_1, contrastUtil_1, TipItem, focusUtils_1, appUtils_1, utils_1) {
+    "use strict";
+    ThemeConfigViewModel_1 = tslib_1.__importDefault(ThemeConfigViewModel_1);
+    var CSS = {
+        base: "theme-config",
+        textPreview: "theme-config__text-preview",
+        textPreviewContainer: "theme-config__text-preview-container",
+        themeItemsContainer: "theme-config__items-container",
+        themeItemContainer: "theme-config__item-container",
+        themeItemEditContainer: "theme-config__item-edit-container",
+        themeItemBackgroundContainer: "theme-config__item-background-container",
+        themeItemText: "theme-config__item-text",
+        colorValue: "theme-config__color-value",
+        colorType: "theme-config__color-type",
+        ratio: "theme-config__ratio",
+        tooltipContent: "esri-config-panel-tips__content",
+        errorMessage: "theme-config__error-message",
+        headerErrorMessage: "theme-config__header-error-message",
+        headerErrorMessageContainer: "theme-config__header-error-message-container",
+        customThemes: "theme-config__custom-themes",
+        presetTheme: "theme-config__preset-theme",
+        popoverList: "theme-config__popover-list",
+        disabledAction: "theme-config__disabled-action",
+        cpContainer: "theme-config__color-picker-container",
+        none: "theme-config__none-option",
+        logo: "theme-config__logo",
+        logoLinkError: "theme-config__logo-link-error",
+        imageBtn: "theme-config__image-button"
+    };
+    var ThemeConfig = (function (_super) {
+        tslib_1.__extends(ThemeConfig, _super);
+        function ThemeConfig(properties) {
+            var _this = _super.call(this, properties) || this;
+            _this.viewModel = new ThemeConfigViewModel_1.default();
+            return _this;
+        }
+        ThemeConfig.prototype.postInitialize = function () {
+            var _a, _b, _c;
+            this._themeClass = this.getTheme() === "dark" ? "calcite-theme-dark" : "calcite-theme-light";
+            this._contrastTooltip = new TipItem({
+                id: "tooltip-icon-contrast-ratio",
+                fieldName: "contrast-ratio",
+                tip: this.messages.contrastRatioTooltip,
+                configPanelViewModel: this.configPanelViewModel
+            });
+            this._fontTooltip = new TipItem({
+                id: "tooltip-icon-theme-font",
+                fieldName: "theme-font",
+                tip: this.messages.fontTooltip,
+                configPanelViewModel: this.configPanelViewModel
+            });
+            this._presetTooltip = new TipItem({
+                id: "tooltip-icon-theme-preset",
+                fieldName: "theme-preset",
+                tip: this.messages.presetTooltip,
+                configPanelViewModel: this.configPanelViewModel
+            });
+            this._brandingTooltip = new TipItem({
+                id: "tooltip-icon-theme-branding",
+                fieldName: "theme-branding",
+                tip: this.messages.brandingTooltip,
+                configPanelViewModel: this.configPanelViewModel
+            });
+            this._logoLinkTooltip = new TipItem({
+                id: "tooltip-icon-theme-logo-link",
+                fieldName: "theme-logo-link",
+                tip: this.messages.logoLinkTooltip,
+                configPanelViewModel: this.configPanelViewModel
+            });
+            this.sharedTheme = (_c = (_b = (_a = this.configPanelViewModel) === null || _a === void 0 ? void 0 : _a.portal) === null || _b === void 0 ? void 0 : _b.portalProperties) === null || _c === void 0 ? void 0 : _c.sharedTheme;
+            if (this.sharedTheme) {
+                var i = assets_1.presetThemes.findIndex(function (_a) {
+                    var type = _a.type;
+                    return type === "shared";
+                });
+                if (i > -1) {
+                    var _d = this.sharedTheme, body = _d.body, button = _d.button, header = _d.header;
+                    if ((header === null || header === void 0 ? void 0 : header.background) && header.background !== "no-color") {
+                        assets_1.presetThemes[i].primary.background = header.background;
+                    }
+                    if ((header === null || header === void 0 ? void 0 : header.text) && header.text !== "no-color") {
+                        assets_1.presetThemes[i].primary.text = header.text;
+                    }
+                    if ((body === null || body === void 0 ? void 0 : body.background) && body.background !== "no-color") {
+                        assets_1.presetThemes[i].secondary.background = body.background;
+                    }
+                    if ((body === null || body === void 0 ? void 0 : body.text) && body.text !== "no-color") {
+                        assets_1.presetThemes[i].secondary.text = body.text;
+                    }
+                    if ((button === null || button === void 0 ? void 0 : button.background) && button.background !== "no-color") {
+                        assets_1.presetThemes[i].accent.background = button.background;
+                    }
+                    if ((button === null || button === void 0 ? void 0 : button.text) && button.text !== "no-color") {
+                        assets_1.presetThemes[i].accent.text = button.text;
+                    }
+                }
+            }
+            this.viewModel.initTheme();
+        };
+        ThemeConfig.prototype.render = function () {
+            var _a, _b;
+            var font = this._renderSelectFont();
+            var presetThemes = this._renderPresetThemes();
+            var sections = this._renderThemeSection();
+            var imageUpload = this._renderImageUpload();
+            var logoLink = this._renderLogoLinkInput();
+            var headerWarning = this.checkHeaderEnabled();
+            return this.configPanelViewModel.expressEnabled ? (widget_1.tsx("div", { bind: this, class: this.classes(this._themeClass, CSS.base), afterCreate: this._observeConfigWidth },
+                headerWarning ? this._renderHeaderWarning() : null,
+                presetThemes)) : (widget_1.tsx("div", { bind: this, class: this.classes(this._themeClass, CSS.base), afterCreate: this._observeConfigWidth },
+                headerWarning && !this.fontAlwaysEditable ? this._renderHeaderWarning() : null,
+                font,
+                headerWarning && this.fontAlwaysEditable ? this._renderHeaderWarning() : null,
+                presetThemes,
+                this.applyPresetTheme ? (widget_1.tsx("label", { onclick: this._preventDefault },
+                    widget_1.tsx("span", null, (_a = this.messages) === null || _a === void 0 ? void 0 :
+                        _a.colorsCR,
+                        " ", (_b = this._contrastTooltip) === null || _b === void 0 ? void 0 :
+                        _b.renderTipCalciteIcon()),
+                    widget_1.tsx("div", { class: CSS.customThemes }, sections))) : null,
+                imageUpload,
+                logoLink));
+        };
+        ThemeConfig.prototype._renderThemeSection = function () {
+            var _this = this;
+            var _a;
+            return (_a = Object.entries(this.themeSections)) === null || _a === void 0 ? void 0 : _a.map(function (_a) {
+                var _b, _c, _d, _e, _f;
+                var type = _a[0], section = _a[1];
+                var background = section.background, text = section.text;
+                var ratio = background && text ? contrastUtil_1.checkContrast(text, background) : null;
+                var themeContainer = _this._renderTheme(section, ratio);
+                var style = "background:" + (background ? background : assets_1.transparentImg) + ";color:" + text + ";font-family:" + _this.selectedFont;
+                var heading = _this.numOfSections === 1 ? _this.messages.sections.header : (_b = _this.messages.sections) === null || _b === void 0 ? void 0 : _b[type];
+                var collapse = (_d = (_c = _this.configPanelViewModel) === null || _c === void 0 ? void 0 : _c.configPanelMessages) === null || _d === void 0 ? void 0 : _d.collapse;
+                var expand = (_f = (_e = _this.configPanelViewModel) === null || _e === void 0 ? void 0 : _e.configPanelMessages) === null || _f === void 0 ? void 0 : _f.expand;
+                return (widget_1.tsx("calcite-block", { key: type, collapsible: true, heading: heading, "intl-collapse": collapse, "intl-expand": expand },
+                    widget_1.tsx("div", { slot: "icon" },
+                        widget_1.tsx("div", { class: CSS.textPreview, style: style }, _this.messages.buttonText)),
+                    widget_1.tsx("div", { class: CSS.themeItemsContainer },
+                        themeContainer,
+                        ratio && !ratio.passesDoubleA && (widget_1.tsx("p", { class: CSS.errorMessage },
+                            widget_1.tsx("calcite-icon", { icon: "exclamation-mark-triangle-f", scale: "s" }),
+                            _this.messages.contrastError)))));
+            });
+        };
+        ThemeConfig.prototype._renderTheme = function (section, ratio) {
+            var _this = this;
+            return Object.entries(section).map(function (_a) {
+                var type = _a[0], value = _a[1];
+                if (type !== "type") {
+                    var themeValue = { type: type, value: value };
+                    return (widget_1.tsx("div", { class: CSS.themeItemContainer },
+                        _this._renderThemeItemBackground(section, themeValue),
+                        widget_1.tsx("div", { class: CSS.themeItemEditContainer },
+                            widget_1.tsx("div", null,
+                                _this._renderDisableColorTooltipManager(section, themeValue),
+                                _this._renderColorPopoverManager(section, themeValue, ratio)),
+                            type === "text" && ratio && _this._renderRatioTooltipManager(section, ratio))));
+                }
+            });
+        };
+        ThemeConfig.prototype._renderThemeItemBackground = function (section, theme) {
+            var _a, _b;
+            var background = section.background, text = section.text;
+            var itemTitle = (_a = this.messages) === null || _a === void 0 ? void 0 : _a[theme.type];
+            var style = "background:" + (background ? background : assets_1.transparentImg) + ";color:" + text + ";font-family:" + this.selectedFont;
+            return (widget_1.tsx("div", { class: CSS.themeItemBackgroundContainer },
+                widget_1.tsx("div", { class: CSS.textPreview, style: style }, this.messages.buttonText),
+                widget_1.tsx("div", { class: CSS.themeItemText },
+                    widget_1.tsx("p", { class: CSS.colorType }, itemTitle),
+                    widget_1.tsx("p", { class: CSS.colorValue }, (_b = theme === null || theme === void 0 ? void 0 : theme.value) === null || _b === void 0 ? void 0 : _b.toLocaleUpperCase()))));
+        };
+        ThemeConfig.prototype._renderColorPopoverManager = function (section, theme, ratio) {
+            var type = theme.type, value = theme.value;
+            this.configPanelViewModel.popoverMap[section.type + "-" + type + "-color"] = (widget_1.tsx("calcite-popover", { bind: this, class: this._themeClass, id: section.type + "-" + type + "-color-popover", "reference-element": section.type + "-" + type + "-color-action", placement: "trailing", "disable-pointer": "true", "auto-close": "true" },
+                widget_1.tsx("div", { class: CSS.cpContainer, onblur: this._closeColorPopover.bind(this, section.type, type), onmouseleave: this._closeColorPopover.bind(this, section.type, type) },
+                    widget_1.tsx("calcite-color-picker", { id: section.type + "-" + type + "-color-picker", appearance: "minimal", "hide-channels": "", "hide-saved": "", value: value, onCalciteColorPickerChange: this.viewModel.handleColorPickerChange.bind(this.viewModel, section, theme) }),
+                    ratio ? (widget_1.tsx("div", { class: CSS.ratio },
+                        widget_1.tsx("calcite-icon", { scale: "s", icon: ratio.passesDoubleA ? "check-circle-f" : "x-circle-f", style: "color:" + (ratio.passesDoubleA ? "#35AC46" : "#D90012") }),
+                        widget_1.tsx("p", null, ratio.contrast.toFixed(1)))) : null)));
+            return (widget_1.tsx("calcite-action", { key: section.type + "-" + type + "-color-action", id: section.type + "-" + type + "-color-action", scale: "s", icon: "pencil", style: "display:" + (this.applySharedTheme ? "none" : "block"), afterCreate: this._setPopoverReferenceElement.bind(this, section.type + "-" + type + "-color") }));
+        };
+        ThemeConfig.prototype._renderRatioTooltipManager = function (section, ratio) {
+            var _a, _b;
+            if (ratio) {
+                this.configPanelViewModel.popoverMap["tooltip-ratio-" + section.type] = (widget_1.tsx("calcite-tooltip", { key: "tooltip-ratio-" + section.type, class: this._themeClass, "reference-element": "tooltip-ratio-" + section.type, placement: "trailing", "auto-close": "true" },
+                    widget_1.tsx("div", { class: CSS.tooltipContent }, ratio.passesDoubleA ? (_a = this.messages) === null || _a === void 0 ? void 0 : _a.ratioCheck : (_b = this.messages) === null || _b === void 0 ? void 0 : _b.ratioError)));
+            }
+            return ratio ? (widget_1.tsx("div", { id: "tooltip-ratio-" + section.type, class: CSS.ratio, tabindex: "0", afterCreate: this._setPopoverReferenceElement.bind(this, "tooltip-ratio-" + section.type) },
+                widget_1.tsx("calcite-icon", { scale: "s", icon: ratio.passesDoubleA ? "check-circle-f" : "x-circle-f", style: "color:" + (ratio.passesDoubleA ? "#35AC46" : "#D90012") }),
+                widget_1.tsx("p", null, ratio.contrast.toFixed(1)))) : null;
+        };
+        ThemeConfig.prototype._renderDisableColorTooltipManager = function (section, theme) {
+            var _a;
+            if (!this.configPanelViewModel.popoverMap["tooltip-disabled-" + section.type + "-" + theme.type]) {
+                this.configPanelViewModel.popoverMap["tooltip-disabled-" + section.type + "-" + theme.type] = (widget_1.tsx("calcite-tooltip", { key: "key-tooltip-disabled-" + section.type + "-" + theme.type, class: this._themeClass, "reference-element": "tooltip-disabled-" + section.type + "-" + theme.type, placement: "trailing", "auto-close": "true" },
+                    widget_1.tsx("div", { class: CSS.tooltipContent }, (_a = this.messages) === null || _a === void 0 ? void 0 : _a.disableEdit)));
+            }
+            return (widget_1.tsx("div", { id: "tooltip-disabled-" + section.type + "-" + theme.type, class: CSS.disabledAction, style: "display:" + (this.applySharedTheme ? "flex" : "none"), tabindex: "0", afterCreate: this._setPopoverReferenceElement.bind(this, "tooltip-disabled-" + section.type + "-" + theme.type) },
+                widget_1.tsx("calcite-icon", { icon: "pencil", scale: "s" })));
+        };
+        ThemeConfig.prototype._renderPresetThemes = function () {
+            var _a, _b;
+            return (widget_1.tsx("label", { onclick: this._preventDefault },
+                widget_1.tsx("span", null, (_a = this.messages) === null || _a === void 0 ? void 0 :
+                    _a.selectPresetTheme,
+                    " ", (_b = this._presetTooltip) === null || _b === void 0 ? void 0 :
+                    _b.renderTipCalciteIcon()),
+                this._renderPresetThemesDropdown()));
+        };
+        ThemeConfig.prototype._renderPresetThemesDropdown = function () {
+            var _this = this;
+            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u;
+            var preset = this.selectedPreset ? assets_1.presetThemes.find(function (_a) {
+                var type = _a.type;
+                return type === _this.selectedPreset;
+            }) : null;
+            this.configPanelViewModel.popoverMap["themeConfig-preset-theme"] = (widget_1.tsx("calcite-popover", { id: "theme-preset-popover", class: this.classes(this._themeClass, CSS.popoverList), "reference-element": "theme-preset-popover-button", placement: "bottom", "disable-pointer": "true", "offset-distance": "0", "auto-close": "true" },
+                widget_1.tsx("calcite-list", { onmouseleave: this._closePopover.bind(this, "theme-preset-popover") },
+                    widget_1.tsx("calcite-list-item", { bind: this.viewModel, onclick: this.viewModel.handleSelectPreset, label: (_a = this.messages) === null || _a === void 0 ? void 0 : _a.none, value: "none" },
+                        widget_1.tsx("div", { class: CSS.textPreviewContainer, slot: "content-start" },
+                            this.numOfSections >= 1 && widget_1.tsx("div", { class: this.classes(CSS.textPreview, CSS.none) }),
+                            this.numOfSections > 1 && widget_1.tsx("div", { class: this.classes(CSS.textPreview, CSS.none) }),
+                            this.numOfSections > 2 && widget_1.tsx("div", { class: this.classes(CSS.textPreview, CSS.none) }))),
+                    !this.applyPresetTheme || this.applySharedTheme ? (widget_1.tsx("calcite-list-item", { key: "custom-preset-theme", bind: this.viewModel, onclick: this.viewModel.handleSelectPreset, label: (_b = this.messages) === null || _b === void 0 ? void 0 : _b.custom, value: "custom" },
+                        widget_1.tsx("div", { class: CSS.textPreviewContainer, slot: "content-start" },
+                            this.numOfSections >= 1 && (widget_1.tsx("div", { class: this.classes(CSS.textPreview), style: "background: " + ((_e = (_d = (_c = this.themeSections) === null || _c === void 0 ? void 0 : _c.primary) === null || _d === void 0 ? void 0 : _d.background) !== null && _e !== void 0 ? _e : assets_1.transparentImg) })),
+                            this.numOfSections > 1 && (widget_1.tsx("div", { class: this.classes(CSS.textPreview), style: "background: " + ((_h = (_g = (_f = this.themeSections) === null || _f === void 0 ? void 0 : _f.secondary) === null || _g === void 0 ? void 0 : _g.background) !== null && _h !== void 0 ? _h : assets_1.transparentImg) })),
+                            this.numOfSections > 2 && (widget_1.tsx("div", { class: this.classes(CSS.textPreview), style: "background: " + ((_l = (_k = (_j = this.themeSections) === null || _j === void 0 ? void 0 : _j.accent) === null || _k === void 0 ? void 0 : _k.background) !== null && _l !== void 0 ? _l : assets_1.transparentImg) }))))) : null,
+                    assets_1.presetThemes.map(function (preset) {
+                        var _a, _b, _c, _d, _e;
+                        return (widget_1.tsx("calcite-list-item", { key: preset.type + "-preset-theme", bind: _this.viewModel, onclick: _this.viewModel.handleSelectPreset, label: (_b = (_a = _this.messages) === null || _a === void 0 ? void 0 : _a.presetThemes) === null || _b === void 0 ? void 0 : _b[preset.type], value: preset.type },
+                            widget_1.tsx("div", { class: CSS.textPreviewContainer, slot: "content-start" },
+                                _this.numOfSections >= 1 && (widget_1.tsx("div", { class: CSS.textPreview, style: "background: " + ((_c = preset.primary.background) !== null && _c !== void 0 ? _c : assets_1.transparentImg) })),
+                                _this.numOfSections > 1 && (widget_1.tsx("div", { class: CSS.textPreview, style: "background: " + ((_d = preset.secondary.background) !== null && _d !== void 0 ? _d : assets_1.transparentImg) })),
+                                _this.numOfSections > 2 && (widget_1.tsx("div", { class: CSS.textPreview, style: "background: " + ((_e = preset.accent.background) !== null && _e !== void 0 ? _e : assets_1.transparentImg) })))));
+                    }))));
+            return (widget_1.tsx("calcite-button", { key: "theme-preset-popover-button", id: "theme-preset-popover-button", "icon-end": "caret-down", width: "full", alignment: "space-between", color: "neutral", afterCreate: this._setPopoverReferenceElement.bind(this, "themeConfig-preset-theme") }, !this.applyPresetTheme ? (widget_1.tsx("div", { class: CSS.presetTheme },
+                widget_1.tsx("div", { class: this.classes(CSS.textPreview, CSS.none), style: "" }), (_m = this.messages) === null || _m === void 0 ? void 0 :
+                _m.none)) : preset ? (widget_1.tsx("div", { class: CSS.presetTheme },
+                widget_1.tsx("div", { class: CSS.textPreview, style: "background: " + ((_o = preset.primary.background) !== null && _o !== void 0 ? _o : assets_1.transparentImg) }), (_q = (_p = this.messages) === null || _p === void 0 ? void 0 : _p.presetThemes) === null || _q === void 0 ? void 0 :
+                _q[preset.type])) : (widget_1.tsx("div", { class: CSS.presetTheme },
+                widget_1.tsx("div", { class: CSS.textPreview, style: "background: " + ((_t = (_s = (_r = this.themeSections) === null || _r === void 0 ? void 0 : _r.primary) === null || _s === void 0 ? void 0 : _s.background) !== null && _t !== void 0 ? _t : assets_1.transparentImg) }), (_u = this.messages) === null || _u === void 0 ? void 0 :
+                _u.custom))));
+        };
+        ThemeConfig.prototype._renderSelectFont = function () {
+            var _a, _b;
+            return (widget_1.tsx("label", { onclick: this._preventDefault },
+                widget_1.tsx("span", null, (_a = this.messages) === null || _a === void 0 ? void 0 :
+                    _a.selectFont,
+                    " ", (_b = this._fontTooltip) === null || _b === void 0 ? void 0 :
+                    _b.renderTipCalciteIcon()),
+                this._renderFontsList()));
+        };
+        ThemeConfig.prototype._renderFontsList = function () {
+            var _this = this;
+            if (!this.configPanelViewModel.popoverMap["themeConfig-fonts"]) {
+                this.configPanelViewModel.popoverMap["themeConfig-fonts"] = (widget_1.tsx("calcite-popover", { key: "theme-font-popover", id: "theme-font-popover", class: this.classes(this._themeClass, CSS.popoverList), "reference-element": "theme-font-popover-button", placement: "bottom", "disable-pointer": "true", "offset-distance": "0", "auto-close": "true" },
+                    widget_1.tsx("calcite-list", { onmouseleave: this._closePopover.bind(this, "theme-font-popover") }, assets_1.fonts.map(function (font) { return (widget_1.tsx("calcite-list-item", { key: font, value: font, label: font, style: "font-family: '" + font + "'", onclick: _this.viewModel.handlePickFont.bind(_this.viewModel, font) },
+                        widget_1.tsx("div", { slot: "content-start", class: CSS.textPreview }, _this.messages.buttonText))); }))));
+            }
+            return (widget_1.tsx("calcite-button", { key: "theme-font-popover-button", id: "theme-font-popover-button", "icon-end": "caret-down", width: "full", alignment: "space-between", color: "neutral", afterCreate: this._setPopoverReferenceElement.bind(this, "themeConfig-fonts") }, this.selectedFont));
+        };
+        ThemeConfig.prototype._renderImageUpload = function () {
+            var _a, _b, _c, _d;
+            var token = this.configPanelViewModel.templateAppItem.get("portal.credential.token");
+            var tokenLogo = this.logo ? this.logo + "?token=" + token : null;
+            if (!this.applySharedTheme) {
+                this.configPanelViewModel.popoverMap["tooltip-disabled-link-button"] = null;
+            }
+            return (widget_1.tsx("label", { key: "image-upload", onclick: this._preventDefault },
+                widget_1.tsx("span", null, (_a = this.messages) === null || _a === void 0 ? void 0 :
+                    _a.branding,
+                    " ", (_b = this._brandingTooltip) === null || _b === void 0 ? void 0 :
+                    _b.renderTipCalciteIcon()),
+                tokenLogo ? (widget_1.tsx("div", { key: "image-upload-logo", class: CSS.logo },
+                    widget_1.tsx("img", { src: tokenLogo }))) : null,
+                this.applySharedTheme && this.applyPresetTheme ? (this._renderDisabledLogoBtn()) : (widget_1.tsx("calcite-button", { class: CSS.imageBtn, bind: this, appearance: "outline", width: "full", onclick: this._handleUploadImage }, (_c = this.messages) === null || _c === void 0 ? void 0 : _c.uploadImage)),
+                (this.logo && !this.applySharedTheme) || (this.logo && !this.applyPresetTheme) ? (widget_1.tsx("calcite-button", { class: CSS.imageBtn, bind: this.viewModel, appearance: "outline", color: "red", width: "full", onclick: this.viewModel.handleDeleteImage }, (_d = this.messages) === null || _d === void 0 ? void 0 : _d.deleteImage)) : null));
+        };
+        ThemeConfig.prototype._renderLogoLinkInput = function () {
+            var _a, _b, _c;
+            if (!this.applySharedTheme) {
+                this.configPanelViewModel.popoverMap["tooltip-disabled-link-input"] = null;
+            }
+            return (widget_1.tsx("label", { key: "image-url", onclick: this._preventDefault },
+                widget_1.tsx("span", null, (_a = this.messages) === null || _a === void 0 ? void 0 :
+                    _a.logoLink,
+                    " ", (_b = this._logoLinkTooltip) === null || _b === void 0 ? void 0 :
+                    _b.renderTipCalciteIcon()),
+                this.applySharedTheme ? (this._renderDisabledLinkInput()) : (widget_1.tsx("input", { type: "text", bind: this, disabled: this.applySharedTheme && this.applyPresetTheme, onblur: this.viewModel.handleLogoLink.bind(this.viewModel), value: this.logoLink })),
+                this.logoLink && !this.isValidLogoLink ? (widget_1.tsx("div", { key: "logo-link-error", class: CSS.logoLinkError, isRTL: appUtils_1.isRTL() },
+                    widget_1.tsx("calcite-icon", { icon: "exclamation-mark-triangle-f" }),
+                    widget_1.tsx("p", null, (_c = this.messages) === null || _c === void 0 ? void 0 : _c.logoLinkError))) : null));
+        };
+        ThemeConfig.prototype._renderDisabledLinkInput = function () {
+            var _a;
+            if (!this.configPanelViewModel.popoverMap["tooltip-disabled-link-input"]) {
+                this.configPanelViewModel.popoverMap["tooltip-disabled-link-input"] = (widget_1.tsx("calcite-tooltip", { key: "tooltip-disabled-link-input", class: this._themeClass, "reference-element": "tooltip-disabled-link-input", placement: "trailing", "auto-close": "true" },
+                    widget_1.tsx("div", { class: CSS.tooltipContent }, (_a = this.messages) === null || _a === void 0 ? void 0 : _a.disableEdit)));
+            }
+            return (widget_1.tsx("input", { id: "tooltip-disabled-link-input", type: "text", bind: this, disabled: this.applySharedTheme && this.applyPresetTheme, onblur: this.viewModel.handleLogoLink.bind(this.viewModel), value: this.logoLink, afterCreate: this._setPopoverReferenceElement.bind(this, "tooltip-disabled-link-input") }));
+        };
+        ThemeConfig.prototype._renderDisabledLogoBtn = function () {
+            var _a, _b;
+            if (!this.configPanelViewModel.popoverMap["tooltip-disabled-link-button"]) {
+                this.configPanelViewModel.popoverMap["tooltip-disabled-link-button"] = (widget_1.tsx("calcite-tooltip", { key: "tooltip-disabled-link-button", class: this._themeClass, "reference-element": "tooltip-disabled-link-button", placement: "trailing", "auto-close": "true" },
+                    widget_1.tsx("div", { class: CSS.tooltipContent }, (_a = this.messages) === null || _a === void 0 ? void 0 : _a.disableEdit)));
+            }
+            return (widget_1.tsx("calcite-button", { id: "tooltip-disabled-link-button", class: CSS.imageBtn, disabled: true, width: "full", afterCreate: this._setPopoverReferenceElement.bind(this, "tooltip-disabled-link-button") }, (_b = this.messages) === null || _b === void 0 ? void 0 : _b.uploadImage));
+        };
+        ThemeConfig.prototype._renderHeaderWarning = function () {
+            return (widget_1.tsx("div", { key: "theme-header-warning", class: CSS.headerErrorMessageContainer },
+                widget_1.tsx("p", { class: CSS.headerErrorMessage },
+                    widget_1.tsx("calcite-icon", { icon: "exclamation-mark-triangle-f", scale: "s" }),
+                    this.messages.disableTheme),
+                widget_1.tsx("calcite-link", { bind: this.viewModel, onclick: this.viewModel.handleHeaderNav }, this.messages.sections.header)));
+        };
+        ThemeConfig.prototype._closePopover = function (id) {
+            var popover = document.getElementById(id);
+            popover === null || popover === void 0 ? void 0 : popover.toggle(false);
+        };
+        ThemeConfig.prototype._closeColorPopover = function (sectionType, themeType) {
+            focusUtils_1.focusNode(sectionType + "-" + themeType + "-color-action");
+            var popover = document.getElementById(sectionType + "-" + themeType + "-color-popover");
+            popover === null || popover === void 0 ? void 0 : popover.toggle(false);
+        };
+        ThemeConfig.prototype._handleUploadImage = function () {
+            this.configPanelViewModel.setGenericModalDOM(widget_1.tsx("arcgis-image-upload", { active: "true", afterCreate: this.viewModel.createImageUpload.bind(this.viewModel, this.messages) }));
+        };
+        ThemeConfig.prototype._preventDefault = function (e) {
+            e.preventDefault();
+        };
+        ThemeConfig.prototype._setPopoverReferenceElement = function (id, element) {
+            var _a, _b;
+            return tslib_1.__awaiter(this, void 0, void 0, function () {
+                var popover, counter;
+                return tslib_1.__generator(this, function (_c) {
+                    switch (_c.label) {
+                        case 0:
+                            counter = 50;
+                            _c.label = 1;
+                        case 1:
+                            if (!!popover) return [3, 3];
+                            return [4, new Promise(function (resolve) { return requestAnimationFrame(resolve); })];
+                        case 2:
+                            _c.sent();
+                            popover = (_b = (_a = this.configPanelViewModel.popoverMap) === null || _a === void 0 ? void 0 : _a[id]) === null || _b === void 0 ? void 0 : _b["domNode"];
+                            if (popover) {
+                                popover.referenceElement = element;
+                            }
+                            counter--;
+                            if (counter === 0 || popover) {
+                                return [3, 3];
+                            }
+                            return [3, 1];
+                        case 3: return [2];
+                    }
+                });
+            });
+        };
+        ThemeConfig.prototype._observeConfigWidth = function (node) {
+            var _this = this;
+            var resizeObserver = new ResizeObserver(function () {
+                var _a, _b;
+                var presetPopover = (_a = _this.configPanelViewModel.popoverMap["themeConfig-preset-theme"]) === null || _a === void 0 ? void 0 : _a["domNode"];
+                if (presetPopover) {
+                    presetPopover.style.width = node.clientWidth + "px";
+                }
+                var fontsPopover = (_b = _this.configPanelViewModel.popoverMap["themeConfig-fonts"]) === null || _b === void 0 ? void 0 : _b["domNode"];
+                if (fontsPopover) {
+                    fontsPopover.style.width = node.clientWidth + "px";
+                }
+                _this.scheduleRender();
+            });
+            resizeObserver.observe(node);
+        };
+        ThemeConfig.prototype.checkHeaderEnabled = function () {
+            var _a, _b, _c, _d;
+            var headerEnabled = utils_1.getDefaultValue({
+                fieldName: "header",
+                defaultValue: (_b = (_a = this.configPanelViewModel.defaultValues) === null || _a === void 0 ? void 0 : _a["header"]) !== null && _b !== void 0 ? _b : true
+            }, null, (_d = (_c = this.configPanelViewModel) === null || _c === void 0 ? void 0 : _c.templateAppData) === null || _d === void 0 ? void 0 : _d.values);
+            return !headerEnabled && this.headerOnly;
+        };
+        tslib_1.__decorate([
+            decorators_1.aliasOf("viewModel.configPanelViewModel")
+        ], ThemeConfig.prototype, "configPanelViewModel", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], ThemeConfig.prototype, "viewModel", void 0);
+        tslib_1.__decorate([
+            decorators_1.aliasOf("viewModel.themeSections")
+        ], ThemeConfig.prototype, "themeSections", void 0);
+        tslib_1.__decorate([
+            decorators_1.aliasOf("viewModel.applySharedTheme")
+        ], ThemeConfig.prototype, "applySharedTheme", void 0);
+        tslib_1.__decorate([
+            decorators_1.aliasOf("viewModel.sharedTheme")
+        ], ThemeConfig.prototype, "sharedTheme", void 0);
+        tslib_1.__decorate([
+            decorators_1.aliasOf("viewModel.applyPresetTheme")
+        ], ThemeConfig.prototype, "applyPresetTheme", void 0);
+        tslib_1.__decorate([
+            decorators_1.aliasOf("viewModel.numOfSections")
+        ], ThemeConfig.prototype, "numOfSections", void 0);
+        tslib_1.__decorate([
+            decorators_1.aliasOf("viewModel.selectedFont")
+        ], ThemeConfig.prototype, "selectedFont", void 0);
+        tslib_1.__decorate([
+            decorators_1.aliasOf("viewModel.selectedPreset")
+        ], ThemeConfig.prototype, "selectedPreset", void 0);
+        tslib_1.__decorate([
+            decorators_1.aliasOf("viewModel.logo")
+        ], ThemeConfig.prototype, "logo", void 0);
+        tslib_1.__decorate([
+            decorators_1.aliasOf("viewModel.logoLink")
+        ], ThemeConfig.prototype, "logoLink", void 0);
+        tslib_1.__decorate([
+            decorators_1.aliasOf("viewModel.isValidLogoLink")
+        ], ThemeConfig.prototype, "isValidLogoLink", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], ThemeConfig.prototype, "headerOnly", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], ThemeConfig.prototype, "fontAlwaysEditable", void 0);
+        tslib_1.__decorate([
+            decorators_1.aliasOf("viewModel.input")
+        ], ThemeConfig.prototype, "input", void 0);
+        tslib_1.__decorate([
+            widget_1.messageBundle("dist/assets/t9n/configWidgets/ThemeConfig/resources"),
+            decorators_1.property()
+        ], ThemeConfig.prototype, "messages", void 0);
+        tslib_1.__decorate([
+            decorators_1.aliasOf("viewModel.outputJSON")
+        ], ThemeConfig.prototype, "outputJSON", void 0);
+        ThemeConfig = tslib_1.__decorate([
+            decorators_1.subclass("app.widgets.ThemeConfig")
+        ], ThemeConfig);
+        return ThemeConfig;
+    }(BaseComponent));
+    return ThemeConfig;
+});

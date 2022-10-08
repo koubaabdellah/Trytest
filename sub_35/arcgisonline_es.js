@@ -1,0 +1,2 @@
+//>>built
+define("arcgisonline/nls/arcgisonline_es",{"esri/layers/vectorTiles/nls/common":{_localized:{}},"arcgis-components/Inputs/Tags/nls/resources":{addTags:"Agregar etiquetas",noTagsFound:"Las etiquetas existentes no coinciden.",required:"Se requieren una o m\u00e1s etiquetas.",_localized:{}}});

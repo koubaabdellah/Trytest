@@ -1,0 +1,4 @@
+/* Source and licensing information for the line(s) below can be found at https://www.cjib.nl/modules/contrib/clientside_validation/clientside_validation_jquery/js/cv.jquery.ife.js. */
+(function($){$(document).once('cvjquery').on('cv-jquery-validate-options-update',function(event,options){options.errorElement='strong';options.showErrors=function(errorMap,errorList){for(var i in errorList){$(errorList[i].element).parent().find('.form-item--error-message').remove();}
+this.defaultShowErrors();$(this.currentForm).find('strong.error').each(function(){if(!$(this).parent().hasClass('form-item--error-message')){$(this).wrap('<div class="form-item--error-message"/>');}});};});})(jQuery);
+/* Source and licensing information for the above line(s) can be found at https://www.cjib.nl/modules/contrib/clientside_validation/clientside_validation_jquery/js/cv.jquery.ife.js. */

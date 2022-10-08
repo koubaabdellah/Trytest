@@ -1,0 +1,357 @@
+/*
+  Copyright 2017 Esri
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+
+  you may not use this file except in compliance with the License.
+
+  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+
+  distributed under the License is distributed on an "AS IS" BASIS,
+
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+  See the License for the specific language governing permissions and
+
+  limitations under the License.​
+*/
+define(["require", "exports", "tslib", "TemplatesCommonLib/baseClasses/support/itemUtils", "TemplatesCommonLib/baseClasses/support/domHelper", "esri/core/Handles", "./ConfigurationSettings", "esri/core/watchUtils", "esri/core/urlUtils", "TemplatesCommonLib/structuralFunctionality/telemetry/telemetry", "./utils/esriWidgetUtils", "esri/geometry/support/jsonUtils", "./utils/themeUtils", "TemplatesCommonLib/baseClasses/support/urlUtils"], function (require, exports, tslib_1, itemUtils_1, domHelper_1, Handles_1, ConfigurationSettings_1, watchUtils_1, urlUtils_1, telemetry_1, esriWidgetUtils_1, jsonUtils_1, themeUtils_1, urlUtils_2) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    Handles_1 = tslib_1.__importDefault(Handles_1);
+    ConfigurationSettings_1 = tslib_1.__importDefault(ConfigurationSettings_1);
+    telemetry_1 = tslib_1.__importDefault(telemetry_1);
+    var CSS = {
+        loading: "configurable-application--loading"
+    };
+    var Main = /** @class */ (function () {
+        function Main() {
+            //--------------------------------------------------------------------------
+            //
+            //  Properties
+            //
+            //--------------------------------------------------------------------------
+            //----------------------------------
+            //  ApplicationBase
+            //----------------------------------
+            this.base = null;
+            this._telemetry = null;
+            this._appConfig = null;
+            this._handles = null;
+            this._hoverHandler = null;
+            this._header = null;
+            this._initialExtent = null;
+            this._defaultViewRotation = 0;
+        }
+        //--------------------------------------------------------------------------
+        //
+        //  Public Methods
+        //
+        //--------------------------------------------------------------------------
+        Main.prototype.init = function (base) {
+            if (!base) {
+                console.error("ApplicationBase is not defined");
+                return;
+            }
+            this._handles = new Handles_1.default();
+            this.base = base;
+            this.createApp();
+            document.body.classList.remove(CSS.loading);
+        };
+        Main.prototype.createApp = function () {
+            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p;
+            return tslib_1.__awaiter(this, void 0, void 0, function () {
+                var _q, config, results, webmap, webscene, urlParams, type, webMapItems, webSceneItems, items, item, title, portalItem, appProxies, viewContainerNode, defaultViewProperties, viewNode, container, viewProperties, mapParams, map, view, ariadesc, rootNode, k, popupContainer, widgetProps;
+                var _this = this;
+                return tslib_1.__generator(this, function (_r) {
+                    switch (_r.label) {
+                        case 0:
+                            _q = this.base, config = _q.config, results = _q.results;
+                            webmap = config.webmap, webscene = config.webscene;
+                            urlParams = urlUtils_1.urlToObject((_a = document === null || document === void 0 ? void 0 : document.location) === null || _a === void 0 ? void 0 : _a.toString());
+                            if (((_b = urlParams === null || urlParams === void 0 ? void 0 : urlParams.query) === null || _b === void 0 ? void 0 : _b.webscene) || (webmap === "default" && webscene !== "default" && webscene !== null && webscene !== undefined)) {
+                                config.type = "webscene";
+                            }
+                            this._appConfig = new ConfigurationSettings_1.default(config);
+                            themeUtils_1.updateThemeConfig(this._appConfig);
+                            this.createTelemetry();
+                            type = this._appConfig.type;
+                            webMapItems = results.webMapItems, webSceneItems = results.webSceneItems;
+                            if (type === "webmap") {
+                                items = webMapItems.map(function (response) {
+                                    return response.value;
+                                });
+                            }
+                            if (type === "webscene") {
+                                items = webSceneItems.map(function (response) {
+                                    return response.value;
+                                });
+                            }
+                            item = (items === null || items === void 0 ? void 0 : items.length) > 0 ? items[0] : null;
+                            if (!item) {
+                                // show error page 
+                                document.location.href = "../../shared/unavailable/index.html?appid=" + (((_c = this.base.config) === null || _c === void 0 ? void 0 : _c.appid) || null);
+                                return [2 /*return*/];
+                            }
+                            title = this._appConfig.title;
+                            if (!title) {
+                                title = ((_g = (_f = (_e = (_d = this === null || this === void 0 ? void 0 : this.base) === null || _d === void 0 ? void 0 : _d.results) === null || _e === void 0 ? void 0 : _e.applicationItem) === null || _f === void 0 ? void 0 : _f.value) === null || _g === void 0 ? void 0 : _g.title) ? (_l = (_k = (_j = (_h = this === null || this === void 0 ? void 0 : this.base) === null || _h === void 0 ? void 0 : _h.results) === null || _j === void 0 ? void 0 : _j.applicationItem) === null || _k === void 0 ? void 0 : _k.value) === null || _l === void 0 ? void 0 : _l.title : itemUtils_1.getItemTitle(item);
+                            }
+                            this._appConfig.title = title;
+                            domHelper_1.setPageTitle(title);
+                            this._handles.add(watchUtils_1.init(this._appConfig, "theme", function () {
+                                var theme = _this._appConfig.theme;
+                                var style = document.getElementById("esri-stylesheet");
+                                style.href = style.href.indexOf("light") !== -1 ? style.href.replace(/light/g, theme) : style.href.replace(/dark/g, theme);
+                                document.body.classList.remove("dark", "light");
+                                document.body.classList.add(theme);
+                            }), "configuration");
+                            portalItem = this.base.results.applicationItem
+                                .value;
+                            appProxies = portalItem && portalItem.applicationProxies
+                                ? portalItem.applicationProxies
+                                : null;
+                            viewContainerNode = document.getElementById("viewContainer");
+                            defaultViewProperties = itemUtils_1.getConfigViewProperties(config);
+                            viewNode = document.createElement("div");
+                            viewContainerNode.appendChild(viewNode);
+                            container = {
+                                container: viewNode
+                            };
+                            viewProperties = tslib_1.__assign(tslib_1.__assign({}, defaultViewProperties), container);
+                            mapParams = {};
+                            return [4 /*yield*/, itemUtils_1.createMapFromItem({ item: item, mapParams: mapParams, appProxies: appProxies })];
+                        case 1:
+                            map = _r.sent();
+                            return [4 /*yield*/, itemUtils_1.createView(tslib_1.__assign(tslib_1.__assign({}, viewProperties), { map: map }))];
+                        case 2:
+                            view = _r.sent();
+                            this._defaultViewRotation = (view === null || view === void 0 ? void 0 : view.rotation) || 0;
+                            this._setupUrlParams(view);
+                            if ((_m = this._appConfig) === null || _m === void 0 ? void 0 : _m.selectedFeature) {
+                                watchUtils_1.whenFalseOnce(view, "updating", function () { return tslib_1.__awaiter(_this, void 0, void 0, function () {
+                                    return tslib_1.__generator(this, function (_a) {
+                                        itemUtils_1.findSelectedFeature(this._appConfig.selectedFeature, view);
+                                        return [2 /*return*/];
+                                    });
+                                }); });
+                            }
+                            return [4 /*yield*/, view.when()];
+                        case 3:
+                            _r.sent();
+                            if (this._appConfig.hiddenLayers)
+                                itemUtils_1.setHiddenLayers(this._appConfig.hiddenLayers, view);
+                            ariadesc = ((_o = this._appConfig) === null || _o === void 0 ? void 0 : _o.mapA11yDesc) || (portalItem === null || portalItem === void 0 ? void 0 : portalItem.snippet) || (portalItem === null || portalItem === void 0 ? void 0 : portalItem.description) || null;
+                            if (ariadesc) {
+                                document.getElementById('mapDescription').innerHTML = ariadesc;
+                                rootNode = document.getElementsByClassName('esri-view-surface');
+                                view.container.setAttribute("aria-describedby", 'mapDescription');
+                                for (k = 0; k < rootNode.length; k++) {
+                                    rootNode[k].setAttribute('aria-describedby', 'mapDescription');
+                                }
+                            }
+                            popupContainer = view.popup.container;
+                            popupContainer === null || popupContainer === void 0 ? void 0 : popupContainer.setAttribute("aria-live", "polite");
+                            widgetProps = { view: view, config: this._appConfig, portal: this.base.portal, telemetry: this._telemetry };
+                            this._initialExtent = (_p = view === null || view === void 0 ? void 0 : view.extent) === null || _p === void 0 ? void 0 : _p.clone();
+                            this._handles.add([
+                                watchUtils_1.init(this._appConfig, "mapRotation", function (newValue, oldValue, propertyName) {
+                                    if (view.type !== "2d")
+                                        return;
+                                    view.constraints.rotationEnabled = newValue;
+                                }),
+                                watchUtils_1.init(this._appConfig, ["popupFixed", "popupFixedPosition"], function (newValue, oldValue, propertyName) {
+                                    var pp = urlUtils_2.parsePopup(_this._appConfig.popupFixed, _this._appConfig.popupFixedPosition);
+                                    if ((pp === null || pp === void 0 ? void 0 : pp.popup) && (view === null || view === void 0 ? void 0 : view.popup)) {
+                                        view.popup = pp.popup;
+                                    }
+                                }),
+                                watchUtils_1.init(this._appConfig, ["customTheme", "theme"], function () {
+                                    var _a, _b, _c, _d;
+                                    var customTheme = _this._appConfig.customTheme;
+                                    var sharedThemeProps = (_c = (_b = (_a = _this === null || _this === void 0 ? void 0 : _this.base) === null || _a === void 0 ? void 0 : _a.portal) === null || _b === void 0 ? void 0 : _b.portalProperties) === null || _c === void 0 ? void 0 : _c.sharedTheme;
+                                    if (customTheme === null || customTheme === void 0 ? void 0 : customTheme.applySharedTheme) {
+                                        if (!(customTheme === null || customTheme === void 0 ? void 0 : customTheme.logo) && ((_d = sharedThemeProps === null || sharedThemeProps === void 0 ? void 0 : sharedThemeProps.logo) === null || _d === void 0 ? void 0 : _d.small)) {
+                                            customTheme.logo = sharedThemeProps.logo.small;
+                                        }
+                                    }
+                                    themeUtils_1.handleCustomTheme(_this._appConfig);
+                                }),
+                                watchUtils_1.init(this._appConfig, "extentSelector, extentSelectorConfig", function () {
+                                    var _a;
+                                    if (((_a = _this._appConfig) === null || _a === void 0 ? void 0 : _a.extentSelector) && _this._appConfig.extentSelectorConfig) {
+                                        var constraints = _this._appConfig.extentSelectorConfig.constraints;
+                                        var geometry = constraints === null || constraints === void 0 ? void 0 : constraints.geometry;
+                                        if (geometry) {
+                                            var extent = jsonUtils_1.fromJSON(geometry);
+                                            if (extent && ((extent === null || extent === void 0 ? void 0 : extent.type) === "extent" || (extent === null || extent === void 0 ? void 0 : extent.type) === "polygon")) {
+                                                constraints.geometry = extent;
+                                                view === null || view === void 0 ? void 0 : view.goTo(extent, { animate: false }).catch(function () { });
+                                            }
+                                            else {
+                                                constraints.geometry = null;
+                                            }
+                                        }
+                                        // sets rotation and geometry 
+                                        if (view) {
+                                            constraints.minScale = +constraints.minScale;
+                                            constraints.maxScale = +constraints.maxScale;
+                                            view.constraints = constraints;
+                                        }
+                                        _this._setMapViewRotation(view);
+                                    }
+                                    else {
+                                        if (view) {
+                                            view.rotation = _this._defaultViewRotation;
+                                            view.constraints.geometry = null;
+                                            view.constraints.minZoom = -1;
+                                            view.constraints.maxZoom = -1;
+                                            view.constraints.minScale = 0;
+                                            view.constraints.maxScale = 0;
+                                        }
+                                        if (_this._initialExtent) {
+                                            view === null || view === void 0 ? void 0 : view.goTo(_this._initialExtent, { animate: false }).catch(function () { });
+                                        }
+                                    }
+                                }),
+                                watchUtils_1.init(this._appConfig, "title, header", function (newValue, oldValue, propertyName) {
+                                    _this._addHeader(tslib_1.__assign(tslib_1.__assign({}, widgetProps), { propertyName: propertyName }));
+                                }),
+                                watchUtils_1.init(this._appConfig, "basemapToggle, basemapTogglePosition, nextBasemap, basemapSelector", function (newValue, oldValue, propertyName) {
+                                    esriWidgetUtils_1.addBasemap(tslib_1.__assign(tslib_1.__assign({}, widgetProps), { propertyName: propertyName }));
+                                }),
+                                watchUtils_1.init(this._appConfig, "disableScroll", function (newValue, oldValue, propertyName) {
+                                    esriWidgetUtils_1.addOverlay(tslib_1.__assign(tslib_1.__assign({}, widgetProps), { propertyName: propertyName }));
+                                }),
+                                watchUtils_1.init(this._appConfig, "scalebar, scalebarPosition", function (newValue, oldValue, propertyName) {
+                                    esriWidgetUtils_1.addScaleBar(tslib_1.__assign(tslib_1.__assign({}, widgetProps), { propertyName: propertyName }));
+                                }),
+                                watchUtils_1.init(this._appConfig, "screenshot, screenshotPosition, popupHover", function (newValue, oldValue, propertyName) {
+                                    esriWidgetUtils_1.addScreenshot(tslib_1.__assign(tslib_1.__assign({}, widgetProps), { propertyName: propertyName }));
+                                }),
+                                watchUtils_1.init(this._appConfig, "search, searchOpenAtStart,extentSelector,extentSelectorConfig, searchPosition,searchConfiguration", function (newValue, oldValue, propertyName) {
+                                    esriWidgetUtils_1.addSearch(tslib_1.__assign(tslib_1.__assign({}, widgetProps), { propertyName: propertyName }));
+                                }),
+                                watchUtils_1.init(this._appConfig, "home, homePosition", function (newValue, oldValue, propertyName) {
+                                    esriWidgetUtils_1.addHome(tslib_1.__assign(tslib_1.__assign({}, widgetProps), { propertyName: propertyName }));
+                                }),
+                                watchUtils_1.init(this._appConfig, "locateWidget, locateWidgetPosition", function (newValue, oldValue, propertyName) {
+                                    esriWidgetUtils_1.addLocate(tslib_1.__assign(tslib_1.__assign({}, widgetProps), { propertyName: propertyName }));
+                                }),
+                                watchUtils_1.init(this._appConfig, "mapZoom, mapZoomPosition", function (newValue, oldValue, propertyName) {
+                                    // Check to see if zoom is already in components list if so remove it 
+                                    if (propertyName === "mapZoom" && newValue === true && view.ui.components.indexOf("zoom") !== -1) {
+                                        view.ui.remove("zoom");
+                                    }
+                                    ;
+                                    esriWidgetUtils_1.addZoom(tslib_1.__assign(tslib_1.__assign({}, widgetProps), { propertyName: propertyName }));
+                                }),
+                                watchUtils_1.init(this._appConfig, "share, sharePosition, theme", function (newValue, oldValue, propertyName) {
+                                    esriWidgetUtils_1.addShare(tslib_1.__assign(tslib_1.__assign({}, widgetProps), { propertyName: propertyName }));
+                                }),
+                                watchUtils_1.init(this._appConfig, ["legend", "legendOpenAtStart", "legendPosition"], function (newValue, oldValue, propertyName) {
+                                    esriWidgetUtils_1.addLegend(tslib_1.__assign(tslib_1.__assign({}, widgetProps), { propertyName: propertyName }));
+                                }),
+                                watchUtils_1.init(this._appConfig, ["layerList", "layerListOpenAtStart", "layerListPosition", "layerListAddTable"], function (newValue, oldValue, propertyName) {
+                                    esriWidgetUtils_1.addLayerList(tslib_1.__assign(tslib_1.__assign({}, widgetProps), { propertyName: propertyName }));
+                                }),
+                                watchUtils_1.init(this._appConfig, ["bookmarks", "bookmarksPosition"], function (newValue, oldValue, propertyName) {
+                                    esriWidgetUtils_1.addBookmarks(tslib_1.__assign(tslib_1.__assign({}, widgetProps), { propertyName: propertyName }));
+                                })
+                            ], "configuration");
+                            // Clean up configuration handles if we are 
+                            // hosted 
+                            this._cleanUpHandles();
+                            return [2 /*return*/];
+                    }
+                });
+            });
+        };
+        Main.prototype._setupUrlParams = function (view) {
+            var _a = this.base.config, find = _a.find, marker = _a.marker;
+            itemUtils_1.findQuery(find, view);
+            itemUtils_1.goToMarker(marker, view);
+        };
+        Main.prototype._setMapViewRotation = function (view) {
+            var _a, _b, _c, _d, _e;
+            var mapRotation = (_d = (_c = (_b = (_a = this._appConfig) === null || _a === void 0 ? void 0 : _a.extentSelectorConfig) === null || _b === void 0 ? void 0 : _b.mapRotation) !== null && _c !== void 0 ? _c : this._defaultViewRotation) !== null && _d !== void 0 ? _d : null;
+            if (!((_e = view === null || view === void 0 ? void 0 : view.constraints) === null || _e === void 0 ? void 0 : _e.rotationEnabled)) { // if rotation is disabled
+                view.constraints.rotationEnabled = true; // set rotation to enabled
+                view.rotation = mapRotation; // set rotation value
+                view.constraints.rotationEnabled = false; // set rotation back to disabled
+            }
+            else {
+                if (view)
+                    view.rotation = mapRotation;
+            }
+        };
+        Main.prototype._cleanUpHandles = function () {
+            // if we aren't in the config experience remove all handlers after load
+            if (!this._appConfig.withinConfigurationExperience) {
+                this._handles.remove("configuration");
+            }
+        };
+        Main.prototype.createTelemetry = function () {
+            var _a, _b;
+            return tslib_1.__awaiter(this, void 0, void 0, function () {
+                var portal, appName, telemTS;
+                var _this = this;
+                return tslib_1.__generator(this, function (_c) {
+                    portal = this.base.portal;
+                    appName = (_b = (_a = this.base.config) === null || _a === void 0 ? void 0 : _a.telemetry) === null || _b === void 0 ? void 0 : _b.name;
+                    telemTS = new telemetry_1.default({
+                        portal: portal,
+                        config: this._appConfig,
+                        appName: appName
+                    });
+                    watchUtils_1.whenDefinedOnce(telemTS, "instance", function (telemInstance) {
+                        var _a;
+                        if (telemInstance != null) {
+                            _this._telemetry = telemInstance;
+                            (_a = _this._telemetry) === null || _a === void 0 ? void 0 : _a.logPageView("" + window.location.pathname + window.location.search);
+                        }
+                    });
+                    return [2 /*return*/];
+                });
+            });
+        };
+        Main.prototype._addHeader = function (props) {
+            return tslib_1.__awaiter(this, void 0, void 0, function () {
+                var propertyName, _a, header, title, node, Header;
+                return tslib_1.__generator(this, function (_b) {
+                    switch (_b.label) {
+                        case 0:
+                            propertyName = props.propertyName;
+                            _a = this._appConfig, header = _a.header, title = _a.title;
+                            node = document.getElementById("header");
+                            if (!header) {
+                                if (node)
+                                    node.classList.add("hide");
+                                return [2 /*return*/];
+                            }
+                            else {
+                                node.classList.remove('hide');
+                            }
+                            return [4 /*yield*/, new Promise(function (resolve_1, reject_1) { require(["./components/Header"], resolve_1, reject_1); }).then(tslib_1.__importStar)];
+                        case 1:
+                            Header = _b.sent();
+                            if (propertyName === "header" && node && !this._header) {
+                                this._header = new Header.default({
+                                    config: this._appConfig,
+                                    portal: this.base.portal,
+                                    container: node
+                                });
+                            }
+                            return [2 /*return*/];
+                    }
+                });
+            });
+        };
+        return Main;
+    }());
+    exports.default = Main;
+});

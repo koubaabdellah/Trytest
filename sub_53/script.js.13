@@ -1,0 +1,1896 @@
+var socket = '';
+var socketSource = 'https://www.dagvandeforensischezorg.nl'; // LET OP: Geen trailing slash
+var emos = ['🙂','😁','😂','😃','😆','😉','😊','😋','😎','😍','😘','🤩','🤔','😐','🙁','😡','😳','😲','😴','💩','🤝','👍','👎','👋','❤️','🦄'];
+
+$(document).ready(function(){
+	if ($('.lazy').length >= 1) {
+		$('.lazy').lazy();
+	}
+
+	makeItemsEqualheight();
+	
+	$('.button_remove, .button_add, .downloadIcal, .apply_required').on('mouseover', function(){
+		$(this).children('.bubble').show();
+	}).on('mouseout', function(){
+		$(this).children('.bubble').hide();
+	});
+	
+	$('.addToFav').on('click', function(e){
+		e.preventDefault();
+		e.stopPropagation();
+		addToFav($(this).data('hash'));
+	});
+	
+	$('.downloadIcal').on('click', function(e){
+		e.preventDefault();
+		e.stopPropagation();
+		window.open($(this).attr('href'));
+	});
+	
+	$('.sendMail').on('click', function(e){
+		e.preventDefault();
+		e.stopPropagation();
+		
+		$('[name=receiver_id]').val($(this).data('id'));
+		$('#receiver_name').html('<strong>'+htmlEntities($(this).data('name'))+'</strong>');
+		if ($(this).data('company') != '') {
+			$('#receiver_company').html(' van <strong>'+htmlEntities($(this).data('company'))+'</strong>');
+		}
+				
+		$('#mailParticipant').modal();
+	});
+	
+	$('.sendChat').on('click', function(e){
+		e.preventDefault();
+		e.stopPropagation();
+		
+		$.ajax({ 
+			type: 'POST',
+			data: { to: $(this).data('id') },
+			url: '/inc/ajax/chatId.php',
+			dataType: 'json',
+			success: function(msg){ 
+				if (msg.success == 1) {	
+					//window.location.href='/chatberichten/'+msg.chat_id+'/';
+					showChatWithUser(msg.chat_id, true);
+				} else if (msg.success == 2) {
+					alert('Je kunt niet met jezelf chatten...');
+				} else {
+					alert('Er ging iets mis...');
+				}
+			}
+		});
+	});
+
+	$('.startCall').on('click', function(e){
+		e.preventDefault();
+		e.stopPropagation();
+		
+		$.ajax({ 
+			type: 'POST',
+			data: { to: $(this).data('id') },
+			url: '/inc/ajax/videoCallId.php',
+			dataType: 'json',
+			success: function(msg){ 
+				if (msg.success == 1) {
+					socket.emit( 'notification', { source: socketSource, from: msg.currentUser, from_name: msg.currentUserName, to: msg.otherUser, call_id: msg.call_id, validation: msg.validation, type: 'videocall' } );
+					window.location.href='/beeldbellen/'+msg.call_id+'/';
+				} else {
+					alert('Er ging iets mis...');
+				}
+			}
+		});
+	});
+	
+	$('.linkedIn.button_add').on('click', function(e){
+		e.preventDefault();
+		e.stopPropagation();
+		
+		window.open(htmlEntities($(this).data('url')));
+	});
+	
+	$('a[href^="#"]').not('.accordion-toggle, .skipLinkA').on('click', function(e){
+		if ($(this).attr('href') != '#') {
+			e.preventDefault();
+			e.stopPropagation();
+
+			$('html, body').animate({ scrollTop: $('a[name='+$(this).attr('href').substr(1)+']').offset().top-44 }, 250);
+		}
+	});
+	
+	if (window.location.hash != '' && $('a[name='+window.location.hash.substr(1)+']').length >= 1) {
+		$('html, body').animate({ scrollTop: $('a[name='+window.location.hash.substr(1)+']').offset().top-44 }, 250);
+	}
+	
+	$('.bulletinBoardItem').on('click', function(){
+		// add content
+		bulletinBoardModal($(this).data('hash'));
+	});
+	
+	$('[name=placeBulletinBoard]').on('click', function(){
+		bulletinBoardPost();
+	});
+	
+	if ($('#propLive').length == 1) {
+		propLive();
+	}
+	
+	if ($('#chatsOverview').length == 1) {
+		var url = window.location.pathname;
+		url = url.replace('/chatberichten/', '');
+		url = url.replace('/', '');
+
+		$('#chatsOverview .chatOverview#'+url).addClass('active');
+	}
+	
+	$('#help1, #help2').on('click', function(e){
+		e.preventDefault();
+		e.stopPropagation();
+		
+		if ($('#livechatWrapper').is(':visible')) {
+			$('#livechatWrapper #start').trigger('click');
+		} else if (typeof(Tawk_API) != 'undefined') {
+			if (Tawk_API.isChatHidden() === false) {
+				Tawk_API.toggle();
+			} else {
+				window.location.href=$(this).attr('href');
+			}
+		} else {
+			window.location.href=$(this).attr('href');	
+		}
+	});
+	
+	$('.showMail').on('click', function(e){
+		$.ajax({ 
+			type: 'POST',
+			data: { hash: $(this).data('hash') },
+			url: '/inc/ajax/sendmail_retrieve.php',
+			dataType: 'json',
+			success: function(msg){ 
+				if (msg.success == 1) {	
+					$('#sentMailModal .modal-body').html(msg.content);
+					$('#sentMailModal').modal();
+				} else {
+					alert('De mail kon niet worden gevonden...');
+				}
+			}
+		});
+	});
+	
+	if ($('.mainContent nav').length >= 1) {
+		$('.mainContent nav').clone().insertAfter('.searchRow');
+	}
+	
+	$('.chatRow').on('click', function(){
+		showChatWithUser($(this).data('chatid'));
+	});
+
+	$('.applySession').on('click', function(e){
+		$.ajax({ 
+			type: 'POST',
+			data: { hash: $(this).children('a').data('hash') },
+			url: '/inc/ajax/applySession.php',
+			dataType: 'json',
+			success: function(msg){ 
+				if (msg.success == 1) {	
+					$('.applySession').html(msg.text);
+				} else {
+					alert('Er ging iets mis...');
+				}
+			}
+		});
+	});
+	
+	$('#blokkenschemaModal').on('show.bs.modal', function(e){
+		$.ajax({
+			url:'/inc/blokkenschema.inc.php?source=modal',
+			type:'post',
+			success: function(response){ 
+				$('#blokkenschemaModal #blokkenschema').html(response);
+			}
+		});
+	});
+	
+	$('#bulletinBoardAddModal').on('show.bs.modal', function(e){
+		$('.elementDiv_message .input').append('<div id="emoji_popup_icon">&#9786;</div><div id="emoji_popup" style="display:none;">Hier de smileys</div>');
+				
+		$('#bulletinBoardAddModal #emoji_popup').html( emojione.toImage('<a href="javascript:void(0);" class="emoji">'+emos.join('</a><a href="javascript:void(0);" class="emoji">')+'</a>') );
+
+		if ($('#bulletinBoardAddModal #emoji_popup_icon').length == 1) {
+			$('#bulletinBoardAddModal #emoji_popup_icon').on('click', function(){
+				$('#bulletinBoardAddModal #emoji_popup').toggle();
+
+				$('#bulletinBoardAddModal a.emoji').off().on('click', function(){
+					$('#bulletinBoardAddModal [name=message]').val($('#bulletinBoardAddModal [name=message]').val()+$(this).children('img').attr('alt'));
+
+					if ($('#bulletinBoardAddModal #emoji_popup').is(':visible') === true) {
+						$('#bulletinBoardAddModal [name=message]').on('keydown', function(e){
+							$('#bulletinBoardAddModal #emoji_popup').hide();
+						});
+					}
+				});
+			});
+		}				
+		
+		$("#bulletinBoardAddModal [name=message]").smention('/inc/ajax/mentions.php',{
+			avatar:true,
+		});
+	});
+
+	$('#btnVimeoUpload').on('click', function(){
+		vimeoUpload();
+	});
+
+	$('.swiper-slide, .clickTrigger').on('keydown',function(e){
+		if (e.keyCode == 13) {
+			$(this).trigger('click');
+		}
+	});
+
+	// digitaal toegankelijk
+	if ($(window).outerWidth() >= 768) {
+		$('header .d-md-none.d-lg-none.d-xl-none a').attr('tabindex', '-1');
+		$('.offCanvasMenu a').attr('tabindex', '-1');
+	} else {
+		$('header .d-none.d-md-block a').attr('tabindex', '-1');
+		$('.offCanvasMenu a').attr('tabindex', '-1');
+	}
+});
+
+$(window).on('scroll', function(){
+	if ($(window).scrollTop() > 50) {
+		$('body').addClass('scrolled');
+	} else {
+		$('body').removeClass('scrolled');
+	}
+	if ($('.toTop').length >= 1) {
+		if ($(window).scrollTop() > 100) {
+			$('.toTop').stop();
+			$('.toTop').fadeIn();
+		} else {
+			$('.toTop').stop();
+			$('.toTop').fadeOut();
+		}
+	}
+});
+
+function showElseField(chosenValue, showValue, fieldToShow) {
+	if (chosenValue == showValue) {	
+		$('#'+fieldToShow).show();
+	} else {
+		$('#'+fieldToShow).hide();
+	}
+}
+
+
+function showCollegas(aantal, postStr) {
+	if (postStr == '') {
+		var postStr = $('#registrationGroupForm').serialize();
+	}
+	$.ajax({ 
+		type: 'POST',
+		data: postStr,
+		url: '/inc/ajax/registration_collegues.php?aantal='+aantal,
+		success: function(msg){ 
+			$("#multiParticipants").html(msg);
+		}
+	});
+}
+
+function showSprekers(aantal, postStr) {
+	if (postStr == '') {
+		var postStr = $('#propositionForm').serialize();
+	}
+	$.ajax({ 
+		type: 'POST',
+		data: postStr,
+		url: '/inc/ajax/proposition_showSpeakers.php?aantal='+aantal,
+		success: function(msg){ 
+			$("#sprekersTables").html(msg);
+		}
+	});
+}
+
+function showStandhouders(aantal, postStr) {
+	if (postStr == '') {
+		var postStr = $('#standForm').serialize();
+	}
+	$.ajax({ 
+		type: 'POST',
+		data: postStr,
+		url: '/inc/ajax/stand_showStandholders.php?aantal='+aantal,
+		success: function(msg){ 
+			$("#standhoudersTables").html(msg);
+		}
+	});
+}
+
+function copySprekerInfo(waarde) {
+	if (waarde == '1') {
+		//$('[name=spreker1_GENDER]').val($('[name="GENDER"]').val());
+		$('[name=spreker1_FIRSTNAME]').val($('[name="FIRSTNAME"]').val());
+		$('[name=spreker1_PREFIX]').val($('[name="PREFIX"]').val());
+		$('[name=spreker1_FAMILYNAME]').val($('[name="FAMILYNAME"]').val());
+		$('[name=spreker1_COMPANY]').val($('[name="COMPANY"]').val());
+		$('[name=spreker1_JOBTITLE]').val($('[name="JOBTITLE"]').val());
+		$('[name=spreker1_TELEPHONE]').val($('[name="TELEPHONE"]').val());
+		$('[name=spreker1_EMAIL]').val($('[name="EMAIL"]').val());
+		$('[name=spreker1_EMAIL2]').val($('[name="EMAIL2"]').val());
+	} else {
+		//$('[name=spreker1_GENDER]').val('');
+		$('[name=spreker1_FIRSTNAME]').val('');
+		$('[name=spreker1_PREFIX]').val('');
+		$('[name=spreker1_FAMILYNAME]').val('');
+		$('[name=spreker1_COMPANY]').val('');
+		$('[name=spreker1_JOBTITLE]').val('');
+		$('[name=spreker1_TELEPHONE]').val('');
+		$('[name=spreker1_EMAIL]').val('');
+		$('[name=spreker1_EMAIL2]').val('');
+	}
+}
+
+function copyCollegueInfo(waarde) {
+	if (waarde == '1') {
+		//$('[name=collegue1_GENDER]').val($('[name="GENDER"]').val());
+		$('[name=collegue1_FIRSTNAME]').val($('[name="FIRSTNAME"]').val());
+		$('[name=collegue1_PREFIX]').val($('[name="PREFIX"]').val());
+		$('[name=collegue1_FAMILYNAME]').val($('[name="FAMILYNAME"]').val());
+		$('[name=collegue1_COMPANY]').val($('[name="COMPANY"]').val());
+		$('[name=collegue1_JOBTITLE]').val($('[name="JOBTITLE"]').val());
+		$('[name=collegue1_TELEPHONE]').val($('[name="TELEPHONE"]').val());
+		$('[name=collegue1_EMAIL]').val($('[name="EMAIL"]').val());
+		$('[name=collegue1_EMAIL2]').val($('[name="EMAIL2"]').val());
+	} else {
+		//$('[name=collegue1_GENDER]').val('');
+		$('[name=collegue1_FIRSTNAME]').val('');
+		$('[name=collegue1_PREFIX]').val('');
+		$('[name=collegue1_FAMILYNAME]').val('');
+		$('[name=collegue1_COMPANY]').val('');
+		$('[name=collegue1_JOBTITLE]').val('');
+		$('[name=collegue1_TELEPHONE]').val('');
+		$('[name=collegue1_EMAIL]').val('');
+		$('[name=collegue1_EMAIL2]').val('');
+	}
+}
+
+function copyStandhouderInfo(waarde) {
+	if (waarde == '1') {
+		//$('[name=standhouder1_GENDER]').val($('[name="GENDER"]').val());
+		$('[name=standhouder1_FIRSTNAME]').val($('[name="FIRSTNAME"]').val());
+		$('[name=standhouder1_PREFIX]').val($('[name="PREFIX"]').val());
+		$('[name=standhouder1_FAMILYNAME]').val($('[name="FAMILYNAME"]').val());
+		$('[name=standhouder1_COMPANY]').val($('[name="COMPANY"]').val());
+		$('[name=standhouder1_JOBTITLE]').val($('[name="JOBTITLE"]').val());
+		$('[name=standhouder1_TELEPHONE]').val($('[name="TELEPHONE"]').val());
+		$('[name=standhouder1_EMAIL]').val($('[name="EMAIL"]').val());
+		$('[name=standhouder1_EMAIL2]').val($('[name="EMAIL2"]').val());
+	} else {
+		//$('[name=standhouder1_GENDER]').val('');
+		$('[name=standhouder1_FIRSTNAME]').val('');
+		$('[name=standhouder1_PREFIX]').val('');
+		$('[name=standhouder1_FAMILYNAME]').val('');
+		$('[name=standhouder1_COMPANY]').val('');
+		$('[name=standhouder1_JOBTITLE]').val('');
+		$('[name=standhouder1_TELEPHONE]').val('');
+		$('[name=standhouder1_EMAIL]').val('');
+		$('[name=standhouder1_EMAIL2]').val('');
+	}
+}
+
+function removeSpreker(id) {
+	$.ajax({ 
+		type: 'POST',
+		data: $('#propositionForm').serialize(),
+		dataType: 'json',
+		url: '/inc/ajax/proposition_removeSpeaker.php?ID='+id,
+		success: function(msg){ 
+			$('#propositionForm [name=formToken]').val(msg.token);
+			if (msg.errors[0] == 'formToken') {
+				console.log('Token mismatch...');
+			} else {
+				if (msg.success == '1') {
+					var val = $('select[name=sprekers_aantal]').val();
+					var enable = parseInt(val-1);
+					if (enable == 0) {
+						enable = '';	
+					}
+					$("#spreker"+id).remove();
+					$('select[name=sprekers_aantal] option[value="'+enable+'"]').removeAttr('disabled');
+					$('select[name=sprekers_aantal]').val(enable);
+				} else {
+					alert('Er ging iets mis met het verwijderen van de spreker.');
+				}
+			}
+		}
+	});
+}
+
+function removeStandhouder(id) {
+	$.ajax({ 
+		type: 'POST',
+		data: $('#standForm').serialize(),
+		dataType: 'json',
+		url: '/inc/ajax/stand_removeStandholder.php?ID='+id,
+		success: function(msg){
+			$('#standForm [name=formToken]').val(msg.token);
+			if (msg.errors[0] == 'formToken') {
+				console.log('Token mismatch...');
+			} else {
+				if (msg.success == '1') {
+					var val = $('select[name=sprekers_aantal]').val();
+					var enable = parseInt(val-1);
+					if (enable == 0) {
+						enable = '';	
+					}
+					$("#standhouder"+id).remove();
+					$('select[name=standhouders_aantal] option[value="'+enable+'"]').removeAttr('disabled');
+					$('select[name=standhouders_aantal]').val(enable);
+				} else {
+					alert('Er ging iets mis met het verwijderen van de standhouder.');
+				}
+			}
+		}
+	});
+}
+
+function validateRegistrationGroup() {
+	$(".input").removeClass("red");
+	$('*').removeClass('not-valid');
+
+	$('[type=file]').each(function(){
+		if ($(this).val() != '' && $(this).val() != null) {
+			$('[name='+$(this).attr('name')+'_value]').val($(this).val());
+		}
+	});
+	
+	$.ajax({ 
+		type: 'POST',
+		data: $('#registrationGroupForm').serialize(),
+		dataType: 'json',
+		url: '/inc/ajax/registration_group_validate.php',
+		success: function(msg){ 
+			$('#registrationGroupForm [name=formToken]').val(msg.token);
+			if (msg.success == '1') {
+				$('input[name="validated"]').val('1');
+				document.registrationGroupForm.submit();
+			} else {
+				for (var i=0; i<msg.errors.length; i++) {
+					if (msg.errors[i] == 'formToken') {
+						console.log('Token mismatch...');
+					}
+					if ($('#registrationGroupForm [name="'+msg.errors[i]+'"]').closest('.input').length == 1) {
+						$('#registrationGroupForm [name="'+msg.errors[i]+'"]').closest('.input').addClass('red');
+					} else {
+						$('#registrationGroupForm [name="'+msg.errors[i]+'"]').closest('.element').addClass('red');
+					}
+					$('#registrationGroupForm [name="'+msg.errors[i]+'"]').addClass('not-valid');
+				}
+				if (msg.message != null) {
+					alert(msg.message);
+				} else {
+					alert("U heeft niet alle verplichte velden ingevuld.\nDeze zijn gemarkeerd met een (*).\nProbeer het alstublieft nogmaals.");
+
+					if (!$("#registrationGroupForm")[0].checkValidity()) {
+						$("#registrationGroupForm .button").append('<input id="submit-hidden" type="submit" style="display:none">');
+						$("#registrationGroupForm").find("#submit-hidden").click();
+						$('#registrationGroupForm #submit-hidden').remove();
+					}
+				}
+			}
+		}
+	});
+}
+
+function validateProposal() {
+	$(".input").removeClass("red");
+	$('*').removeClass('not-valid');
+
+	$('[type=file]').each(function(){
+		if ($(this).val() != '' && $(this).val() != null) {
+			$('[name='+$(this).attr('name')+'_value]').val($(this).val());
+		}
+	});
+	
+	$.ajax({ 
+		type: 'POST',
+		data: $('#propositionForm').serialize(),
+		url: '/inc/ajax/proposition_validate.php',
+		dataType: 'json',
+		success: function(msg){ 
+			$('#propositionForm [name=formToken]').val(msg.token);
+			if (msg.success == '1') {
+				$('input[name="validated"]').val('1');
+				document.propositionForm.submit();
+			} else {
+				for (var i=0; i<msg.errors.length; i++) {
+					if (msg.errors[i] == 'formToken') {
+						console.log('Token mismatch...');
+					}
+					if ($('#propositionForm [name="'+msg.errors[i]+'"]').closest('.input').length == 1) {
+						$('#propositionForm [name="'+msg.errors[i]+'"]').closest('.input').addClass('red');
+					} else {
+						$('#propositionForm [name="'+msg.errors[i]+'"]').closest('.element').addClass('red');
+					}
+					$('#propositionForm [name="'+msg.errors[i]+'"]').addClass('not-valid');
+				}
+				if (msg.message != null) {
+					alert(msg.message);
+				} else {
+					alert("U heeft niet alle verplichte velden ingevuld.\nDeze zijn gemarkeerd met een (*).\nProbeer het alstublieft nogmaals.");
+
+					if (!$("#propositionForm")[0].checkValidity()) {
+						$("#propositionForm .button").append('<input id="submit-hidden" type="submit" style="display:none">');
+						$("#propositionForm").find("#submit-hidden").click();
+						$('#propositionForm #submit-hidden').remove();
+					}
+				}
+			}
+		}
+	});
+}
+
+function validateStand() {
+	$(".input").removeClass("red");
+	$('*').removeClass('not-valid');
+
+	$('[type=file]').each(function(){
+		if ($(this).val() != '' && $(this).val() != null) {
+			$('[name='+$(this).attr('name')+'_value]').val($(this).val());
+		}
+	});
+	
+	$.ajax({ 
+		type: 'POST',
+		data: $('#standForm').serialize(),
+		dataType: 'json',
+		url: '/inc/ajax/stand_validate.php',
+		success: function(msg){ 
+			$('#standForm [name=formToken]').val(msg.token);
+			if (msg.success == '1') {
+				$('input[name="validated"]').val('1');
+				document.standForm.submit();
+			} else {
+				for (var i=0; i<msg.errors.length; i++) {
+					if (msg.errors[i] == 'formToken') {
+						console.log('Token mismatch...');
+					}
+					if ($('#standForm [name="'+msg.errors[i]+'"]').closest('.input').length == 1) {
+						$('#standForm [name="'+msg.errors[i]+'"]').closest('.input').addClass('red');
+					} else {
+						$('#standForm [name="'+msg.errors[i]+'"]').closest('.element').addClass('red');
+					}
+					$('#standForm [name="'+msg.errors[i]+'"]').addClass('not-valid');
+				}
+				if (msg.message != null) {
+					alert(msg.message);
+				} else {
+					alert("U heeft niet alle verplichte velden ingevuld.\nDeze zijn gemarkeerd met een (*).\nProbeer het alstublieft nogmaals.");
+
+					if (!$("#standForm")[0].checkValidity()) {
+						$("#standForm .button").append('<input id="submit-hidden" type="submit" style="display:none">');
+						$("#standForm").find("#submit-hidden").click();
+						$('#standForm #submit-hidden').remove();
+					}
+				}
+			}
+		}
+	});
+}
+
+function validateLogin() {
+	$(".input").removeClass("red");
+	$('*').removeClass('not-valid');
+
+	$.ajax({ 
+		type: 'POST',
+		data: $('#loginForm').serialize(),
+		dataType: 'json',
+		url: '/inc/ajax/login_validate.php',
+		success: function(msg){ 
+			$('#loginForm [name=formToken]').val(msg.token);
+			if (msg.success == '1') {
+				$('input[name="loginValidated"]').val('1');
+				document.loginForm.submit();
+			} else {
+				for (var i=0; i<msg.errors.length; i++) {
+					if (msg.errors[i] == 'formToken') {
+						console.log('Token mismatch...');
+					}
+					if ($('#loginForm [name="'+msg.errors[i]+'"]').closest('.input').length == 1) {
+						$('#loginForm [name="'+msg.errors[i]+'"]').closest('.input').addClass('red');
+					} else {
+						$('#loginForm [name="'+msg.errors[i]+'"]').closest('.element').addClass('red');
+					}
+					$('#loginForm [name="'+msg.errors[i]+'"]').addClass('not-valid');
+				}
+				if (msg.message != null) {
+					alert(msg.message);
+				} else {
+					alert("U heeft niet alle verplichte velden ingevuld.\nDeze zijn gemarkeerd met een (*).\nProbeer het alstublieft nogmaals.");
+
+					if (!$("#loginForm")[0].checkValidity()) {
+						$("#loginForm .button").append('<input id="submit-hidden" type="submit" style="display:none">');
+						$("#loginForm").find("#submit-hidden").click();
+						$('#loginForm #submit-hidden').remove();
+					}
+				}
+			}
+		}
+	});
+}
+
+function validateHelpform() {
+	$(".input").removeClass("red");
+	$('*').removeClass('not-valid');
+
+	$.ajax({ 
+		type: 'POST',
+		data: $('#helpForm').serialize(),
+		dataType: 'json',
+		url: '/inc/ajax/helpform_validate.php',
+		success: function(msg){ 
+			$('#helpForm [name=formToken]').val(msg.token);
+			if (msg.success == '1') {
+				$('input[name="validated"]').val('1');
+				document.helpForm.submit();
+			} else {
+				for (var i=0; i<msg.errors.length; i++) {
+					if (msg.errors[i] == 'formToken') {
+						console.log('Token mismatch...');
+					}
+					if ($('#helpForm [name="'+msg.errors[i]+'"]').closest('.input').length == 1) {
+						$('#helpForm [name="'+msg.errors[i]+'"]').closest('.input').addClass('red');
+					} else {
+						$('#helpForm [name="'+msg.errors[i]+'"]').closest('.element').addClass('red');
+					}
+					$('#helpForm [name="'+msg.errors[i]+'"]').addClass('not-valid');
+				}
+				if (msg.message != null) {
+					alert(msg.message);
+				} else {
+					alert("U heeft niet alle verplichte velden ingevuld.\nDeze zijn gemarkeerd met een (*).\nProbeer het alstublieft nogmaals.");
+
+					if (!$("#helpForm")[0].checkValidity()) {
+						$('#helpForm .button').append('<input id="submit-hidden" type="submit" style="display:none">');
+						$('#helpForm').find("#submit-hidden").click();
+						$('#helpForm #submit-hidden').remove();
+					}
+				}
+			}
+		}
+	});
+}
+
+function validateLogout() {
+	$('input[name="logoutValidated"]').val('1');
+	document.logoutForm.submit();
+}
+
+function validateForgotPassword() {
+	$(".input").removeClass("red");
+	$('*').removeClass('not-valid');
+
+	$.ajax({ 
+		type: 'POST',
+		data: $('#forgotPasswordForm').serialize(),
+		dataType: 'json',
+		url: '/inc/ajax/forgotpassword_validate.php',
+		success: function(msg){ 
+			$('#forgotPasswordForm [name=formToken]').val(msg.token);
+			if (msg.success == '1') {
+				$('input[name="forgotPasswordValidated"]').val('1');
+				document.forgotPasswordForm.submit();
+			} else {
+				for (var i=0; i<msg.errors.length; i++) {
+					if (msg.errors[i] == 'formToken') {
+						console.log('Token mismatch...');
+					}
+					if ($('#forgotPasswordForm [name="'+msg.errors[i]+'"]').closest('.input').length == 1) {
+						$('#forgotPasswordForm [name="'+msg.errors[i]+'"]').closest('.input').addClass('red');
+					} else {
+						$('#forgotPasswordForm [name="'+msg.errors[i]+'"]').closest('.element').addClass('red');
+					}
+					$('#forgotPasswordForm [name="'+msg.errors[i]+'"]').addClass('not-valid');
+				}
+				if (msg.message != null) {
+					alert(msg.message);
+				} else {
+					alert("U heeft niet alle verplichte velden ingevuld.\nDeze zijn gemarkeerd met een (*).\nProbeer het alstublieft nogmaals.");
+
+					if (!$("#forgotPasswordForm")[0].checkValidity()) {
+						$('#forgotPasswordForm .button').append('<input id="submit-hidden" type="submit" style="display:none">');
+						$('#forgotPasswordForm').find("#submit-hidden").click();
+						$('#forgotPasswordForm #submit-hidden').remove();
+					}
+				}
+			}
+		}
+	});
+}
+
+function validateResetPassword() {
+	$(".input").removeClass("red");
+	$('*').removeClass('not-valid');
+
+	$.ajax({ 
+		type: 'POST',
+		data: $('#resetPasswordForm').serialize(),
+		dataType: 'json',
+		url: '/inc/ajax/resetpassword_validate.php',
+		success: function(msg){ 
+			$('#resetPasswordForm [name=formToken]').val(msg.token);
+			if (msg.success == '1') {
+				$('input[name="resetPasswordValidated"]').val('1');
+				document.resetPasswordForm.submit();
+			} else {
+				console.log(msg.errors.length, msg.errors[0]);
+				for (var i=0; i<msg.errors.length; i++) {
+					if (msg.errors[i] == 'formToken') {
+						console.log('Token mismatch...');
+					}
+					console.log(msg.errors[i], $('#resetPasswordForm [name="'+msg.errors[i]+'"]').closest('.input').length);
+					if ($('#resetPasswordForm [name="'+msg.errors[i]+'"]').closest('.input').length == 1) {
+						$('#resetPasswordForm [name="'+msg.errors[i]+'"]').closest('.input').addClass('red');
+					} else {
+						$('#resetPasswordForm [name="'+msg.errors[i]+'"]').closest('.element').addClass('red');
+					}
+					$('#resetPasswordForm [name="'+msg.errors[i]+'"]').addClass('not-valid');
+				}
+				if (msg.message != null) {
+					alert(msg.message);
+				} else {
+					alert("De wachtwoorden komen niet overeen.");
+				}
+
+				if (!$("#resetPasswordForm")[0].checkValidity()) {
+					$('#resetPasswordForm .button').append('<input id="submit-hidden" type="submit" style="display:none">');
+					$('#resetPasswordForm').find("#submit-hidden").click();
+					$('#resetPasswordForm #submit-hidden').remove();
+				}
+			}
+		}
+	});
+}
+
+function submitTraining() {
+	$(".input").removeClass("red");
+	$('*').removeClass('not-valid');
+
+	$.ajax({ 
+		type: 'POST',
+		data: $('#trainingsForm').serialize(),
+		dataType: 'json',
+		url: '/inc/ajax/training_validate.php',
+		success: function(msg){
+			$('#trainingsForm [name=formToken]').val(msg.token);
+			if (msg.success == 1) {
+				$('#trainingsForm').replaceWith('<div class="alert alert-success" role="alert"><p>Bedankt voor het doorgeven van jouw keuze.</p></div>');
+			} else if (msg.success == 2) {
+				$('#trainingsForm').replaceWith('<div class="alert alert-danger" role="alert"><p>Er ging iets mis het opslaan van jouw keuze, neem alstublieft contact met ons op.</p></div>');
+			} else {
+				for (var i=0; i<msg.errors.length; i++) {
+					if (msg.errors[i] == 'formToken') {
+						console.log('Token mismatch...');
+					}
+					if ($('#trainingsForm [name="'+msg.errors[i]+'"]').closest('.input').length == 1) {
+						$('#trainingsForm [name="'+msg.errors[i]+'"]').closest('.input').addClass('red');
+					} else {
+						$('#trainingsForm [name="'+msg.errors[i]+'"]').closest('.element').addClass('red');
+					}
+					$('#trainingsForm [name="'+msg.errors[i]+'"]').addClass('not-valid');
+				}
+				if (msg.message != null) {
+					alert(msg.message);
+				} else {
+					alert("U heeft niet alle verplichte velden ingevuld.\nDeze zijn gemarkeerd met een (*).\nProbeer het alstublieft nogmaals.");
+
+					if (!$("#trainingsForm")[0].checkValidity()) {
+						$("#trainingsForm .button").append('<input id="submit-hidden" type="submit" style="display:none">');
+						$("#trainingsForm").find("#submit-hidden").click();
+						$('#trainingsForm #submit-hidden').remove();
+					}
+				}
+			}
+		}
+	});
+}
+
+function checkForMailaddress(emailaddress) {
+	$.ajax({ 
+		type: 'POST',
+		data: { email: emailaddress },
+		url: '/inc/ajax/registration_checkmail.php',
+		dataType: 'json',
+		success: function(msg){ 
+			if (msg.inUse == 1) {
+				alert('Het e-mailadres dat je hebt ingevuld is al in gebruik, mocht dit volgens jou niet het geval zijn neem dan contact op met de helpdesk.');
+			} else if (msg.inUse == 2) {
+				alert('Je ip-adres is tijdelijk geblokkeerd, mocht dit volgens jou niet correct zijn neem dan contact op met de helpdesk.');
+				window.location.href="/";
+			}
+		}
+	});
+}
+
+function showPage(page) {
+	var currentPage = parseInt($('[name=PageCurrentVisible]').val());
+	var maxPage = parseInt($('[name=PageMax]').val());
+	var toPage = '';
+	
+	// pagenumber
+	if (page == 'next') {
+		toPage = currentPage+1;
+	} else if (page == 'prev') {
+		toPage = currentPage-1;
+	} else {
+		toPage = parseInt(page);	
+	}
+	
+	// exceptions
+	if (toPage <= 0 || toPage > maxPage) {
+		return false;
+	}
+	
+	// remove all states
+	$('.prevButton').removeClass('disabled');
+	$('.nextButton').removeClass('disabled');
+	$('.pageButton').removeClass('active');
+	
+	// disabled states
+	if (toPage == 1) {
+		$('.prevButton').addClass('disabled');
+	}
+	if (toPage == maxPage) {
+		$('.nextButton').addClass('disabled');
+	}
+	
+	// go to page
+	$('.pageButton_'+toPage).addClass('active');
+	$('.page'+currentPage).hide();
+	$('.page'+toPage).show();
+	
+	// go to top
+	$('html, body').animate({ scrollTop: $('.complete-overview').offset().top-44 }, 250);
+	
+	// lazy load
+	$('.complete-overview .lazy').lazy();
+
+	// set current
+	$('[name=PageCurrentVisible]').val(toPage);
+	
+	return true;
+}
+
+function addToFav(hash) {
+	$.ajax({ 
+		type: 'POST',
+		data: { hash: hash, favLink: $('#favLink a').attr('href') },
+		url: '/inc/ajax/addToFav.php',
+		dataType: 'json',
+		success: function(msg){ 
+			if (msg.success == 1) {
+				if ($('.addToFav.session_'+hash).length >= 1) {
+					$('.addToFav.session_'+hash).html(msg.icon);
+				}
+				if ($('.addToFavText.session_'+hash).length >= 1) {
+					$('.addToFavText.session_'+hash).html(msg.text);
+				}
+				if ($('#swiperFavorites').length >= 1) {
+					$('#swiperFavorites').replaceWith(msg.favorites);
+					$('#swiperFavorites .lazy').lazy();
+				}
+				
+				$('.button_remove, .button_add').on('mouseover', function(){
+					$(this).children('.bubble').show();
+				}).on('mouseout', function(){
+					$(this).children('.bubble').hide();
+				});
+				
+				$('.addToFav').off().on('click', function(e){
+					e.preventDefault();
+					e.stopPropagation();
+					addToFav($(this).data('hash'));
+				});	
+			} else {
+				alert('Er ging iets mis met het toevoegan aan de favorieten, probeer het later nogmaals.');
+			}
+		}
+	});
+}
+
+function registrationPrev() {
+	var currentStep = parseInt($('#currentStep').html());
+	
+	$('#step'+currentStep).hide();
+	$('#step'+(currentStep-1)).show();
+	$('#currentStep').html((currentStep-1));
+	if ((currentStep-1) == 1) {
+		$('[name=prevStep]').hide();	
+	}
+}
+
+function registrationNext() {
+	var currentStep = parseInt($('#currentStep').html());
+	var formId = 'registrationForm';
+	if (isNaN(currentStep)) {
+		currentStep = $('#currentStep').val();
+		formId = 'profileForm';
+	}
+	
+	$(".input").removeClass("red");
+	$('*').removeClass('not-valid');
+
+	$('[type=file]').each(function(){
+		if ($(this).val() != '' && $(this).val() != null) {
+			$('[name='+$(this).attr('name')+'_value]').val($(this).val());
+		}
+	});
+	
+	$.ajax({ 
+		type: 'POST',
+		data: $('#'+formId).serialize(),
+		url: '/inc/ajax/registration_validate.php?step='+currentStep,
+		dataType: 'json',
+		success: function(msg){ 
+			$('#'+formId+' [name=formToken]').val(msg.token);
+			if (msg.success == '1') {
+				if (currentStep == 3 || currentStep == 0 || currentStep == 'pw') {
+					$('#'+formId+' input[name="validated"]').val('1');
+					if ($('#registrationForm').length == 1) {
+						document.registrationForm.submit();
+					} else if ($('#profileForm').length == 1) {
+						document.profileForm.submit();
+					}
+				} else {
+					$('#step'+currentStep).hide();
+					$('#step'+(currentStep+1)).show();
+					$('#currentStep').html((currentStep+1));
+					if ((currentStep+1) == 2) {
+						$('[name=prevStep]').show();	
+					}
+					$('[name=username]').val($('[name=EMAIL]').val())
+				}
+			} else {
+				for (var i=0; i<msg.errors.length; i++) {
+					if (msg.errors[i] == 'formToken') {
+						console.log('Token mismatch...');
+					}
+					if ($('#'+formId+' [name="'+msg.errors[i]+'"]').closest('.input').length == 1) {
+						$('#'+formId+' [name="'+msg.errors[i]+'"]').closest('.input').addClass('red');
+					} else {
+						$('#'+formId+' [name="'+msg.errors[i]+'"]').closest('.element').addClass('red');
+					}
+					$('#'+formId+' [name="'+msg.errors[i]+'"]').addClass('not-valid');
+				}
+				if (msg.message != null) {
+					alert(msg.message);
+				} else {
+					alert("U heeft niet alle verplichte velden ingevuld.\nDeze zijn gemarkeerd met een (*).\nProbeer het alstublieft nogmaals.");
+				}
+				
+				if (!$('#'+formId)[0].checkValidity()) {
+					$('#'+formId+' .button').append('<input id="submit-hidden" type="submit" style="display:none">');
+					$('#'+formId).find("#submit-hidden").click();
+					$('#'+formId+' #submit-hidden').remove();
+				}
+			}
+		}
+	});
+}
+
+function validateSendMail() {
+	$(".input").removeClass("red");
+	$('*').removeClass('not-valid');
+	
+	var messageSet = false;
+	
+	$.ajax({ 
+		type: 'POST',
+		data: $('#sendMailForm').serialize(),
+		url: '/inc/ajax/sendmail_validate.php',
+		dataType: 'json',
+		success: function(msg){ 
+			$('#sendMailForm [name=formToken]').val(msg.token);
+			if (msg.success == '2') {
+				$('#sendMailForm #messageHolder').html('<div class="alert alert-success" role="alert">De mail is verzonden!</div>');
+				$('#sendMailForm #messageHolder').show();
+				$('#sendMailForm #messageSpacer').show();
+				$('#sendMailForm').trigger('reset');
+				messageSet = true;
+			} else if (msg.success == '1') {
+				$('#sendMailForm #messageHolder').html('<div class="alert alert-danger" role="alert">De mail kon niet worden verzonden!</div>');
+				$('#sendMailForm #messageHolder').show();
+				$('#sendMailForm #messageSpacer').show();
+				$('#sendMailForm').trigger('reset');
+				messageSet = true;
+			} else {
+				for (var i=0; i<msg.errors.length; i++) {
+					if (msg.errors[i] == 'formToken') {
+						console.log('Token mismatch...');
+					}
+					if ($('#sendMailForm [name="'+msg.errors[i]+'"]').closest('.input').length == 1) {
+						$('#sendMailForm [name="'+msg.errors[i]+'"]').closest('.input').addClass('red');
+					} else {
+						$('#sendMailForm [name="'+msg.errors[i]+'"]').closest('.element').addClass('red');
+					}
+					$('#sendMailForm [name="'+msg.errors[i]+'"]').addClass('not-valid');
+				}
+				if (msg.message != null) {
+					$('#sendMailForm #messageHolder').html('<div class="alert alert-danger" role="alert">'+msg.message+'</div>');
+					$('#sendMailForm #messageHolder').show();
+					$('#sendMailForm #messageSpacer').show();
+					$('#sendMailForm').trigger('reset');
+					messageSet = true;
+				} else {
+					alert("U heeft niet alle verplichte velden ingevuld.\nDeze zijn gemarkeerd met een (*).\nProbeer het alstublieft nogmaals.");
+
+					if (!$('#sendMailForm')[0].checkValidity()) {
+						$("#sendMailForm .button").append('<input id="submit-hidden" type="submit" style="display:none">');
+						$("#sendMailForm").find("#submit-hidden").click();
+						$('#sendMailForm #submit-hidden').remove();
+					}
+				}
+			}
+			if (messageSet === true) {
+				setTimeout(function(){ 
+					$('#sendMailForm #messageHolder').hide();
+					$('#sendMailForm #messageSpacer').hide();
+					$('#sendMailForm #messageHolder').html('');
+				}, 10000);
+			}
+		}
+	});
+}
+
+function catchEnter(func) {
+	$('html').off().on('keyup', function(e){
+		if (e.keyCode == 13) {
+			if (func == 'validateResetPassword') {
+				validateResetPassword();
+			} else if (func == 'validateLogin') {
+				validateLogin();
+			} else if (func == 'validateLogout') {
+				validateLogout();
+			} else if (func == 'validateForgotPassword') {
+				validateForgotPassword();
+			}
+		}
+	});
+}
+
+function sendMessage() {
+	if ($('#chatForm #message').val() != '' && $('#chatForm [name="chat_id"]').val() != '') {	
+		$.ajax({ 
+			type: 'POST',
+			cache: false,
+			data: $('#chatForm').serialize(),
+			url: '/inc/ajax/sendMessage.php',
+			dataType: 'json',
+			success: function(msg){
+				$('#chatForm input[name=formToken]').val(msg.token);
+				if (msg.success == 1) {
+					socket.emit( 'notification', { source: socketSource, from: msg.currentUser, to: msg.otherUser, chat_id: $('[name="chat_id"]').val(), validation: msg.validation, type: 'chat' } );
+					$('[name="message"]').val('');
+					
+					$('#message').attr('disabled', 'disabled');
+					$('#chatButton').attr('disabled', 'disabled');
+					//refreshChat($('[name="message_to"]').val());
+				}
+			}
+		});
+	}
+}
+
+function refreshChat(to, type) {
+	$.ajax({ 
+		type: 'POST',
+		cache: false,
+		data: { to: to, type: type },
+		url: '/inc/ajax/refreshChat.php',
+		dataType: 'json',
+		success: function(msg){
+			if (msg.success == 1) {
+				if (type == 'overview' || type == 'full' || type == 'messages') {
+					$('#chatsOverview').html(msg.overview);
+					
+					var url = window.location.pathname;
+					url = url.replace('/chatberichten/', '');
+					url = url.replace('/', '');
+					
+					$('#chatsOverview .chatOverview#'+url).addClass('active');
+				}
+				
+				if (type == 'messages' || type == 'full') {
+					$('.messages').html(msg.messages);
+				
+					if ($(".messages")[0].scrollHeight >= $(".messages").outerHeight()) {
+						$(".messages").scrollTop($(".messages")[0].scrollHeight);
+					}
+				}
+				
+				$('#message').removeAttr('disabled');
+				$('#chatButton').removeAttr('disabled');
+				
+				$('#message').off().on('keyup', function(e){
+					if (e.keyCode == 13) {
+						sendMessage();
+					}
+				});
+			}
+		}
+	});
+}
+
+function validateMyProp() {
+	var error=0;
+	for (var i=1; i<=parseInt($('[name=numberOfDownloads]').val()); i++) {
+		var link = $('[name=dl_link_'+i+']').val();
+		if (link != '' && link != null) {
+			if (link.indexOf('http://') != 0 && link.indexOf('https://') != 0 && link.indexOf('mailto:') != 0 && link.indexOf('tel:') != 0) {
+				error++;
+				$('[name=dl_link_'+i+']').parents('.input').addClass('red');
+			}
+		}
+	}
+		 
+	if (error == 0) {
+		$('#myPropForm [name=validated]').val(1);
+		$('#myPropForm').submit();
+	}
+}
+
+function validateMyStand() {
+	var error=0;
+	for (var i=1; i<=4; i++) {
+		var link = $('[name=mi_link_'+i+']').val();
+		if (link != '' && link != null) {
+			if (link.indexOf('http://') != 0 && link.indexOf('https://') != 0 && link.indexOf('mailto:') != 0 && link.indexOf('tel:') != 0) {
+				error++;
+				$('[name=mi_link_'+i+']').parents('.input').addClass('red');
+			}
+		}
+	}
+	for (var i=1; i<=6; i++) {
+		var link = $('[name=sm_link_'+i+']').val();
+		var type = $('[name=sm_type_'+i+']').val();
+		if (link != '' && link != null) {
+			if (link.indexOf('http://') != 0 && link.indexOf('https://') != 0 && link.indexOf('mailto:') != 0 && link.indexOf('tel:') != 0) {
+				error++;
+				$('[name=sm_link_'+i+']').parents('.input').addClass('red');
+			}
+		}
+	}
+		 
+	if (error == 0) {
+		$('#myStandForm [name=validated]').val(1);
+		$('#myStandForm').submit();
+	}
+}
+
+function bulletinBoardModal(bulletinBoardHash) {
+	$.ajax({ 
+		type: 'POST',
+		data: { hash: bulletinBoardHash },
+		url: '/inc/ajax/bulletinBoard.php',
+		dataType: 'json',
+		success: function(msg){ 
+			if (msg.success == 1) {	
+				emojione.ascii = true;
+				emojione.riskyMatchAscii = false;
+				msg.content = emojione.toImage(msg.content);
+				msg.content = emojione.shortnameToImage(msg.content);				
+
+				$('#bulletinBoardModal .modal-body').html(msg.content);
+				
+				if (parseInt(msg.reactionsAllowed) == 1) {
+					$('#bulletinBoardModal .modal-footer').show();
+					
+					$('#bulletinBoardModal .modal-footer').html(msg.footer);
+					$('#bulletinBoardModal .modal-footer [name="bulletinBoardHash"]').val(bulletinBoardHash);
+
+					$('#bulletinBoardModal .bulletinBoardReactButton').off().on('click', function(){
+						bulletinBoardReaction();
+					});
+					$('#bulletinBoardModal [name="reaction"]').off().on('keyup', function(e){
+						if (e.keyCode == 13) {
+							e.preventDefault();
+							e.stopPropagation();
+							bulletinBoardReaction();
+						}
+					});
+					
+					$("#bulletinBoardReact [name=reaction]").smention('/inc/ajax/mentions.php',{
+						avatar:true,
+					});
+					
+					$('#bulletinBoardReact #emoji_popup').html( emojione.toImage('<a href="javascript:void(0);" class="emoji">'+emos.join('</a><a href="javascript:void(0);" class="emoji">')+'</a>') );
+
+					if ($('#bulletinBoardReact #emoji_popup_icon').length == 1) {
+						$('#bulletinBoardReact #emoji_popup_icon').on('click', function(){
+							$('#bulletinBoardReact #emoji_popup').toggle();
+
+							$('#bulletinBoardReact a.emoji').off().on('click', function(){
+								$('#bulletinBoardReact [name="reaction"]').val($('#bulletinBoardReact [name="reaction"]').val()+$(this).children('img').attr('alt'));
+
+								if ($('#bulletinBoardReact #emoji_popup').is(':visible') === true) {
+									$('#bulletinBoardReact [name="reaction"]').on('keydown', function(e){
+										$('#bulletinBoardReact #emoji_popup').hide();
+									});
+								}
+							});
+						});
+					}				
+					
+				} else {
+					$('#bulletinBoardModal .modal-footer').hide();
+				}
+				
+				markNotifyAsRead(user_id, 'bulletinboard', bulletinBoardHash);
+			} else {
+				alert('Er ging iets mis...');
+			}
+		}
+	});
+
+	// pop the modal
+	$('#bulletinBoardModal').modal();
+}
+
+function bulletinBoardReaction() {
+	var from = (($('#prikbordSlider').length==1)?'slider':'fullpage');
+	
+	if ($('#bulletinBoardReact [name="reaction"]').val() != '') {
+		$.ajax({ 
+			type: 'POST',
+			cache: false,
+			data: $('#bulletinBoardReact').serialize(),
+			url: '/inc/ajax/bulletinBoardReaction.php?from='+from,
+			dataType: 'json',
+			success: function(msg){
+				$('#bulletinBoardReact [name="reaction"]').val('');
+				$('#bulletinBoardReact input[name=formToken]').val(msg.token);
+				if (msg.success == 1) {
+					socket.emit( 'notification', { source: socketSource, to: msg.userhash, hash: msg.bulletinboardhash, validation: msg.validation, type: 'bulletinboard' } );
+					
+					if (msg.tagged == 1) {
+						$.each(msg.tags, function(key,value) {
+							socket.emit( 'notification', { source: socketSource, to: value.userhash, hash: value.bulletinboardhash, validation: value.validation, type: 'bulletinboardTag' } );
+						});
+					}
+					
+					if ($('.noReactions').length == 1) {
+						$('.noReactions').hide();
+					}
+
+					emojione.ascii = true;
+					emojione.riskyMatchAscii = false;
+					msg.addition = emojione.toImage(msg.addition);
+					msg.addition = emojione.shortnameToImage(msg.addition);					
+					
+					$('#reactions').append(msg.addition);
+					
+					if (from == 'slider') {
+						$('#prikbordSlider').replaceWith(msg.content);
+					} else {
+						$('#fullpagePrikbord').replaceWith(msg.content);
+					}
+
+					$('.bulletinBoardItem').on('click', function(){
+						// add content
+						bulletinBoardModal($(this).data('hash'));
+					});
+					$('[name=placeBulletinBoard]').on('click', function(){
+						bulletinBoardPost();
+					});
+				} else {
+					alert('Er ging iets mis...');
+				}
+			}
+		});
+	}
+}
+
+function bulletinBoardPost() {
+	var from = (($('#prikbordSlider').length==1)?'slider':'fullpage');
+	
+	$('#bulletinBoardPost .element').removeClass('red');
+	if ($('#bulletinBoardPost [name="title"]').val() != '' && $('#bulletinBoardPost [name="message"]').val() != '') {
+		$.ajax({ 
+			type: 'POST',
+			cache: false,
+			data: $('#bulletinBoardPost').serialize(),
+			url: '/inc/ajax/bulletinBoardPost.php?from='+from,
+			dataType: 'json',
+			success: function(msg){
+				$('#bulletinBoardPost [name="title"]').val('');
+				$('#bulletinBoardPost [name="message"]').val('');
+				$('#bulletinBoardPost input[name=formToken]').val(msg.token);
+				if (msg.success == 1) {
+					$('.bulletinBoardPostSuccess').fadeIn();
+					setTimeout(function(){
+						$('.bulletinBoardPostSuccess').fadeOut();
+					}, 10000);
+					
+					if (msg.tagged == 1) {
+						$.each(msg.tags, function(key,value) {
+							socket.emit( 'notification', { source: socketSource, to: value.userhash, hash: value.bulletinboardhash, validation: value.validation, type: 'bulletinboardTag' } );
+						});
+					}
+										
+					if (from == 'slider') {
+						$('#prikbordSlider').replaceWith(msg.content);
+					} else {
+						$('#fullpagePrikbord').replaceWith(msg.content);
+					}
+
+					$('.bulletinBoardItem').on('click', function(){
+						// add content
+						bulletinBoardModal($(this).data('hash'));
+					});
+					$('[name=placeBulletinBoard]').on('click', function(){
+						bulletinBoardPost();
+					});
+				} else {
+					alert('Er ging iets mis...');
+				}
+			}
+		});
+	} else {
+		if ($('#bulletinBoardPost [name="title"]').val() == '') {
+			$('#bulletinBoardPost [name="title"]').closest('.element').addClass('red');
+		}
+		if ($('#bulletinBoardPost [name="message"]').val() == '') {
+			$('#bulletinBoardPost [name="message"]').closest('.element').addClass('red');
+		}
+	}
+}
+
+function propLive() {
+	$('.nav-tabs a').on('click', function(){
+		$('.nav-tabs li a').removeClass('active');
+		$(this).addClass('active');
+
+		$('.tabbedContent').hide();
+		$('#'+$(this).attr('id')+'Tab').show();
+	});	
+	
+	$('.pollButton').on('click', function(){
+		var pollHash = $(this).data('hash');
+		$('.pollOverview').hide();
+		$('#poll_'+pollHash).show();
+	});
+
+	$('.pollBack').on('click', function(){
+		$('.pollContent').hide();
+		$('.pollOverview').show();
+		
+		var id = $(this).parents('.pollContent').attr('id');
+		$('#'+id+' .pollAnswers').show();
+		$('#'+id+' .pollThanks').hide();
+	});
+	
+	$('.pollVote').on('click', function(){
+		var pollHash = $(this).data('hash');
+		var pollAnswer = $(this).data('answer');
+		var currentButton = $(this);
+		
+		$.ajax({ 
+			type: 'POST',
+			cache: false,
+			data: { hash: pollHash, answer: pollAnswer, formToken: $('[name=formToken]').val(), formTokenPrefix: $('[name=formTokenPrefix]').val() },
+			url: '/inc/ajax/pollAnswer.php',
+			dataType: 'json',
+			success: function(msg){
+				$('#poll_'+pollHash+' a.btn').removeClass('btn-primary');
+				$('#propLive input[name=formToken]').val(msg.token);
+				if (msg.success == 1) {
+					currentButton.addClass('btn-primary');
+					$('#poll_'+pollHash+' .pollAnswers').hide();
+					$('#poll_'+pollHash+' .pollThanks').show();
+				} else {
+					alert('Er ging iets mis...');
+				}
+			}
+		});
+	});
+	
+	if ($(".messagesProp").length >= 1) {
+		if ($(".messagesProp")[0].scrollHeight >= $(".messagesProp").outerHeight()) {
+			$(".messagesProp").scrollTop($(".messagesProp")[0].scrollHeight);
+		}
+	}
+
+	$('#messageProp').on('keyup', function(e){
+		if (e.keyCode == 13) {
+			e.preventDefault();
+			e.stopPropagation();
+			sendMessageProp();
+		}
+	});
+	
+	$('.propFileUploadCta a').on('click', function(){
+		$('.propFileUploadCta').hide();
+		$('.propFileUpload').show();
+		
+		$('.propTextChatCta').show();
+		$('.propTextChat').hide();
+	});
+	$('.propTextChatCta a').on('click', function(){
+		$('.propFileUploadCta').show();
+		$('.propFileUpload').hide();
+		
+		$('.propTextChatCta').hide();
+		$('.propTextChat').show();
+	});
+	$('#propFileUploadButton').on('click', function(){
+		sendMessagePropFile();
+	});	
+}
+
+function sendMessageProp() {
+	if ($('[name="messageProp"]').val() != '' && $('[name="voorstel_hash"]').val() != '') {
+		$.ajax({ 
+			type: 'POST',
+			cache: false,
+			data: { 
+				formToken: $('.newMessageProp [name=formToken]').val(),
+				formTokenPrefix: $('.newMessageProp [name=formTokenPrefix]').val(),
+				messageProp: $('.newMessageProp [name=messageProp]').val(),
+				voorstel_hash: $('.newMessageProp [name=voorstel_hash]').val()
+			},
+			url: '/inc/ajax/sendMessageProp.php',
+			dataType: 'json',
+			success: function(msg){
+				if (msg.success == 1) {
+					socket.emit( 'notification', { source: socketSource, from: msg.currentUser, prop: msg.proposition, validation: msg.validation, type: 'prop_chat', message_from: msg.message_from, message_to: msg.message_to, chat_type: msg.chat_type, chat_from_type: msg.chat_from_type } );
+					$('[name="messageProp"]').val('');
+					
+					$('#messageProp').attr('disabled', 'disabled');
+					$('#chatPropButton').attr('disabled', 'disabled');
+					
+					$('[name="selectedFile"]').attr('disabled', 'disabled');
+					$('#propFileUploadButton').attr('disabled', 'disabled');
+					//refreshChat($('[name="message_to"]').val());
+				}
+				
+				$('#chatPropForm input[name=formToken]').val(msg.token);
+				if ($('#myPropForm').length >= 1) {
+					$('.newMessageProp input[name=formToken]').val(msg.token);
+				}
+			}
+		});
+	}
+}
+
+function sendMessagePropFile() {
+	var fd = new FormData();
+	var files = $('[name="selectedFile"]')[0].files;
+
+	if (files.length > 0) {
+		fd.append('file', files[0]);
+		fd.append('formToken', $('.newMessageProp [name=formToken]').val());
+		fd.append('formTokenPrefix', $('.newMessageProp [name=formTokenPrefix]').val());
+		fd.append('voorstel_hash', $('.newMessageProp [name=voorstel_hash]').val());
+
+		$.ajax({
+			type: 'POST',
+			url: '/inc/ajax/sendMessagePropFile.php',
+			data: fd,
+			dataType: 'json',
+			contentType: false,
+			processData: false,
+			success: function(msg){
+				if (msg.success == 1) {
+					socket.emit( 'notification', { source: socketSource, from: msg.currentUser, prop: msg.proposition, validation: msg.validation, type: 'prop_chat', message_from: msg.message_from, message_to: msg.message_to } );
+					$('[name="selectedFile"]').val('');
+
+					$('#chatPropForm input[name=formToken]').val(msg.token);
+					if ($('#myPropForm').length >= 1) {
+						$('.newMessageProp input[name=formToken]').val(msg.token);
+					}
+
+					$('#messageProp').attr('disabled', 'disabled');
+					$('#chatPropButton').attr('disabled', 'disabled');
+					
+					$('[name="selectedFile"]').attr('disabled', 'disabled');
+					$('#propFileUploadButton').attr('disabled', 'disabled');
+					//refreshChat($('[name="message_to"]').val());
+				}
+			}
+		});
+	} else {
+		alert("Je dient een bestand te selecteren.");
+	}
+}
+
+function refreshChatProp(prop, chat_type, from) {
+	if (chat_type == 'closed' && from != user_id) {
+		return false;
+	}
+	$.ajax({ 
+		type: 'POST',
+		cache: false,
+		data: { prop: prop, chat_type: chat_type, from: from, type: (($('#chatMonitorTab').length==1)?'monitor':'plain') },
+		url: '/inc/ajax/refreshChatProp.php',
+		dataType: 'json',
+		success: function(msg){
+			if (msg.success == 1 && $('.messagesProp').length == 1) {
+				$('.messagesProp').html(msg.messages);
+
+				if ($(".messagesProp").length >= 1) {
+					if ($(".messagesProp")[0].scrollHeight >= $(".messagesProp").outerHeight()) {
+						$(".messagesProp").scrollTop($(".messagesProp")[0].scrollHeight);
+					}
+				}
+				
+				$('#messageProp').removeAttr('disabled');
+				$('#chatPropButton').removeAttr('disabled');
+				
+				if ($('.messagesProp_marked').length == 1) {
+					$('.messagesProp_marked').html(msg.messages_marked);
+
+					if ($(".messagesProp_marked").length >= 1) {
+						if ($(".messagesProp_marked")[0].scrollHeight >= $(".messagesProp_marked").outerHeight()) {
+							$(".messagesProp_marked").scrollTop($(".messagesProp_marked")[0].scrollHeight);
+						}
+					}
+				}
+				
+				emojione.ascii = true;
+				emojione.riskyMatchAscii = false;
+				if ($('#chatMonitorTab .messagesProp').length == 1) {
+					$('#chatMonitorTab .messagesProp').html( emojione.toImage($('#chatMonitorTab .messagesProp').html()) );
+					$('#chatMonitorTab .messagesProp').html( emojione.shortnameToImage($('#chatMonitorTab .messagesProp').html()) );
+				}
+				if ($('.messagesProp_marked').length == 1) {
+					$('#markedChatsTab .messagesProp_marked').html( emojione.toImage($('#markedChatsTab .messagesProp_marked').html()) );
+					$('#markedChatsTab .messagesProp_marked').html( emojione.shortnameToImage($('#markedChatsTab .messagesProp_marked').html()) );	
+				}
+			} else {
+				if (msg.chatClosed == 1) {
+					$('.messagesProp').html('<p class="text-center">De chat is gesloten...</p>');
+					$('#messageProp').attr('disabled', 'disabled');
+					$('#chatPropButton').attr('disabled', 'disabled');
+					
+					$('.newMessageProp').remove();
+				}				
+			}
+		}
+	});
+}
+
+function markNotifyAsRead(userid, type, content) {
+	$.ajax({ 
+		type: 'POST',
+		cache: false,
+		data: { user_hash: userid, type: type, content:content },
+		url: '/inc/ajax/markNotifyAsRead.php',
+		dataType: 'json',
+		success: function(msg){
+			if (msg.unread == 0) {
+				$('.unreadNotifications').hide();
+			}
+		}
+	});
+}
+
+function removeChatMessage(hash) {
+	$.ajax({ 
+		type: 'POST',
+		data: { hash: hash, formToken: $('#myPropForm [name=formToken]').val(), formTokenPrefix: $('#myPropForm [name=formTokenPrefix]').val() },
+		url: '/inc/ajax/removeChatMessage.php',
+		dataType: 'json',
+		success: function(msg){
+			$('#myPropForm [name=formToken]').val(msg.token); 
+			if (msg.success == 1) {
+				socket.emit( 'notification', { source: socketSource, from: msg.currentUser, prop: msg.proposition, validation: msg.validation, type: 'prop_chat_remove', chathash: msg.chathash } );
+			}
+		}
+	});
+}
+
+function markChatMessage(hash, prop) {
+	$.ajax({ 
+		type: 'POST',
+		data: { hash: hash, formToken: $('#myPropForm [name=formToken]').val(), formTokenPrefix: $('#myPropForm [name=formTokenPrefix]').val() },
+		url: '/inc/ajax/markChatMessage.php',
+		dataType: 'json',
+		success: function(msg){ 
+			$('#myPropForm [name=formToken]').val(msg.token);
+			if (msg.success == 1) {
+				socket.emit( 'notification', { source: socketSource, from: msg.currentUser, prop: msg.proposition, validation: msg.validation, type: 'prop_chat_mark' } );
+			}
+		}
+	});
+}
+
+function quoteMessage(hash) {
+	$.ajax({ 
+		type: 'POST',
+		data: { hash: hash, formToken: $('#myPropForm [name=formToken]').val(), formTokenPrefix: $('#myPropForm [name=formTokenPrefix]').val() },
+		url: '/inc/ajax/quoteMessage.php',
+		dataType: 'json',
+		success: function(msg){ 
+			$('#myPropForm [name=formToken]').val(msg.token);
+			if (msg.success == 1) {
+				$('#messageProp').val("[quote][poster]"+msg.poster+"[/poster][message]"+msg.message+"[/message][/quote]");
+				$('#messageProp').focus();
+			}
+		}
+	});
+}
+
+function openNav() {
+	$('.navOpenLink').attr('aria-expanded', 'true');
+	$('.offCanvasMenu a').attr('tabindex', '0');
+	$('.offCanvasMenu').css('width', '175px');
+	$('.offCanvasMenu').css('padding-left', '5px');
+}
+
+function closeNav() {
+	$('.navOpenLink').attr('aria-expanded', 'false');
+	$('.offCanvasMenu a').attr('tabindex', '-1');
+	$('.offCanvasMenu').css('width', '0px');
+	$('.offCanvasMenu').css('padding-left', '0px');
+}
+
+function makeItemsEqualheight() {
+	if ($('.swiper-container').length >= 1 || $('.complete-overview').length >= 1) {
+		$('.swiper-container, .complete-overview').each(function(){
+			var height = 0;
+			$('.sessionTitle', $(this)).each(function(){
+				if ($(this).height() >= height) {
+					height = $(this).height();
+				}
+			});
+			$('.sessionTitle', $(this)).height(height);
+
+			var height = 0;
+			$('.sessionSpeakers', $(this)).each(function(){
+				if ($(this).height() >= height) {
+					height = $(this).height();
+				}
+			});
+			$('.sessionSpeakers', $(this)).height(height);
+		});
+	}
+	
+	if ($('.standholdersEq').length >= 1) {
+		$('.standholdersEq').each(function(){
+			var height = 0;
+			$('.eqHeightStand', $(this)).each(function(){
+				if ($(this).height() >= height) {
+					height = $(this).height();
+				}
+			});
+			$('.eqHeightStand', $(this)).height(height);
+		});
+	}
+	
+	if ($('.standInfoItems').length >= 1) {
+		$('.standInfoItems').each(function(){
+			var height = 0;
+			$('.standInfoItem', $(this)).each(function(){
+				if ($(this).height() >= height) {
+					height = $(this).height();
+				}
+			});
+			$('.standInfoItem', $(this)).height(height);
+		});
+	}
+}
+
+function standColHideMore(color) {
+	var left = $('.standTextColLeft').height();
+	var right = $('.standTextColRight').height();
+	var added = false;
+	
+	if (left >= (right*1.5)) {
+		$('.standTextColLeft').height(right);
+		$('.standTextColLeft').addClass('hidemoreStandParent');
+		$('.standTextColLeft').append('<div class="hidemoreStand"><i class="icon-down" style="color:'+color+'; font-size:20px;"></i></div>');
+		added = true;
+	} else if (right >= (left*1.5)) {
+		$('.standTextColRight').height(left);
+		$('.standTextColRight').addClass('hidemoreStandParent');
+		$('.standTextColRight').append('<div class="hidemoreStand"><i class="icon-down" style="color:'+color+'; font-size:20px;"></i></div>');
+		added = true;
+	}
+
+	if (added) {
+		$('.hidemoreStand').on('click', function(){
+			var height = 0; 
+			$('.standTextColLeft').children().each(function(){ 
+				if (!$(this).hasClass('hidemoreStand')) { 
+					height += $(this).outerHeight(true);
+				} 
+			});
+
+			var parent = $('.hidemoreStand').parent('.col-md-6');
+			$('.hidemoreStand').remove();
+			parent.animate({
+				height: height
+			}, 500);
+		});
+	}	
+}
+
+function openSidebar(type) {
+	if (type == 'chat') {
+		$('.chatOpenLink').attr('aria-expanded', 'true');
+	}
+	$('.sidebar.'+type).removeClass('closed');
+	//$('.sidebar.'+type).css('right', '0px');
+}
+
+function closeSidebar(type) {
+	if (type == 'chat') {
+		$('.chatOpenLink').attr('aria-expanded', 'true');
+	}
+	$('.sidebar.'+type).addClass('closed');
+	//$('.sidebar.'+type).css('right', 'calc(-25% - 20px)');
+	showChatOverview();
+}
+
+function showChatWithUser(chatid, force) {
+	$.ajax({ 
+		type: 'POST',
+		cache: false,
+		data: { chatid: chatid },
+		url: '/inc/ajax/showChatWithUser.php',
+		dataType: 'json',
+		success: function(msg){
+			if (msg.success == 1) {
+				if (force == true) {
+					openSidebar('chat');
+				}
+				
+				$('#chatWithWho').html(' met '+msg.name);
+				
+				emojione.ascii = true;
+				emojione.riskyMatchAscii = false;
+				msg.html = emojione.toImage(msg.html);
+				msg.html = emojione.shortnameToImage(msg.html);				
+				
+				$('.sidebar.chat .chatSpecific').html(msg.html);
+				$('.sidebar.chat .chatOverview').hide();
+				$('.sidebar.chat .chatSpecific').show();
+				$('.sidebar.chat .backbtn').show();
+				
+				if ($(".messages")[0].scrollHeight >= $(".messages").outerHeight()) {
+				  	$(".messages").scrollTop($(".messages")[0].scrollHeight);
+				}
+				$("#message").off().on("keyup", function(e){
+					if (e.keyCode == 13) {
+						sendMessage();
+					}
+				});
+				$('.sidebar.chat .backbtn').on('click', function(){
+					showChatOverview();
+				});
+				if (msg.unread == 0 && $('.unreadChat').length >= 1) {
+					$('.unreadChat').hide();
+				}
+				
+				$('.sidebar.chat #emoji_popup').html( emojione.toImage('<a href="javascript:void(0);" class="emoji">'+emos.join('</a><a href="javascript:void(0);" class="emoji">')+'</a>') );
+				
+				if ($('.sidebar.chat #emoji_popup_icon').length == 1) {
+					$('.sidebar.chat #emoji_popup_icon').on('click', function(){
+						$('.sidebar.chat #emoji_popup').toggle();
+						
+						$('.sidebar.chat a.emoji').off().on('click', function(){
+							$('.sidebar.chat #message').val($('.sidebar.chat #message').val()+$(this).children('img').attr('alt'));
+
+							if ($('.sidebar.chat #emoji_popup').is(':visible') === true) {
+								$('.sidebar.chat #message').on('keydown', function(e){
+									$('.sidebar.chat #emoji_popup').hide();
+								});
+							}
+						});
+					});
+				}				
+			} else {
+				alert('Er ging iets mis...');
+			}
+		}
+	});
+}
+
+function showChatOverview() {
+	$.ajax({ 
+		type: 'POST',
+		cache: false,
+		url: '/inc/ajax/showChatOverview.php',
+		dataType: 'json',
+		success: function(msg){
+			if (msg.success == 1) {
+				$('.sidebar.chat .chatOverview').html(msg.html);
+				$('.sidebar.chat .chatOverview').show();
+				$('.sidebar.chat .chatSpecific').hide();
+				$('.sidebar.chat .backbtn').hide();
+				
+				$('.sidebar.chat .chatSpecific').html('');
+				$('#chatWithWho').html('s');
+				
+				$('.chatRow').on('click', function(){
+					showChatWithUser($(this).data('chatid'));
+				});
+			} else {
+				alert('Er ging iets mis...');
+			}
+		}
+	});
+}
+
+function htmlEntities(str) {
+    return String(str).replace(/&/g, '&').replace(/</g, '&lt;').replace(/>/g, '>').replace(/"/g, '"');
+}
+
+function modalBlokkenschema(modalid) {
+	$('#'+modalid).detach().appendTo('body');
+	$('#'+modalid).modal();
+}
+
+function letterHistoryModal(id) {
+	$.ajax({ 
+		type: 'POST',
+		cache: false,
+		data: {id: id},
+		url: '/inc/ajax/letterHistoryModal.php',
+		dataType: 'json',
+		success: function(msg){
+			$('#letterhistoryModal #letterhistoryModalLabel').html(msg.subject);
+			$('#letterhistoryModal .modal-body').html('').append(msg.content);
+
+			$('#letterhistoryModal').modal();
+		}
+	});
+}
+
+function vimeoUpload() {
+	$('#uploadToVimeo .input').removeClass('red');
+
+	$('#messages').removeClass('alert');
+	$('#messages').removeClass('alert-success');
+	$('#messages').removeClass('alert-danger');
+	$('#messages').text('');
+
+	var error = 0;
+	if ($('#uploadToVimeo [name=title]').val() == '') {
+		error++;
+		$('#uploadToVimeo [name=title]').parents('.input').addClass('red');
+	}
+	if ($('#uploadToVimeo [name=description]').val() == '') {
+		error++;
+		$('#uploadToVimeo [name=description]').parents('.input').addClass('red');
+	}
+	if ($('#uploadToVimeo [name=video]').val() == '') {
+		error++;
+		$('#uploadToVimeo [name=video]').parents('.input').addClass('red');
+	}
+
+	if (error == 0) {
+		$('#uploadToVimeo').hide();
+		$('.multiPropSpacer').hide();
+		$('.multiPropElement').hide();
+		$('.loader').show();
+
+		$.ajax({
+			url : '/inc/ajax/vimeo.php',
+			type : 'POST',
+			dataType : 'json',
+			data : new FormData(uploadToVimeo),
+			contentType : false,
+			processData : false,
+			success : function(data) {
+				if (data.type == 'error') {
+					$('.loader').hide();
+					$('#messages').addClass('alert alert-danger').html('Er ging iets mis met het uploaden van je video, probeer het alsjeblieft later nogmaals.');
+				} else if (data.type == 'success') {
+					$('.loader').hide();
+					$('#messages').addClass('alert alert-success').html('Je video is geupload, klik <a href="javascript:;" onclick="location.reload();">hier</a> als je nog meer video\'s wil uploaden.');
+				}
+			}
+		});
+	}
+}

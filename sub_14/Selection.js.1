@@ -1,0 +1,350 @@
+﻿if (typeof (AIS) !== "object") { var AIS = new Object(); }
+if (typeof (AIS.Views) !== "object") { AIS.Views = new Object(); }
+if (typeof (AIS.Views.Selection) !== "object") { AIS.Views.Selection = new Object(); }
+
+AIS.Views.Selection = function () {
+
+
+  var GetSelectionPartialMarkup = function (urlSeg) {
+
+    var fullUrl = AIS.Helpers.ResolveUrl(urlSeg);
+
+    $.ajax({
+      url: fullUrl,
+      dataType: "html",
+      data: {},
+      success: function (data) {
+        $(".ais-selection-partial").first().replaceWith(data);
+      }
+    });
+  }
+
+
+  return {
+    Init: function () {
+      $(document).ready(function () {
+
+        //events handlers 
+
+        $(this).off("click", ".ais-expander-script");
+        $(this).on("click", ".ais-expander-script", function (event) {
+            event.preventDefault();
+
+            //var toToggle = $(this).closest(".ais-expander-container").find(".ais-expanded");
+            var toToggle = "." + $(this).attr("expand");
+            $('.ais-expanded').not(toToggle).hide();
+            if ($(toToggle).is(":visible")) {
+              $(toToggle).hide();
+            }
+            else {
+              $(toToggle).show();
+            }
+          });
+
+        $(this).off("click", ".ais-selection-brief-full-send-via-email-script");
+        $(this).on("click", ".ais-selection-brief-full-send-via-email-script", function (event) {
+          event.preventDefault();
+          AIS.Views.Selection.OpenSendViaEmailPopup(true);
+        });
+        
+        $(this).off("click", ".ais-selection-brief-send-via-email-script");
+        $(this).on("click", ".ais-selection-brief-send-via-email-script", function (event) {
+          event.preventDefault();
+          AIS.Views.Selection.OpenSendViaEmailPopup(false);
+        });
+
+        $(this).off("click", ".ais-selection-detail-send-via-email-script");
+        $(this).on("click", ".ais-selection-detail-send-via-email-script", function (event) {
+          event.preventDefault();
+          AIS.Views.Selection.OpenSendViaEmailPopup(false);
+        });
+
+        $(this).off("click", ".ais-selection-detail-full-send-via-email-script");
+        $(this).on("click", ".ais-selection-detail-full-send-via-email-script", function (event) {
+          event.preventDefault();
+          AIS.Views.Selection.OpenSendViaEmailPopup(true);
+        });
+
+        $(this).on("click", ".selector-script", function (event) {
+
+          var record = $(this).parent();
+          var priref = record.attr("data-priref");
+          var database = record.attr("data-database");
+          var selected = record.attr("data-selected");
+          var sitename = $(".ais-sitename-value").val();
+          if (selected === 'false') {
+            AIS.RecordSelection.AddToSelection(priref, database, sitename, record);
+          }
+          else {
+            AIS.RecordSelection.RemoveFromSelection(priref, database, sitename, record);
+          }
+        });
+
+        $(this).on("click", ".ais-show-selection-detail-script", function (event) {
+
+          event.preventDefault();
+
+          //ais-selection-brief-print-script
+
+          $(".ais-show-selection-detail-script").parent().hide();
+          $(".ais-show-selection-brief-script").parent().show();
+
+          $(".ais-selection-detail-print-script").parent().show();
+          $(".ais-selection-brief-print-script").parent().hide();
+
+          $(".ais-selection-detail-download-script").parent().show();
+          $(".ais-selection-brief-download-script").parent().hide();
+
+          $(".ais-selection-detail-send-via-email-script").parent().show();
+          $(".ais-selection-brief-send-via-email-script").parent().hide();
+
+          $(".ais-selection-detail-full-send-via-email-script").parent().show();
+          $(".ais-selection-brief-full-send-via-email-script").parent().hide();
+
+          $.ajax({
+            url: AIS.Helpers.ResolveUrl("selection/detail"),
+            dataType: "html",
+            data: {},
+            success: function (data) {
+              $(".ais-selection-content-element").html(data);
+            }
+          });
+
+        });
+
+        $(this).on("click", ".ais-show-selection-brief-script", function (event) {
+
+          event.preventDefault();
+
+          $(".ais-show-selection-detail-script").parent().show();
+          $(".ais-show-selection-brief-script").parent().hide();
+
+          $(".ais-selection-detail-print-script").parent().hide();
+          $(".ais-selection-brief-print-script").parent().show();
+
+          $(".ais-selection-detail-download-script").parent().hide();
+          $(".ais-selection-brief-download-script").parent().show();
+
+          $(".ais-selection-detail-send-via-email-script").parent().hide();
+          $(".ais-selection-brief-send-via-email-script").parent().show();
+
+          $(".ais-selection-detail-full-send-via-email-script").parent().hide();
+          $(".ais-selection-brief-full-send-via-email-script").parent().show();
+
+          $.ajax({
+            url: AIS.Helpers.ResolveUrl("selection/brief"),
+            dataType: "html",
+            data: {},
+            success: function (data) {
+              $(".ais-selection-content-element").html(data);
+            }
+          });
+
+        });
+
+        $(this).on("click", "div.ais-create-reservation-script", function (event) {
+
+          var sender = $(this);
+          var catalogueId = $(sender).children(".ais-catalogue-number-value").val();
+
+          $.ajax({
+            url: AIS.Helpers.ResolveUrl("reservations/create"),
+            data: {
+              catalogueId: catalogueId
+            },
+            success: function (data) {
+
+              if (data.label) {
+                $(sender).children("span").html(data.label);
+              }
+
+              if (data.message) {
+                AIS.Helpers.AddUserMessage(data.message, data.type, true, false);
+              }
+
+              $(sender).removeClass("ais-create-reservation-script");
+              $(sender).removeClass("ais-create-reservation");
+              $(sender).addClass("ais-cancel-reservation-script");
+              $(sender).addClass("ais-cancel-reservation");
+            }
+          });
+
+
+        });
+
+        $(this).on("click", "div.ais-cancel-reservation-script", function (event) {
+
+          var sender = $(this);
+          var catalogueId = $(sender).children(".ais-catalogue-number-value").val();
+
+          $.ajax({
+            url: AIS.Helpers.ResolveUrl("reservations/cancel"),
+            data: {
+              catalogueId: catalogueId
+            },
+            success: function (data) {
+
+              if (data.label) {
+                $(sender).children("span").html(data.label);
+              }
+
+              if (data.message) {
+                AIS.Helpers.AddUserMessage(data.message, data.type, true, false);
+              }
+
+              $(sender).addClass("ais-create-reservation");
+              $(sender).removeClass("ais-cancel-reservation");
+              $(sender).addClass("ais-create-reservation-script");
+              $(sender).removeClass("ais-cancel-reservation-script");
+            }
+          });
+
+        });
+
+        $(this).on("click", ".ais-popupwrapper-script .ais-send-via-email-container .ais-send-via-email-submit-script", function (event) {
+
+          var fromName = $(".ais-popupwrapper-script .ais-send-via-email-container input#Email-FromName").val();
+          var toName = $(".ais-popupwrapper-script .ais-send-via-email-container input#Email-ToName").val();
+          var toEmail = $(".ais-popupwrapper-script .ais-send-via-email-container input#Email-ToEmail").val();
+          var subject = $(".ais-popupwrapper-script .ais-send-via-email-container input#Email-Subject").val();
+          var messageBody = $(".ais-popupwrapper-script .ais-send-via-email-container textarea#Email-MessageBody").val();
+          var getFullSet = $(".ais-popupwrapper-script #ais-send-via-email-full-selection").val();
+
+          var currPage = 0;
+          var database;
+
+          if (getFullSet !== "true") {
+            currPage = $(".current-page-num").val();
+            database = $(".ais-database-name-value").val();
+          }
+          $(".ais-message-element").html("<i class='fa fa-spinner fa-spin'></i>");
+
+          var presentation = $("#ais-selection-presentation").val();
+
+          $.ajax({
+            url: AIS.Helpers.ResolveUrl("selection/sendresultsviaemail"),
+            dataType: "json",
+            contentType: "application/x-www-form-urlencoded",
+            type: "POST",
+            data: {
+              FromName: fromName,
+              ToName: toName,
+              ToEmail: toEmail,
+              Subject: subject,
+              MessageBody: messageBody,
+              Presentation: presentation,
+              Page: currPage,
+              Database: database
+            },
+            success: function (response) {
+              $(".ais-message-element").html(AIS.Helpers.Translate(response.message));
+              if (response.message === "Shared_EmailSentSuccesfully") {
+                var remaining = 5; // Number of seconds
+                var obj = document.getElementById("SecondsRemaining");
+                obj.innerHTML = "[" + remaining + "]";
+                var timeout = window.setInterval(function () {
+                  remaining--;
+                  if (remaining == 0) {
+                    // Time is up, stop the timer and hide the bootbox
+                    window.clearInterval(timeout);
+                    AIS.Views.Selection.Popup().dialog('close')
+                    return;
+                  }
+                  obj.innerHTML = "[" + remaining + "]";
+                }, 1000);
+              }
+            }
+          });
+
+
+        });
+
+        // navigation
+
+        $(this).on("click", "#ais-selection-content .ais-navigator-script .first-page-script.enabled", function (event) {
+          event.preventDefault();
+
+          GetSelectionPartialMarkup("/selection/first/" + AIS.Views.Selection.DatabaseName());
+        });
+
+        $(this).on("click", "#ais-selection-content .ais-navigator-script .prev-page-script.enabled", function (event) {
+          event.preventDefault();
+
+          GetSelectionPartialMarkup("/selection/prev/" + AIS.Views.Selection.DatabaseName());
+
+        });
+
+        $(this).on("click", "#ais-selection-content .ais-navigator-script .next-page-script.enabled", function (event) {
+          event.preventDefault();
+
+          //GetSelectionPartialMarkup("/selection/" + $(this).find(".page-number").val() + "/" + AIS.Views.Selection.DatabaseName());
+          GetSelectionPartialMarkup("/selection/next/" + AIS.Views.Selection.DatabaseName());
+        });
+
+        $(this).on("click", "#ais-selection-content .ais-navigator-script .last-page-script.enabled", function (event) {
+          event.preventDefault();
+
+          GetSelectionPartialMarkup("/selection/last/" + AIS.Views.Selection.DatabaseName());
+
+        });
+
+        $(this).on("click", "#ais-selection-content .ais-navigator-script .page-number-script", function (event) {
+          event.preventDefault();
+
+          GetSelectionPartialMarkup("/selection/" +
+            Number($(this).find("a").html()) +
+            "/" + AIS.Views.Selection.DatabaseName());
+
+        })
+
+        $(this).on("click", "#ais-selection-content .ais-navigator-script .goto-page-script", function (event) {
+
+          event.preventDefault();
+
+          GetSelectionPartialMarkup("/selection/" +
+            AIS.Views.Selection.GotoPageNum($(this)) +
+            "/" + AIS.Views.Selection.DatabaseName());
+        })
+      });
+    },
+
+    OpenSendViaEmailPopup: function (sendFullSelection) {
+
+      $.ajax({
+        type: "get",
+        url: AIS.Helpers.ResolveUrl("results/getsendviaemailform"),
+        dataType: "json",
+        success: function (data) {
+
+          AIS.Views.Selection.Popup().html(data.content);
+
+          if (sendFullSelection === true) {
+            AIS.Views.Selection.Popup().find("#ais-send-via-email-full-selection").val("true");
+          }
+          else {
+            AIS.Views.Selection.Popup().find("#ais-send-via-email-full-selection").val("false");
+          }
+
+          AIS.Views.Selection.Popup().dialog({
+            modal: true,
+            title: data.title,
+            resizable: false,
+            width: 'auto'
+          });
+        }
+      });
+
+    },
+
+    Popup: function () { return $(".ais-popupwrapper-script"); },
+
+    DatabaseName: function () { return $(".ais-database-name-value").first().val(); },
+
+    GotoPageNum: function (sender) {
+      return $(sender).closest(".ais-navigator-inner").find(".ais-page-input-script").first().val();
+    }
+
+  }
+}();
+
+AIS.Views.Selection.Init();

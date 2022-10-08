@@ -1,0 +1,313 @@
+﻿
+$(window).ready(function () {
+    if (!(typeof window.saveAs === 'function' || typeof window.saveAs === 'object')) {
+        window.saveAs = (function (blob, filename) {
+            if (document.execCommand) {
+                var oWin = window.open('about:blank', '_blank');
+                oWin.document.open('text/plain', 'replace');
+                oWin.document.charset = 'utf-8';
+                oWin.document.write(blob.data);
+                oWin.document.close();
+                var succes = oWin.document.execCommand('SaveAs', false, filename);
+                oWin.close();
+            }
+        });
+    }
+
+    $(document.body).on("click", "a", function (event) {
+        if ($(this).attr('href').substring(0, 8) == './portal') {
+            var portal = window.open($(this).attr('href'), "_parent", null, false);
+            // different options on http://stackoverflow.com/questions/5404839/how-can-i-refresh-a-page-with-jquery fails to keep locale
+            window.location.assign($(this).attr('href'));
+            event.preventDefault();
+            event.stopPropagation();
+            setTimeout(function () { $('body').click(); Layout.setLanguage(lib.title.toLowerCase()); }, 500);
+            return false;
+        }
+        else {
+            var prefix = $(this).attr('href').substring(0, 1);
+            if (prefix == '#' || prefix == '?') {
+                event.preventDefault();
+            } else {
+                if ($(this).attr('href').substring(0, 4).toLowerCase() == 'http') {
+                    window.open($(this).attr('href'));
+                    event.preventDefault();
+                }
+                event.stopPropagation();
+            }
+        }
+    });
+
+    var confirmWrapper = $('#confirm-wrapper');
+    if (confirmWrapper.length) {
+        var confirmTrigger = $('#demo-confirmconfirm');
+        var cancelTrigger = $('#demo-confirmcancel');
+        var checkboxTrigger = $('#demo-confirmcheckbox');
+
+        confirmTrigger.click(function () {
+            $('#demo-confirmcancel').show();
+            cancelTrigger.click();
+        });
+
+        cancelTrigger.click(function () {
+            confirmWrapper.hide();
+            checkboxTrigger.removeClass('checked');
+        });
+
+        checkboxTrigger.click(function () {
+            checkboxTrigger.toggleClass('checked');
+        });
+    }
+
+    //selectbox open/close
+    $(document.body).on("click", "ul.select > li", function (event) {
+        if (!$(this).hasClass("open")) {
+            //selectboxes open?
+            var openSelectboxes = $('ul.select > li.open').length;
+            if (openSelectboxes > 0)
+                $('ul.select > li.open').removeClass('open');
+
+            $(this).addClass("open");
+            if (openSelectboxes == 0) {
+                $(document.body).one("click", function (event) { $('ul.select > li.open').removeClass('open'); });
+            } else {
+                event.stopPropagation();
+            }
+            Layout.calculateAvailableHeight($(this).find("> ul"));
+        }
+    });
+    //selectbox select item;
+    $(document.body).on("click", "ul.select ul li", function () {
+        $(this).closest('ul.select').find('div.label').text($(this).text()).attr('data-item', $(this).attr('data-item'));
+    });
+
+    $(document.body).on("click", "#taalmenu ul.select ul li", function (event) { Layout.setLanguage($(this).attr('data-item')); });
+
+    $(document.body).on("click", "aside.sidebar", function (event) {
+        event.stopPropagation();
+    });
+
+    //sidebar
+    $(document.body).on("click", "#trigger-sub-sidebar", function (event) {
+        var currSidebarType = $('#layout').attr('sidebarType');
+        if (typeof currSidebarType === 'undefined') {
+            Layout.openSidebar('main');
+            $(document.body).one("click", function (event) { Layout.closeSidebar(); });
+        } else if (currSidebarType !== 'main') {
+            Layout.closeSidebar();
+            setTimeout(function () { Layout.openSidebar('main') }, 500);
+            event.stopPropagation();
+        }
+    });
+
+    $(document.body).on("click", "#test-sidebar-trigger ul li.subs", ThemeTable.ShowChildThemeTableList);
+
+    $(document.body).on("click", "#themaNav h2:last-child", function (event) {
+        var currItem = $(this);
+        if ($(this).index() > 0) {
+            var currList = $(this).parent().parent().parent().find("#test-sidebar-trigger ul:nth-child(" + ($(this).index() + 1) + ")");
+            $(this).addClass('hidein');
+            setTimeout(function () { currItem.prev().removeAttr('class'); }, 175);
+            setTimeout(function () { currItem.remove(); }, 350);
+            $('#test-sidebar-trigger').css({ 'left': '-100%' }); currList.prev().show();
+            $('#test-sidebar-trigger').animate({ 'left': '0' }, function () {
+                currList.prev().attr('selected-item', '');
+                currList.remove();
+            });
+        }
+    });
+
+    $(document.body).on('click', 'aside.sidebar .trigger-graph', function (event) {
+        var navItem = $(this).closest('nav');
+        if (typeof navItem !== "undefined") {
+            var navId = navItem.attr('id');
+            switch (navId) {
+                case 'test-sidebar-trigger':
+                    //Thema - Tabel
+                    var aLink = $(event.target);
+                    var tableIdentifier = $(this).closest('li').attr('data-item');
+                    ODataRepository.loadTable(tableIdentifier);
+
+                    //doe een body click na 0.5 seconde, zodat themaboom wordt gesloten;
+                    setTimeout(function () {
+                        $('body').click();
+                    }, 500);
+                    break;
+            }
+        }
+    });
+
+    //zoeken
+    $(document.body).on("click", "#search1 span:nth-child(2)", function (event) {
+        Layout.setSearchLayout($("#search1 input").val());
+    });
+    $(document.body).on("keydown", "#search1 input", function (event) {
+        if (event.keyCode == 13) {
+            Layout.setSearchLayout($(this).val());
+        }
+    });
+
+    $(document.body).on("click", "#content-search .news-item-tables li", function (event) {
+        var tableIdentifier = $(this).attr('data-item');
+        var theme = $(this).closest('ul').prev().attr('selected-item')
+        ODataRepository.loadTable(tableIdentifier, { '_theme': theme }, ThemeTable.SetThemeTableList);
+    });
+
+    $(document.body).on("click", "#content-wrapper-graph .graph-sidebar .section-wrapper div a", function (event) {
+        var dataItem = $(this).attr('data-item');
+        switch (dataItem) {
+            case 'bulk':
+                window.open(settings.HOST_PREFIX + settings.BULK_PREFIX + OData.Table.Identifier);
+                break;
+            case 'app':
+                window.open(settings.HOST_PREFIX + settings.API_PREFIX + OData.Table.Identifier);
+                break;
+            case 'licentie':
+                window.open(lib['CCBY4.0NL']);
+                break;
+            case 'whatis':
+                window.open(lib.dictionary['whatis_url']);
+                break;
+            case 'handleiding_services':
+                window.open(lib.dictionary['manual_services_url']);
+                break;
+            case 'handleiding_excel':
+                window.open(lib.dictionary['manual_excel_url']);
+                break;
+            case 'statline':
+                window.open('http://statline.cbs.nl/StatWeb/publication/?VW=T&DM=SL' + OData.Table.Language + '&PA=' + OData.Table.Identifier + '&' + lib['language']);
+                break;
+            case 'statline_app':
+                //Link opbouw naar de nieuwe App is gewijzigd. Was:
+                var catalog = Uri.object['_catalog'],
+                    language = OData.Table.Language,
+                    identifier = OData.Table.Identifier;
+                window.open('./#/' + catalog + '/' + language + '/dataset/' + identifier);
+                break;
+            case 'data_metadata':
+                ODataRepository.loadTableMetadata(OData.Table.Identifier, function (table) {
+                    var data = [];
+                    var datapair = [[], []];
+                    $.each(table, function (i, t) {
+                        if (typeof t != 'object' && typeof t != 'function') {
+                            datapair[0].push(settings.excel_string(i.toString()));
+                            datapair[1].push(settings.excel_string(t.toString()));
+                        }
+                    });
+                    data.push(settings.excel_string('TableInfos') + settings.excel_newline());
+                    $.each(datapair, function (i, t) { data.push(t.join(settings.excel_seperator()) + settings.excel_newline()); });
+
+                    //DataProperties;
+                    datapair = [['ID', 'Position', 'ParentID', 'Type', 'Key', 'Title', 'Description', 'ReleasePolicy', 'Datatype', 'Unit', 'Decimals', 'Default']];
+                    $.each(table.DataProperties, function (i, t) {
+                        var dataRow = [];
+                        $.each(datapair[0], function (i2, t2) {
+                            if (typeof t[t2] != 'object' && typeof t[t2] != 'function' && typeof t[t2] != 'undefined') {
+                                dataRow.push(settings.excel_string(t[t2].toString()));
+                            } else { dataRow.push(''); }
+                        });
+                        datapair.push(dataRow);
+                    });
+                    data.push(settings.excel_string('DataProperties') + settings.excel_newline());
+                    $.each(datapair, function (i, t) { data.push(t.join(settings.excel_seperator()) + settings.excel_newline()); });
+
+                    //Dimensions;
+                    datapair = [];
+                    $.each(table.Dimensions, function (i, t) {
+                        datapair.push([settings.excel_string(t.Key)]);
+                        var headerIndex;
+                        switch (t.Type) {
+                            case 'TimeDimension':
+                                headerIndex = datapair.push(['Key', 'Title', 'Description', 'Status']) - 1;
+                                break;
+                            default:
+                                headerIndex = datapair.push(['Key', 'Title', 'Description']) - 1;
+                                break;
+                        }
+                        $.each(t.Categories, function (i2, t2) {
+                            var dataRow = [];
+                            $.each(datapair[headerIndex], function (i3, t3) {
+                                if (typeof t2[t3] != 'object' && typeof t2[t3] != 'function' && typeof t2[t3] != 'undefined') {
+                                    dataRow.push(settings.excel_string(t2[t3].toString()));
+                                } else { dataRow.push(''); }
+                            });
+                            datapair.push(dataRow);
+                        });
+                    });
+                    $.each(datapair, function (i, t) { data.push(t.join(settings.excel_seperator()) + settings.excel_newline()); });
+
+                    var blob = new Blob(["\ufeff", data.join('')], { type: 'text/plain;charset=utf-8' });
+                    saveAs(blob, table.Identifier + '_metadata.csv');
+                });
+
+                break;
+            case 'data_dataset':
+                DimensionsPanel.ShowPanel(lib.dictionary["Ruwe dataset"]);
+                DimensionsPanel.SetAction(Download.DownloadDataDatasetBulk);
+
+                break;
+            case 'data_grafisch':
+                DimensionsPanel.ShowPanel(lib.dictionary["Dataset voor grafische weergave"]);
+                DimensionsPanel.SetAction(Download.DownloadDataGrafischBulk);
+                break;
+        }
+    });
+
+    $(document.body).on("click", "nav.graph-controls ul li.prev", function (event) {
+        var prev, next;
+        var tableFound = false;
+        $.each(OData.Catalog.ThemeTable[OData.Theme.ID], function (i, t) {
+            tableFound = (OData.Catalog.Tables[t.TableID].Identifier === OData.Table.Identifier);
+            var prevIndex = i - 1;
+            var prevTable = OData.Catalog.ThemeTable[OData.Theme.ID][prevIndex];
+
+            if (tableFound && prevTable != undefined)
+            {
+                prev = OData.Catalog.Tables[prevTable.TableID]; return false;
+            }
+        });
+
+        if (!prev) { prev = OData.Catalog.Tables[$(OData.Catalog.ThemeTable[OData.Theme.ID]).first()[0].TableID]; }
+        ODataRepository.loadTable(prev.Identifier, { '_theme': OData.Theme.ID });
+    });
+
+    $(document.body).on("click", "nav.graph-controls ul li.next", function (event) {
+        var prev, next;
+        var tableFound = false;
+        $.each(OData.Catalog.ThemeTable[OData.Theme.ID], function (i, t) {
+            tableFound = (OData.Catalog.Tables[t.TableID].Identifier === OData.Table.Identifier);
+            var nextIndex = i + 1;
+            var nextTable = OData.Catalog.ThemeTable[OData.Theme.ID][nextIndex];
+
+            if (tableFound && nextTable != undefined)
+            {
+                next = OData.Catalog.Tables[nextTable.TableID]; return false;
+            }
+        });
+
+        if (!next) { next = OData.Catalog.Tables[$(OData.Catalog.ThemeTable[OData.Theme.ID]).last()[0].TableID]; }
+        ODataRepository.loadTable(next.Identifier, { '_theme': OData.Theme.ID });
+    });
+});
+
+var ShowTriggerOverlay = window.ShowTriggerOverlay = function () {
+    $("#sidebar-trigger-overlay:hidden").fadeToggle("fast", "swing");
+};
+var HideTriggerOverlay = window.HideTriggerOverlay = function () {
+    $("#sidebar-trigger-overlay:visible").fadeToggle("fast", "swing");
+};
+
+DimensionsPanel.OnBeforeShow(ShowTriggerOverlay);
+DimensionsPanel.OnAfterHide(HideTriggerOverlay);
+
+DimensionsPanel.SetActionSelectDimension(function (args, identifier) {
+    SelectiePanel.ShowPanel(args, identifier);
+});
+
+SelectiePanel.OnBeforeShow(function () {
+    DimensionsPanel.HidePanel();
+});
+
+SelectiePanel.OnAfterHide(function () {
+    DimensionsPanel.SetSelectionFilters(SelectiePanel.GetSelectionFilters()); DimensionsPanel.ShowPanel(DimensionsPanel.GetLabel(), OData.Metadata.Identifier);
+});

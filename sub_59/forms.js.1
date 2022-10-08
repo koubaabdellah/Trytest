@@ -1,0 +1,3192 @@
+
+$(document).ready(function () { FD.Browser.isComp(2) /* check the browser compatibility */ });
+
+//addEventHandler( window, 'onload', function() { FD.Script.loadFile( '/scripts/fd_window.js', function() { FD.Events.FireEvent( 'AfterWNDLoad' ) ; }, 'forms.js' ); }, true ) ;
+
+$(document).ready(function () {
+	if (!FD.Resource.isLoaded('fd_window')) {
+		FD.Resource.load({ uri: 'fd_window.js', onload: function () { FD.Events.FireEvent('AfterWNDLoad'); } });
+	}
+	if (!FD.Resource.isLoaded('jquery')) {
+		FD.Resource.load('jquery.min.js');
+	}
+});
+
+if (FD.Browser.ie && FD.Browser.version < 9) {
+	FD.Resource.load('ie.css');
+}
+/*
+FD.setMode('backend');
+
+FD.Label = { Path: '', Version: '' };
+FD.Label.getPath = function () {
+this.Path = FD.Stylesheet.getPath('layout.css');
+if (this.Path == '') {
+this.Path = FD.Stylesheet.getPath('wysiwyg.css');
+this.Version = FD.Stylesheet.getVersion('wysiwyg');
+if (this.Path == '') {
+this.Path = FD.Stylesheet.getPath('main.css');
+this.Version = FD.Stylesheet.getVersion('main');
+}
+} else {
+this.Version = FD.Stylesheet.getVersion('layout');
+}
+return this.Path;
+}
+*/
+
+function openMergeCodeWindow(e, params) {
+	if (e) e = jQuery.event.fix(e);
+	if (!params) { params = new FDKeys(null, { realtype: true }); }
+	else { params = FDKeys.create(params); }
+	var url = _getMergeCodeUrl(params);
+
+	var field = params.get('field');
+	if (typeof field == 'function') field = field();
+	var suffix = field || params.get('suffix') || 'default';
+
+	var _WM = (typeof window.cwindow == 'undefined' || window.cwindow.type == 'classic' ? top.FD.Window : window.cwindow.WM) /*window manager*/;
+	if (params.get('classic', false, 'boolean')) {
+		_WM.showDialog({ classic: true, url: url.toString(), height: 300, width: 550, scroll: true, params: params });
+	} else {
+		_WM.showDialog({ name: 'ident-' + suffix, preset: 'frame', url: url.toString(), height: 350, width: 600, params: params }, e);
+	}
+}
+function openIdentifierWindow() { openMergeCodeWindow.apply(this, arguments); }
+
+function _pasteMergeCode(options, mergecode, cnt) {
+
+	var self = $(this);
+	cnt = cnt || 1;
+
+	if (/[a-zA-Z]/.test(mergecode))
+		mergecode = (cnt > 1 ? unescape(options.sep || (typeof cPSChar != 'undefined' ? cPSChar : '')) : '') + '[' + mergecode + ']';
+	if (FD.Browser.ie && this.range) {
+		this.range.text = mergecode;
+	} else if (this.setSelectionRange && typeof self.data('caretPos') != 'undefined') {
+		var pos = self.data('caretPos');
+		this.value = this.value.substr(0, pos) + mergecode + this.value.substr(pos);
+		self.data('caretPos', pos + mergecode.length);
+	} else if (this.tagName && this.tagName.toUpperCase() == 'SELECT') {
+		this.value = mergecode;
+	} else {
+		this.value = this.value + mergecode;
+	}
+	FD.Events.FireEvent('AfterPasteIdentifier', { ident: mergecode, count: cnt });
+	FD.Events.FireEvent('AfterPasteMergeCode', { mergecode: mergecode, count: cnt });
+}
+
+//--> helper functions to build the needed urls at one place
+function _getMergeCodeUrl(params) {
+	params = FDKeys.create(params);
+	if (params.get('return_field')) window.IdentElement = params.get('return_field');
+	var field = params.get('field');
+	if (typeof field == 'function') field = field();
+	var url = FD.Backend.makeSessionUrl('/' + top.FD.getInfo('domain') + '/get.asp?mode=2&expr1=2&expr2=IDENTIFIER&id_form=' + (params.get('id_form') || FD.Backend.Context.get('id_form')) + '&field=' + field + (params.get('explain') ? '&explain=' + params.get('explain') : ''));
+	return url;
+}
+function _getFilePickerUrl(params) {
+	params = FDKeys.create(params);
+	return FD.Backend.getUrl({
+		action: 16,
+		step: 10,
+		type: params.get('type', 'ALL'),
+		multiple: params.get('multiple', false, 'boolean'),
+		visibility: params.get('visibility', '', 'string'),
+		render: params.get('render', '', 'string'),
+		confirm: params.get('confirm', false, 'boolean')
+	}, FDUri.current.getBase());
+}
+function _getImagePickerUrl(params) {
+	params = FDKeys.create(params);
+	var url = FD.Backend.makeSessionUrl('/' + top.FD.getInfo('domain') + '/get.asp?mode=2&expr1=11&expr2=BLD');
+	return url;
+}
+//<--
+
+jQuery.fn.fdMergeCodePicker = function (options) {
+	options = options || {};
+	return this.each(function () {
+		var id = 'btn' + String.create(Math.random()).replace(/\D/g, "");
+		if (options.append) {
+			var btn = FDButtonFactory.create({ suffix: 'icon', className: 'button_identifiers', id: id });
+			$(this).after(btn);
+			//btn.appendTo($(this).parent());
+			//var btn = $('<a id="' + id + '" href="javascript:void(0)" class="button-icon" onmouseover="BTN.MouseOver(this,null)" onmouseout="BTN.MouseOut(this)"><span aria-hidden="true" class="icon icon-button_identifiers"></span></a>').appendTo($(this).parent());
+		} else {
+			document.write('<a id="' + id + '" href="javascript:void(0)" class="button-icon" onmouseover="BTN.MouseOver(this,null)" onmouseout="BTN.MouseOut(this)"><span aria-hidden="true" class="icon icon-button_identifiers"></span></a>');
+			var btn = jQuery('#' + id);
+		}
+		var params = new FDKeys(options, { realtype: true }), _self = this;
+		if (params.exist('list') && !Object.is(params.get('list'))) {
+			if (Boolean.is(params.get('list'))) params.set('list', this);
+			else params.set('list', FD.get(params.get('list')));
+		}
+		if (!params.exist('return_field') && this.id) {
+			params.set('return_field', this.id);
+		}
+		if (!params.exist('paste')) {
+			params.set('paste', (function (mergecode, cnt) { if (params.exist('return_field')) _self = $('#' + params.get('return_field'))[0]; _pasteMergeCode.call(_self, options, mergecode, cnt); }).bind(this));
+		}
+		btn.bind('click', function (e) { top.openMergeCodeWindow(e, params); return false; });
+		jQuery(this).data('mergeCodePicker', btn);
+	});
+};
+
+var FDFileManager = new Class({
+
+	Extends: FDBaseClass,
+	Implements: [Events, FDThemeBase],
+	_class: 'FDFileManager',
+
+	initialize: function () {
+		this.parent.apply(this, arguments);
+		this.name = this.name || this.options.name || this._guid;
+
+		this._container = $(this.options.container);
+		if (this._container.length == 0) {
+			this._container = $('<div id="filemanager-' + this.name + '"></div>');
+			$('body').append(this._container);
+		}
+		this._container
+			.addClass(this.options.className)
+			.append($('<input type="hidden" id="' + this.name + '" name="' + this.name + '">'));
+
+		FD.Backend.addEvent('onPrepareSave', this._save.bind(this));
+
+		if (this.options.files && this.options.files.length > 0) {
+			var files = this.options.files;
+			for (var i = 0, len = files.length; i < len; i++) {
+				this.add(files[i]); // format: { id: ..., value: ..., description: ... }
+			}
+		}
+		if (!this.options.viewOnly) this.add();
+		this.addEvent('onChange', this._change.bind(this), true);
+	},
+	getItems: function () {
+		return this._container.find('.file-item');
+	},
+	add: function (options) {
+		var items = this.getItems();
+		this._container.fdFilePicker(
+			$.extend({
+				manager: this,
+				name: 'file-' + (items.length + 1),
+				visibility: this.options.visibility,
+				render: this.options.render,
+				addDescription: this.options.addDescription,
+				readOnly: true,
+				viewOnly: this.options.viewOnly,
+				goto: true
+			}, options));
+
+		$(window).resize();
+	},
+	remove: function (item) {
+		item.closest('.file-item').remove();
+	},
+	_change: function (item, params) {
+		var items = this.getItems(), last = items.index($(item).closest('.file-item')) == items.length - 1;
+		this.log('._change, last=' + last + ', index=' + items.index($(item).closest('.file-item')) + ', length=' + items.length);
+		if (!last) {
+			if (item.value == '') this.remove($(item));
+		} else {
+			if (item.value != '') this.add();
+		}
+	},
+	_save: function () {
+		var items = this.getItems(), value = [], addDescription = this.options.addDescription;
+		items.each(function (i, el) {
+			el = $(el);
+			var file = el.find('.file-name');
+			if (file.val() != '') {
+				value.push(file.val() + (addDescription ? '<=>' + el.find('.file-description').val() : ''));
+			}
+		});
+		this._container.find('#' + this.name).val(value.join('\r\n'));
+	}
+
+}).extend({
+	defaults: $.extend({}, FDThemeBase.defaults, {
+		// style defaults
+		themePrefix: 'filemanager-theme-',
+		// other
+		textKey: 'FileManager' // default key for getText
+	})
+});
+
+jQuery.fn.fdFileManager = function (options) {
+	return this.each(function () {
+		var $self = $(this);
+		$self.data('filemanager', new FDFileManager($.extend({ container: $self }, options)));
+	});
+};
+
+jQuery.fn.fdFilePicker = function (params) {
+	return this.each(function () {
+		params = new FDKeys(params);
+		var id = 'btn' + String.create(Math.random()).replace(/\D/g, ""),
+			_WM = (typeof window.cwindow == 'undefined' || window.cwindow.type == 'classic' ? top.FD.Window : window.cwindow.WM) /*window manager*/,
+			_click = (!params.get('viewOnly', false, 'boolean') ?
+				function (e) {
+					params.set('previousValue', params.get('source').val());
+					if (params.get('classic', false, 'boolean')) {
+						_WM.showDialog({ classic: true, url: url, height: 700, width: 520, scroll: true, params: params });
+					} else {
+						_WM.showDialog({ name: 'file-' + suffix, preset: 'frame', url: url, height: 600, width: 510, params: params }, e);
+					}
+				} :
+				function () { }
+			);
+
+		var self = $(this), parent = self.parent(), createInput = self[0].tagName.toLowerCase() != 'input', btnAdd, btnRem;
+		if (createInput) {
+			parent = $('<div class="file-item" role="group"></div>').appendTo(self);
+			self = $('<input type="text" id="' + params.get('name') + '" name="' + params.get('name') + '"' + (params.get('width') ? ' style="width:' + params.get('width') + 'px"' : '') + ' class="file-name' + (params.get('class') ? ' ' + params.get('class') : '') + '">').appendTo(parent);
+		}
+		parent.css('white-space', 'nowrap');
+		if (parent[0].tagName.toUpperCase() == 'TD') {
+			parent.closest('table').attr('role', 'group');
+		}
+
+		if (params.exists('labelledby')) {
+			self.attr('aria-labelledby', params.get('labelledby'));
+		}
+		if (params.exists('describedby')) {
+			self.attr('aria-describedby', params.get('describedby'));
+		}
+
+		if (!params.get('viewOnly', false, 'boolean')) {
+			btnAdd = FDButtonFactory.create({ id: id, suffix: 'icon', className: 'getfile', onclick: _click, tooltip: FD.Texts.get('File.PICK', 'Pick a file...') });
+			if (createInput) {
+				parent.append(btnAdd);
+			} else {
+				document.write(btnAdd[0].outerHTML); //'<a id="' + id + '" href="javascript:void(0)" class="button-icon" onmouseover="BTN.MouseOver(this,null)" onmouseout="BTN.MouseOut(this)"><span aria-hidden="true" class="icon icon-getfile"></span></a>');
+				btnAdd = jQuery('#' + id);
+				FDButtonFactory.bind(btnAdd, { 'click': _click });
+			}
+			//FD.Tooltip.setEvents(btnAdd, { content: FD.Texts.get('File.PICK', 'Pick a file...') });
+		}
+		var suffix = params.get('type') || 'default', url = _getFilePickerUrl(params);
+
+		//params.set('id', id);
+		params.set('source', self);
+		if (!params.get('multiple')) {
+
+			if (params.get('goto')) {
+				self.on(
+					'click',
+					function (e) {
+						if (this.value == '') _click.apply(this, e);
+						else {
+							var uri = new FDUri('/' + FD.getInfo().domain + '/' + this.value);
+							if (params.get('visibility') == 'private') {
+								uri.querySet('action', FD.getAuth().action).makeSession();
+							}
+							_WM.showDialog({ classic: true, url: uri });
+						}
+					}
+				);
+				self.after($('<div class="file-goto icon-menu_goto" style="display:none"></div>'));
+				self.on({ mouseenter: function (e) { var self = $(e.target); if (self.val() != '') { self.siblings('.file-goto').show(); } }, mouseout: function (e) { $(e.target).siblings('.file-goto').hide(); } });
+			} else {
+				self.on('click', _click);
+			}
+
+			if (!params.get('hideRemove') && !params.get('viewOnly', false, 'boolean')) {
+				var resize = function () { var w = btnAdd.outerWidth() + (btnRem.css('display') != 'none' ? btnRem.outerWidth() : 0) + 2, pw = btnRem.parent().parent().width(); btnRem.parent().prev().width(pw - w); btnRem.parent().width(w); };
+				btnRem = FDButtonFactory.create({ id: id + '-remove', suffix: 'icon', className: 'remfile', onclick: function (e) { params.get('source').val('').trigger('change'); $(this).hide(); resize(); } });
+				if (createInput) {
+					parent.append(btnRem);
+				} else {
+					document.write(btnRem[0].outerHTML); //'<a id="' + id + '-remove" href="javascript:void(0)" class="button-icon" onmouseover="BTN.MouseOver(this,null)" onmouseout="BTN.MouseOut(this)"><span aria-hidden="true" class="icon icon-remfile"></span></a>');
+					btnRem = jQuery('#' + id + '-remove');
+					FDButtonFactory.bind(btnRem, { 'click': function (e) { params.get('source').val('').trigger('change'); $(this).hide(); resize(); } });
+				}
+				self.on('change', function () {
+					var toggle = this.value != '';
+					self.toggleClass('file-hasvalue', toggle);
+					if (toggle && params.get('goto')) {
+						FD.Tooltip.setEvents(self, { content: FD.Texts.get('File.GOTO', 'Open file...') });
+					} else {
+						//FD.Tooltip.setEvents(self, { content: FD.Texts.get('File.PICK', 'Pick a file...') });
+					}
+					if (params.get('addDescription')) {
+						btnRem.setVisible(toggle);
+						self.siblings('.file-description').setDisabled(!toggle);
+					} else btnRem.toggle(toggle); resize();
+					if (params.get('manager')) params.get('manager').fireEvent('onChange', [this, params]);
+				});
+
+				$(document).ready(function () { var toggle = params.get('source').val() != ''; if (params.get('addDescription')) btnRem.setVisible(toggle); else btnRem.toggle(toggle); resize(); });
+				__resize_window.addEvent('onAfterResize', resize);
+			}
+		}
+
+		if (params.get('value')) {
+			self.val(params.get('value')).change();
+			params.set('previousValue', params.get('value'));
+		} else {
+			//FD.Tooltip.setEvents(self, { content: FD.Texts.get('File.PICK', 'Pick a file...') });
+		}
+		if (createInput) {
+			if (params.get('addDescription', false, 'boolean')) {
+				var descr = $('<input type="text" name="' + params.get('name') + '-description" class="file-description" placeholder="' + FD.Texts.get('File.DESCRIPTION_PLACEHOLDER', 'Description...') + '">').appendTo(parent);
+				if (params.get('description')) descr.val(params.get('description'));
+				descr.setDisabled(self.val() == '');
+				if (self.val() != '' && params.get('viewOnly', false, 'boolean')) {
+					descr.setReadonly(true);
+				}
+			}
+			if (params.get('id')) parent.append($('<input type="hidden" name="' + params.get('name') + '-id" value="' + params.get('id') + '">'));
+		}
+		if (params.get('readOnly')) {
+			self.setReadonly(true, { bgcolor: 'transparent' });
+			this.forceValidate = true;
+		}
+	});
+};
+
+jQuery.fn.fdImagePicker = function (params) {
+	return this.each(function () {
+		var self = $(this), _click = function (e) {
+			var _WM = (typeof window.cwindow == 'undefined' ? top.FD.Window /*jQuery.fdWindow*/ : window.cwindow.WM) /*window manager*/;
+			_WM.showDialog({ name: 'image' + (params.exists('folder') ? '-' + params.get('folder') : ''), preset: 'frame', url: _getImagePickerUrl(), height: 600, width: 700, params: params }, jQuery.event.fix(e));
+		};
+		params = FDKeys.create(params);
+		params.set('source', self);
+
+		var id = 'btn' + String.create(Math.random()).replace(/\D/g, "");
+		document.write('<a id="' + id + '" href="javascript:void(0)" class="button-icon" onmouseover="BTN.MouseOver(this,null)" onmouseout="BTN.MouseOut(this)"><span aria-hidden="true" class="icon icon-getfile"></span></a>');
+
+		jQuery('#' + id).bind('click', _click);
+		self.bind('click', _click);
+
+		self.setReadonly(true, { bgcolor: 'transparent' });
+	});
+};
+
+jQuery.fn.fdImageList = function (params) {
+	return this.each(function () {
+		params = FDKeys.create(params);
+		var self = jQuery(this), div;
+		self.html('');
+		var data = FD.Ajax.Form.Task.json({ action: 'images', task: 'get', query: { folder: params.get('folder'), ext: params.get('ext') } }, { async: false }), images = data.images || [];
+
+		for (var i = 0, len = images.length; i < len; i++) {
+			self.append(
+				$('<div id="img' + images[i].id + '" class="float button-out" onmouseover="BTN.MouseOver(this,\'button-over\');" onmouseout="BTN.MouseOut(this);" onclick="selImage(this)"></div>').append(
+					$('<img' + (images[i].name.search('.svg') > -1 ? ' class="svg"' : '') + ' src="' + data.directory + images[i].name + '">')
+				)
+			);
+		}
+
+		FDSvg.process();
+
+	});
+};
+
+jQuery.fn.fdCalendar = function (params) {
+	return this.each(function () {
+		params = FDKeys.create(params);
+		var self = this, $self = jQuery(this), btn, type = (params.exists('type') ? params.get('type') : ($self.hasClass('calendar-datetime') ? 'T' : 'D'));
+
+		if (type == 'D') {
+			self.setAttribute('fd:inputmask', 'm:date');
+			self.setAttribute('fd:format', 'date-' + FD.Texts.get('DATE_FORMAT'));
+		} else {
+			self.setAttribute('fd:inputmask', 'm:datetime');
+			self.setAttribute('fd:format', 'datetime-' + FD.Texts.get('DATE_FORMAT') + ' hh:mm');
+		}
+
+		$self.on({
+			focus: function (e) { this.oldValue = this.value; },
+			change: function (e) { if (this.value != '') this.value = FDDate.parse(this.value).toString(); }
+		});
+		btn = FDButtonFactory.create({ id: 'cal-' + self.id, suffix: 'icon', className: 'cal_time', label: FD.Texts.get('DATE_FORMAT'), tooltip: FD.Texts.get('CALENDAR_TOOLTIP'), onclick: function (e) { $self.showCalendar(e); } });
+		if (params.get('write', false, 'boolean')) {
+			document.write(btn.html());
+		} else {
+			$self.after(btn);
+		}
+	});
+};
+$(document).ready(function () { $('.calendar-datetime,.calendar-date').fdCalendar(); });
+
+jQuery.fn.fdCollapsible = function (options) {
+	return this.each(function () {
+		var self = this, $self = jQuery(this), h2 = $self.find('h2').eq(0), c = h2.find('.collapsible');
+		if (!options) options = {};
+		if (!options.collapsedHeight) options.collapsedHeight = h2.position().top + h2.height() + (options.margin || 4);
+		if (h2.length > 0 && c.length == 0) {
+			c = $('<span class="collapsible icon-collapse"></span>');
+			var _fn = function (e) {
+				if ($self.is(':animated')) return;
+				var options = c.data('options'),
+					dim = FD.Element.Dimensions,
+					toggle = (Boolean.is(e) ? e : c.hasClass('icon-collapse')),
+					height = (toggle ? options.collapsedHeight - (FD.ViewPort.getDimensions().zoom != 1 ? 1 : 0) : FD.Element.Dimensions.getScrollHeight($self)) + 'px',
+					prev = dim.getHeight($self),
+					opt = {
+						complete: function () {
+							$self.toggleClass('collapsed', toggle).toggleClass('expanded', !toggle);
+							c.toggleClass('icon-expand', toggle).toggleClass('icon-collapse', !toggle);
+							FD.Tooltip.setContent();
+							if (!Boolean.is(e)) {
+								__resize_window.reset();
+								$(window).resize();
+							}
+						},
+						duration: 100
+					},
+					next = $self.nextAll().filter(function () { return !$(this).hasClass('collapsed') && !$(this).css('float').list('left', 'right'); }).eq(0),
+					childs = next.find('.resize-height');
+
+				if (next.length > 0) {
+					opt.progress = function () {
+						var now = dim.getHeight($self);
+						dim.setHeight(next, dim.getHeight(next) + (prev - now), true);
+						childs.each(function () { var self = $(this); dim.setHeight(self, dim.getHeight(self) + (prev - now), true); });
+						prev = now;
+					};
+				}
+				self.setAttribute('collapsibleHeight', height);
+				$self.animate({ height: height }, opt);
+				if (options.click) options.click(toggle);
+			};
+			c.data({ options: options, fn: _fn }).on('click', _fn);
+
+			FD.Tooltip.setEvents(c, {
+				content: (function () {
+					if (c.hasClass('icon-expand')) {
+						return FD.Texts.get('Collapsible.MORE');
+					} else {
+						return FD.Texts.get('Collapsible.LESS');
+					}
+				}).bind(c)
+			});
+
+			h2.on('click', _fn).css('cursor', 'pointer').append(c);
+			if (options.collapsed) c.click();
+		} else if (c.length > 0) {
+			c.data('options', options).data('fn')(!c.hasClass('icon-collapse'));
+		}
+	});
+};
+
+jQuery.fn.securedata = function (options) {
+	return this.each(function () {
+		var btn = FDButtonFactory.create({ suffix: 'icon', className: 'edit', buttonClassName: 'button-securedata', onclick: (options.onclick || FDSecureData.show.bind(FDSecureData, options)), tooltip: (options.tooltip || '') });
+		$(this).setReadonly(true).addClass('readonly').after(btn);
+	});
+};
+
+var FDSecureData = {
+
+	options: null,
+
+	init: function (options) {
+		this.options = options;
+		$('.securedata').securedata(options);
+	},
+
+	show: function (options) {
+
+		if (!options) options = this.options;
+
+		if (!options.next) {
+			options.next = FDUri.current.clone();
+			options.next.setRoute('securedata', { append: true });
+		}
+
+		FD.Window.showClassic({ url: FDUri.challenge(options.area, options.next), width: '500', height: '300' });
+
+	},
+	response: function (data) {
+		if (data) {
+			$('.securedata,.securedata-response').each(function () {
+				var key = this.name.replace('_new', '');
+				if (data[key]) {
+					$(this).val(data[key]);
+				}
+			});
+		}
+	}
+
+};
+
+var __tmrResize = 0, __tmrRecuring = 0, __isResizing = false, __resize_window, SCROLLBAR_WIDTH = -1;
+(function () {
+
+	function __hasClass(el, selector) { // borrowed from jQuery but simplified to 'this' element
+		selector = " " + selector + " ";
+		return (" " + el.className + " ").indexOf(selector) >= 0;
+	}
+
+	this.FDWindowResize = new Class({
+
+		Extends: FDBaseClass,
+		Implements: Events,
+
+		_class: 'FDWindowResize',
+		_trace: false,
+
+		active: false,
+		disabled: false,
+		isShrinking: { width: false, height: false },
+		isExpanding: { width: false, height: false },
+		isResizing: false,
+		isRecuring: false,
+
+		_content: null,
+		_sidebar: null,
+		_pages: null,
+		_resizables: null,
+		_reversed: null,
+		_contentTop: 0,
+		_contentPaddings: 0,
+		_buttonsHeight: 0,
+		_prevHeight: 0,
+		_prevWidth: 0,
+
+		initialize: function () {
+			this.parent();
+			this._prevWidth = $(window).width();
+			this._prevHeight = $(window).height();
+		},
+		reset: function () { this.active = false; },
+		cache: function () {
+			this._navtop = jQuery('.nav-top');
+			this._navbottom = jQuery('.nav-bottom');
+			this._content = jQuery('#content');
+			this._sidebar = jQuery('#content-sidebar');
+			if (this._sidebar.length == 0) this._sidebar = null;
+			this._pages = jQuery('#pages,#panels');
+			if (this._pages.length == 0) this._pages = null;
+			this._buttonbar = jQuery('body > .bar-buttons,body > form > .bar-buttons');
+			if (this._buttonbar.length == 0) this._buttonbar = null;
+			this._resizables = jQuery('.resize-height,.resize-width');
+			this._reversed = jQuery(this._resizables.get().reverse());
+			this.active = this._content.length > 0;
+		},
+		checkDirection: function () {
+			var width = $(window).width(), height = $(window).height();
+			this.log('.checkDirection, prevWidth=' + this._prevWidth + ', prevHeight=' + this._prevHeight + ', width=' + width + ', height=' + height);
+			this.isShrinking = { width: width < this._prevWidth, height: height < this._prevHeight, any: width < this._prevWidth || height < this._prevHeight };
+			this.isExpanding = { width: width > this._prevWidth, height: height > this._prevHeight, any: width > this._prevWidth || height > this._prevHeight };
+			this.isResizing = this.isShrinking.width || this.isShrinking.height || this.isExpanding.width || this.isExpanding.height;
+			this.log('.checkDirection, isResizing=' + this.isResizing + ', prevWidth=' + this._prevWidth + ', currWidth=' + width + ', prevHeight=' + this._prevHeight + ', currHeight=' + height + ', isShrinking=' + this.isShrinking.width + '/' + this.isShrinking.height + ', isExpanding=' + this.isExpanding.width + '/' + this.isExpanding.height);
+			return this;
+		},
+		setWidthHeight: function () {
+			this._prevWidth = $(window).width();
+			this._prevHeight = $(window).height();
+		}
+	}).extend({
+
+		getInfo: function () {
+			var $content = $('#content'), content = $content[0],
+				scrollH = content.scrollHeight > content.clientHeight,
+				scrollW = content.scrollWidth > content.clientWidth;
+
+			return {
+				window: FD.ViewPort.getWindowDimensions(window),
+				content: {
+					width: $content.getWidth(true),
+					scrollWidth: content.scrollWidth,
+					height: $content.getHeight(true),
+					scrollHeight: content.scrollHeight,
+					scrollbar: SCROLLBAR_WIDTH,
+					scrollH: scrollH,
+					scrollW: scrollW
+				}
+			};
+		},
+
+		scrollbarWidth: function () {
+			var $inner = jQuery('<div style="width: 100%; height:200px;">Calculating scrollbarwidth</div>'),
+				$outer = jQuery('<div style="width:200px;height:150px; position: absolute; top: 0; left: 0; visibility: hidden; overflow:hidden;"></div>').append($inner),
+				inner = $inner[0],
+				outer = $outer[0];
+
+			jQuery('body').append(outer);
+			var width1 = inner.offsetWidth;
+			$outer.css('overflow', 'scroll');
+			var width2 = outer.clientWidth;
+			$outer.remove();
+
+			return (width1 - width2);
+		},
+		reversed_attributes: function () {
+			var _self = jQuery(this), dim = FD.Element.Dimensions, scrollTop = 0;
+			// somehow IE8 fails on jQuery.ready with 'document.documentElement is null or not an object' while everything looks fine
+			try { scrollTop = (this.tagName && this.tagName.toLowerCase() == 'iframe' ? $(this.contentDocument).scrollTop() : this.scrollTop); } catch (e) { }
+			_self.data({
+				'resizeOffsetHeight': _self[0].offsetHeight,
+				'resizeOffsetWidth': _self[0].offsetWidth,
+				'resizeDisplay': _self.css('display'),
+				'resizeOverflow': (this.id == 'pages' && __hasClass(this, 'no-scrolling') ? 'visible' : _self.css('overflow') || ''),
+				'resizeOverflowPriority': (this.id == 'pages' && __hasClass(this, 'no-scrolling') ? '' : _self.stylePriority('overflow') || '')
+			});
+			//if (this.tagName && this.tagName.toUpperCase() == 'IFRAME') String.log('RESIZE IFRAME, scrollTop=' + this.scrollTop + ', ' + (this.contentDocument.body ? $(this.contentDocument).scrollTop() : ''));
+			if (_self[0].offsetHeight > 0) {
+				_self.data({
+					/*'resizeScrollTop': scrollTop,*/
+					'resizeTop': _self.position().top,
+					'resizeOffsetParent': (_self.css('display') == 'none' ? _self.parent() : _self.offsetParent()),
+					'resizeHeight': dim.getHeightOuterSpace(_self, true),
+					'resizeHeightExcluded': dim.getHeightOuterSpace(_self),
+					'resizeWidth': dim.getWidthOuterSpace(_self, true /* include margin */),
+					'resizeWidthExcluded': dim.getWidthOuterSpace(_self)
+				});
+			}
+			if (!__resize_window.isRecuring) _self.data('resizeScrollTop', scrollTop);
+		},
+
+		reversed_hide: function () {
+			var _self = jQuery(this);
+			//this.setAttribute('reversedHide', false);
+			if (this.offsetHeight == 0) return true;
+			//this.setAttribute('reversedHide', true);
+			_self.hide(); //.css('display', 'none');
+			if (this.id != 'pages' && !__hasClass(this, 'content-page') && !/input|select|textarea|embed/i.test(this.tagName)) _self.css('overflow', 'hidden');
+			if (__hasClass(this, 'resize-width')) _self.width('1px');
+			if (__hasClass(this, 'resize-height')) _self.height('1px');
+		},
+
+		resizables_resize: function () {
+			var _self = jQuery(this), dim = FD.Element.Dimensions;
+			if (!__hasClass(this, 'content-page') && !__hasClass(this, 'content-panel') && (_self.data('resizeOffsetHeight') == 0 || _self.data('resizeOffsetWidth') == 0) && _self.data('resizedFirstTime')) return;
+			_self.data('resizedFirstTime', true);
+			//if (!__resize_window.isShrinking.width && !__hasClass(this, 'content-page') && !__hasClass(this, 'content-panel') && (_self.data('resizeOffsetHeight') == 0 || _self.data('resizeOffsetWidth') == 0)) { return true; }
+			if (__hasClass(this, 'resize-height')) {
+				var h = dim.getHeightByParent(this);
+				this.setAttribute('resizeCalcHeight', h);
+				_self.data('resizeCalcHeight', h);
+				dim.setHeight(_self, Math.max(h, 1));
+			}
+			if (__hasClass(this, 'resize-width')) { var w = dim.getWidthByParent(this); /*this.setAttribute('resizeCalcWidth', w);*/if (w > 0) { _self.data('resizeCalcWidth', w); dim.setWidth(_self, Math.max(w, 1)); } }
+			_self.css({ display: (this.tagName == 'EMBED' ? 'block' : _self.data('resizeDisplay')) });
+
+			var p = _self.data('resizeOffsetParent');
+			if (p && p.length > 0 && p.data('resizeScrollTop') > 0) {
+				FDWindowResize.reversed_resize.apply(this);
+				if (p[0].tagName && p[0].tagName.toLowerCase() == 'iframe') {
+					$(p[0].contentDocument).scrollTop(p.data('resizeScrollTop'));
+				} else {
+					var scrollTop = p.data('resizeScrollTop');
+					//p[0].setAttribute('resizeReversedScrollTop', this.className + ", height=" + h + ", " + scrollTop + ", " + p[0].scrollHeight);
+					p.scrollTop(scrollTop);
+					//setTimeout(function () { p.scrollTop(scrollTop); }, 0);
+				}
+			}
+
+			if (_self.attr('aria-hidden')) _self.attr('aria-hidden', _self.css('display') == 'none');
+			if (!__hasClass(this, 'content-page') && !__hasClass(this, 'content-panel') && !/input|select|textarea|embed/i.test(this.tagName)) {
+				_self.style('overflow', (__hasClass(this, 'resize-height-overflow') ? 'hidden' : _self.data('resizeOverflow')), _self.data('resizeOverflowPriority'));
+				if (__hasClass(this, 'resize-height-overflow') || __hasClass(this, 'resize-width-overflow')) {
+					_self.css('overflow-y', '');
+					_self.css('overflow-x', '');
+				}
+			}
+			_self.data('resizeCorrectWidth', false);
+			//this.setAttribute('resizeCorrectWidth', -1);
+			if (_self.data('fd-blind')) _self.data('fd-blind').position();
+		},
+
+		reversed_reset: function () {
+
+			var _self = jQuery(this), dim = FD.Element.Dimensions;
+
+			if (__hasClass(this, 'resize-height')) {
+				// scrollheight = content height + paddings
+				dim.setHeight(_self, this.scrollHeight + dim.getBorder(_self, ['top', 'bottom']), true /* exclude outer space (paddings+borders) */);
+
+			}
+			if (__hasClass(this, 'resize-width')) {
+				dim.setWidth(_self, this.scrollWidth + dim.getBorder(_self, ['left', 'right']), true /* exclude outer space (paddings+borders) */);
+			}
+		},
+
+		reversed_resize: function () {
+			var _self = jQuery(this), dim = FD.Element.Dimensions;
+			if (_self.data('resizeOffsetHeight') == 0 || _self.data('resizeOffsetWidth') == 0 || /input|select|textarea/i.test(this.tagName)) { return true; }
+			if (_self.css('display') != 'none' && ((!__hasClass(this, 'content-page') && !__hasClass(this, 'content-panel') && !this.id.list('pages', 'panels', 'content-sidebar')) || __hasClass(this, 'no-scrolling'))) { // don't correct the pages and the pages container
+				if (__hasClass(this, 'resize-height') && (_self.css('overflow') != 'auto' || __hasClass(this, 'resize-height-overflow') || __hasClass(this, 'resize-overflow'))) {
+					var scrollH = _self[0].scrollHeight - 2 - dim.getHeightOuterSpace(_self) /* paddings + borders */;
+					if (scrollH > _self.data('resizeCalcHeight')) {
+						if (__hasClass(this, 'resize-height-overflow') || __hasClass(this, 'resize-overflow')) {
+							//this.setAttribute('resizeSetYOverflow', 'true');
+							_self.css('overflow-y', 'scroll');
+							_self.css('-webkit-overflow-scrolling', 'touch');
+						} else if (!__hasClass(this, 'resize-height-nocorrect')) {
+							scrollH += dim.getPadding(_self, 'top');
+							//this.setAttribute('resizeCorrectHeight', scrollH);
+							dim.setHeight(_self, scrollH);
+							if (_self.data('child-height-selector')) {
+								var child = _self.data('child-height-selector');
+								scrollH -= dim.getHeightOuterSpace(child, true, true);
+								//child[0].setAttribute('resizeChildCorrectHeight', scrollH);
+								dim.setHeight(child, scrollH); //scrollH);
+								child.data('resizeCalcHeight', scrollH);
+								child.children('.resize-height,.resize-width').each(FDWindowResize.resizables_resize);
+								jQuery(child.children('.resize-height,.resize-width').get().reverse()).each(FDWindowResize.reversed_resize);
+							}
+							_self.data('resizeCalcHeight', scrollH);
+						}
+					}
+				}
+				if (__hasClass(this, 'resize-width') && _self.css('overflow') != 'auto' && _self.css('overflow-y') != 'auto') {
+					var scrollW = (this.scrollWidth - 1 - dim.getWidthOuterSpace(_self)) + (_self.css('overflow-y') == 'auto' ? SCROLLBAR_WIDTH : 0), correct = scrollW > Math.ceil(_self.data('resizeCalcWidth'));
+					//this.setAttribute('resizeScrollW', 'correct=' + correct + '/' + this.scrollWidth + ';' + scrollW + '/' + Math.ceil(_self.data('resizeCalcWidth')) + '/' + _self.css('overflow-y') + ', ' + _self.css('overflow-x') + ', ' + _self.css('overflow'));
+					if (correct && scrollW > 0) {
+						if (__hasClass(this, 'resize-width-overflow') || __hasClass(this, 'resize-overflow')) {
+							//this.setAttribute('resizeSetXOverflow', 'true');
+							_self.css('overflow-x', 'scroll');
+							_self.css('-webkit-overflow-scrolling', 'touch');
+						} else if (!__hasClass(this, 'resize-width-nocorrect')) {
+							scrollW += dim.getPadding(_self, 'left');
+							_self.data('resizeCalcWidth', scrollW).data('resizeCorrectWidth', true);
+							//this.setAttribute('resizeReverseCorrectWidth', scrollW);
+							// set the content width of the element to the scrollW
+							dim.setWidth(_self, scrollW); // scrollW is without paddings. these are added automatically
+							if (_self.css('float') != 'left') {
+								// when the with is adjusted, the parent width also has to be adjusted
+								var p = _self.data('resizeOffsetParent');
+								if (__hasClass(p[0], 'resize-width') && p[0].tagName.toUpperCase() != 'HTML' && !__hasClass(p[0], 'content-page') && !__hasClass(p[0], 'resize-width-nocorrect')) {
+									// the content width of the parent is the total width of this element (scrollW + the paddings incl margin)
+									var cw = scrollW + dim.getWidthOuterSpace(_self, true /* include margin */);
+									if (cw > dim.getContentWidth(p)) {
+										p.data('resizeCalcWidth', cw).data('resizeCorrectWidth', true);
+										dim.setWidth(p, cw); // set the width of the parent (paddings are added automatically)
+										//p[0].setAttribute('resizeCalcWidthCorrectedFromChild', cw);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			//String.log('isRecuring=' + __resize_window.isRecuring + ', scrollTop=' + _self.data('resizeScrollTop'));
+			// moved to resizables_resize
+			if (false && _self.length > 0 && /*__resize_window.isRecuring && */_self.data('resizeScrollTop') > 0) {
+				if (this.tagName && this.tagName.toLowerCase() == 'iframe') {
+					$(this.contentDocument).scrollTop(_self.data('resizeScrollTop'));
+				} else {
+					var scrollTop = _self.data('resizeScrollTop');
+					//this.setAttribute('resizeReversedScrollTop', scrollTop + ", " + _self.getHeight());
+					setTimeout(function () { _self.scrollTop(scrollTop); }, 400);
+				}
+			}
+		},
+
+		reversed_resize_page: function () {
+			/* resize the elements to their scrollwith */
+			var _self = jQuery(this), dim = FD.Element.Dimensions;
+			if (_self[0].offsetHeight == 0 || __hasClass(this, 'content-page')) { return true; }
+			if (this.id == 'pages' || this.id == 'content') { return false; }
+
+			var _parent = _self.parent();
+			//this.setAttribute('resizePageCorrect', '');
+			//this.setAttribute('resizePageSetWidth', '');
+
+			if (__hasClass(this, 'resize-width') && !_self.data('resizeCorrectWidth') && !__hasClass(this, 'resize-width-nocorrect') && !__hasClass(_parent[0], 'resize-width-nocorrect')) {
+				var w = _self.data('resizeCalcWidth') || 0, paddings = (Number.create(_self.data('resize-width-excluded')) || dim.getWidthOuterSpace(_self) /*paddings + borders*/);
+				var scrollW = this.scrollWidth - paddings;
+				//this.setAttribute('resizePageSetWidth', 'w=' + w + ', scrollW=' + scrollW + ', paddings=' + paddings + ', correct=' + (scrollW > (w - 17)));
+				if (scrollW > w) {
+					dim.setWidth(_self, scrollW + paddings, true);
+				}
+			}
+		},
+
+		resize_page_correct: function () {
+			/* resize the elements to their parents scrollwidth */
+			var _self = jQuery(this), _parent = _self.parent(), parent_scroll = _parent[0].scrollWidth, dim = FD.Element.Dimensions;
+			var scrollW = parent_scroll - dim.getWidthOuterSpace(_parent) - (__hasClass(_parent[0], 'resize-width') && _parent[0].scrollHeight - 1 > _parent[0].offsetHeight ? SCROLLBAR_WIDTH : 0) - Number.create(_self.attr('resize-width-min'));
+			//this.setAttribute('resizePageCorrect', 'self=' + dim.getWidth(_self, null, true) + ', scrollW=' + scrollW + '/' + _parent[0].scrollWidth + '/' + dim.getContentWidth(_parent) + '/' + dim.getWidthOuterSpace(_parent) + ', setWidth=' + (scrollW - dim.getMargin(_self, null, 'left') - (_parent.css('overflow') != 'auto' && _parent.css('overflow-x') != 'auto' ? dim.getMargin(_self, null, 'right') : 0)) + ', ' + parent_scroll + ';' + _parent[0].scrollWidth + '/margins=' + dim.getMargin(_self, null, 'left') + ';' + dim.getMargin(_self, null, 'right') + '/' + scrollW + '/' + dim.getPadding(_parent, null, 'left'));
+			if (_self.css('float') != 'left' && !_self.data('resizeCorrectWidth') && dim.getWidth(_self, true) < scrollW) {
+				dim.setWidth(_self, (scrollW - dim.getMargin(_self, 'left') - (_parent.css('overflow') != 'auto' && _parent.css('overflow-x') != 'auto' ? dim.getMargin(_self, 'right') : 0)) - 1, true);
+			}
+		},
+
+		resize_scroll_correct: function (self) {
+			var dim = FD.Element.Dimensions, paddings = dim.getHeightOuterSpace(self); //dim.getWidthOuterSpace(self)
+			var l = self.data('resizables-width'), r = self.data('reversed-width');
+			if (!l) {
+				l = self.find('.resize-width');
+				r = jQuery(l.get().reverse());
+				self.data('resizables-width', l).data('reversed-width', r);
+			}
+			if ((self.css('overflow') == 'auto' || self.css('overflow-y') == 'scroll') && dim.getContentHeight(self) < self[0].scrollHeight - paddings) {
+				var i, undo = false;
+				// self has a scrollbar. now reduce the width with 17px
+				r.each(function (index) {
+					i = index;
+					var _self = jQuery(this), w = _self.data('resizeCalcWidth') || 0, paddings = (Number.create(_self.data('resize-width-excluded')) || dim.getWidthOuterSpace(_self));
+					if (w > 0 && !__hasClass(this, 'list-wrapper')) {
+						dim.setWidth(_self, w - SCROLLBAR_WIDTH);
+						//this.setAttribute('resizeCorrectWidth', 'true/' + w + '/' + dim.getWidth(_self));
+						if (this.scrollWidth - paddings - 1 > w - SCROLLBAR_WIDTH) {
+							// whoops, the width of this element can not be reduced without scrolling
+							// prepare to undo the 17px reduction
+							undo = true;
+							return false;
+						}
+						_self.data('resizeCalcWidth', w - SCROLLBAR_WIDTH);
+					}
+				});
+				if (undo) {
+					// undo the 17px reduction
+					r.each(function (index) {
+						i--;
+						var _self = jQuery(this), w = _self.data('resizeCalcWidth') || 0;
+						if (w > 0) dim.setWidth(_self, w);
+						if (i < 0) return false;
+					});
+				}
+				r.each(FDWindowResize.reversed_resize_page);
+			}
+			l.each(FDWindowResize.resize_page_correct);
+
+			paddings = dim.getWidthOuterSpace(self); //dim.getHeightOuterSpace(self);
+			//String.log(resize_width_content(self) + ', ' + self[0].scrollWidth + ', ' + paddings);
+			if ((self.css('overflow') == 'auto' || self.css('overflow-x') == 'scroll') && dim.getContentWidth(self) < self[0].scrollWidth - paddings) {
+
+				//String.log('RESIZE CORRECT HEIGHT');
+				l = self.data('resizables-height'), r = self.data('reversed-height');
+				if (!l) {
+					l = self.find('.resize-height');
+					r = jQuery(l.get().reverse());
+					self.data('resizables-height', l).data('reversed-height', r);
+				}
+				undo = false;
+				r.each(function (index) {
+					i = index;
+					var _self = jQuery(this), h = _self.data('resizeCalcHeight') || 0, paddings = (Number.create(_self.data('resize-height-excluded')) || dim.getHeightOuterSpace(_self));
+					//String.log('scrollable=' + _self.parentsUntil(self, ':scrollable').length);
+					if (h > 0 && _self.parentsUntil(self, ':scrollable').length == 0) {
+						//this.setAttribute('resizeCorrentHeight', 'true'); 
+						dim.setHeight(_self, h - SCROLLBAR_WIDTH);
+						//this.setAttribute('reversePageHeightCorrect', 'h=' + h + '/' + (h-17) + ', scrollH=' + (this.scrollHeight - paddings - 1));
+						if (_self.css('overflow') != 'auto' && _self.css('overflow-y') != 'auto' && this.scrollHeight - paddings - 1 > h - SCROLLBAR_WIDTH) {
+							//String.log('WHOOPS UNDO RESIZE HEIGHT, ' + this.id + '/' + this.tagName + ', ' + (this.scrollHeight - paddings - 1) + '/' + (h - 17));
+							//this.setAttribute('resizeHeightUndo', true);
+							// whoops, the height of this element can not be reduced without scrolling
+							// prepare to undo the 17px reduction
+							undo = true;
+							return false;
+						}
+						_self.data('resizeCalcHeight', h - SCROLLBAR_WIDTH);
+					}
+				});
+				if (undo) {
+					// undo the 17px reduction
+					r.each(function (index) {
+						i--;
+						var _self = jQuery(this), h = _self.data('resizeCalcHeight') || 0;
+						if (h > 0) {
+							//this.setAttribute('resizeCorrentHeightUndo', 'true');
+							dim.setHeight(_self, h);
+						}
+						if (i < 0) return false;
+					});
+				}
+			}
+		},
+
+		resizeFromElement: function (el) {
+			var resizables = el.find('.resize-height,.resize-width'),
+				reversed = jQuery(resizables.get().reverse());
+
+			reversed.each(FDWindowResize.reversed_attributes);
+
+			// now loop again to hide the elements
+			reversed.each(FDWindowResize.reversed_hide);
+
+			//el.each(FDWindowResize.resizables_resize);
+
+			// resize the elements
+			resizables.each(FDWindowResize.resizables_resize);
+
+			// the width and/or height of the elements are adjusted from top to bottom
+			// now reverse loop through the elements to adjust the width and/or height again when the content is wider and/or higher than the element itself.
+			reversed.each(FDWindowResize.reversed_resize);
+
+		},
+
+		resetFromElement: function (el) {
+			var resizables = el.find('.resize-height,.resize-width'),
+				reversed = jQuery(resizables.get().reverse());
+
+			// resize the elements
+			reversed.each(FDWindowResize.reversed_reset);
+
+		}
+	});
+
+	__resize_window = new FDWindowResize();
+
+	$(window).resize(function () { __resize_window.checkDirection(); });
+
+	this.event_resize_window = function (evt, recur) {
+		var _rw = __resize_window;
+
+		if (SCROLLBAR_WIDTH < 0) {
+			SCROLLBAR_WIDTH = FDWindowResize.scrollbarWidth();
+		}
+		if (!recur) {
+			FDWindowResize._ts = new Date();
+		} else {
+			__resize_window.checkDirection();
+		}
+
+		if (_rw.disabled || (__isResizing && arguments.length < 2) || (!recur && __tmrRecuring > 0) /*|| (evt instanceof jQuery.Event && window.frameElement)*/) {
+			_rw.log('.event_resize_window, tmrRecuring=' + __tmrRecuring + ', isResizing=' + __isResizing + ', evt=' + (evt instanceof jQuery.Event) + ', frameElement=' + window.frameElement);
+			return;
+		}
+
+		var q = jQuery('.current-page').queue('fx');
+		if (q && q.length > 0) {
+			//alert('queue');
+			_rw.log('.event_resize_window, fx.queue.length=' + q.length);
+			(function () { __resize_window.log('.event_resize_window.fxDelayed, evt=' + evt + ', recur=' + recur); event_resize_window(evt, recur); }).delay(100);
+			return;
+		}
+
+		jQuery('body').css('overflow', 'hidden');
+		//FD.Debug.trace('resize', 'begin, resizing=' + __isResizing + ', evt=' + evt + '/' + (evt == jQuery) + ', recur=' + recur);
+
+		if (evt && (evt instanceof jQuery.Event)) {
+			window.clearTimeout(__tmrResize);
+			_rw.log('.event_resize_window, delay, ' + (evt instanceof jQuery.Event) + ', ' + (evt == jQuery));
+			__tmrResize = event_resize_window.delay(100, false, false);
+			return;
+		}
+		window.clearTimeout(__tmrResize);
+
+		//_rw.log('.event_resize_window, start');
+		//_rw.checkDirection();
+
+		if (!_rw.active) {
+			// cache the objects
+			_rw.cache();
+		}
+		if (!_rw.active) return;
+
+		__resize_window.isRecuring = recur || false;
+
+		var dim = FD.Element.Dimensions,
+			content = _rw._content, sidebar = _rw._sidebar, pages = _rw._pages,
+			resizables = _rw._resizables, reversed = _rw._reversed;
+
+		if (pages && pages.hasClass('no-scrolling')) pages = null;
+
+		__isResizing = _rw.isResizing = true;
+
+		if (pages) {
+			var page = jQuery('.current-page,.current-panel');
+			if (_rw.isResizing) { _rw.log('RESET VISIBILITY'); $('.content-page,.content-panel').data('visible', false); }
+		}
+
+		if (!recur) {
+			content.data('resizeScrollTop', content.scrollTop());
+			_rw.fireEvent('onBeforeResize');
+			(pages ? page : $('body')).find('.trigger-resize-after').trigger('afterResize');
+		}
+
+		content.css('overflow', 'hidden');
+		if (sidebar) {
+			sidebar.css('overflow-y', 'hidden');
+		}
+
+		var contentTop = content.offset().top + dim.getMargin(content, 'top'), buttonsHeight = dim.getHeight(jQuery('body > .bar-buttons,body > form > .bar-buttons'), true), navHeight = 0;
+		if (_rw._navbottom.length > 0) {
+			navHeight = dim.getHeight(_rw._navbottom, true);
+		}
+
+		//__resize_window.log('.event_resize_window, buttonHeight=' + _buttonsHeight + ', ' + (tmp ? tmp.getPropertyValue('height') : 'null'));
+
+		// the moment an element is hidden the offsetParent will be null. so, do a reverse loop to first save the offsetParent (and other properties).
+		// store several attributes first
+		reversed.each(FDWindowResize.reversed_attributes);
+
+		// now loop again to hide the elements
+		reversed.each(FDWindowResize.reversed_hide);
+
+		if (pages) {
+			//if (page.length > 0) page.css('overflow', 'hidden');
+			pages.data('resizeOverflow', pages.css('overflow')).css('overflow', 'hidden');
+		}
+
+		//var style = window.getComputedStyle(document.body);
+		var height = dim.getHeight(jQuery(document.body), true) - contentTop - buttonsHeight - navHeight;
+		dim.setHeight(content, height, true);
+		if (recur) {
+			if ($('body').css('visibility') == 'hidden') {
+				$('body').hide().css('visibility', '').fadeIn(400);
+			}
+		}
+
+		// resize the elements
+		resizables.each(FDWindowResize.resizables_resize);
+
+		// the width and/or height of the elements are adjusted from top to bottom
+		// now reverse loop through the elements to adjust the width and/or height again when the content is wider and/or higher than the element itself.
+		reversed.each(FDWindowResize.reversed_resize);
+
+		if (recur) {
+
+			if (sidebar) {
+				sidebar.css('overflow-y', (sidebar[0].scrollHeight > sidebar[0].offsetHeight + 1 ? 'auto' : 'visible'));
+			}
+
+			jQuery('.resize-height-overflow').each(function () { FDWindowResize.resize_scroll_correct($(this)); });
+
+			if (pages && page.length > 0) {
+
+				var overflow = (page[0].scrollHeight > page[0].offsetHeight + 1 || page[0].scrollWidth > page[0].offsetWidth + 1 ? 'auto' : 'visible'), diff = page.css('overflow') != overflow;
+				page.css('overflow', overflow);
+
+				if (diff) FDWindowResize.resize_scroll_correct(page);
+				page.toggleClass('resize-always', overflow == 'auto');
+
+			}
+
+			content.css('overflow', (content[0].scrollHeight - dim.getHeightOuterSpace(content) > dim.getContentHeight(content) + 2 || content[0].scrollWidth - dim.getWidthOuterSpace(content) > dim.getContentWidth(content) + 2 ? (content.hasClass('no-scrolling') ? 'visible' : 'auto') : 'hidden'));
+			//content[0].setAttribute('fdscrollHeight', (content[0].scrollHeight - dim.getHeightOuterSpace(content)));
+			//content[0].setAttribute('fdcontentHeight', dim.getContentHeight(content));
+
+			__resize_window.fireEvent('onAfterResize');
+			(pages ? page : $('body')).find('.trigger-resize-after').trigger('afterResize');
+
+			if (content.css('overflow') == 'auto') {
+				FDWindowResize.resize_scroll_correct(content);
+			}
+
+			if (content.data('resizeScrollTop') > 0) content.scrollTop(content.data('resizeScrollTop'));
+
+			jQuery('iframe').each(function () {
+				//__resize_window.log('.event_resize_window, resize frame (' + this.id + ')');
+				if (this.contentWindow.event_resize_window) {
+					//this.contentWindow.event_resize_window(false, true);
+				} else if (this.contentWindow.$) {
+					this.contentWindow.$(this.contentWindow).resize();
+				} else {
+					jQuery(this.contentWindow).resize();
+				}
+			});
+			if (content.css('visibility') == 'hidden') {
+				content.hide().css('visibility', '').fadeIn(300);
+			}
+			if (_rw._navbottom.length > 0 && _rw._navbottom.css('visibility') == 'hidden') {
+				_rw._navbottom.hide().css('visibility', '').fadeIn(300);
+			}
+			if (_rw._buttonbar && _rw._buttonbar.css('visibility') == 'hidden') {
+				_rw._buttonbar.hide().css('visibility', '').fadeIn(300);
+			}
+		}
+
+		window.setTimeout('__isResizing = __resize_window.isResizing = false;', 0);
+
+		if (!recur) {
+			//alert(FDWindowResize._ts.getTimeStamp() + ', ' + $('body').height());
+			__resize_window.log('.event_resize_window, set recuring timer in ' + FDWindowResize._ts.getTimeStamp() + ' ms');
+			__tmrRecuring = event_resize_window.delay(100, false, true);
+			return;
+		} else if (_rw.isShrinking.any) {
+			__resize_window.log('.event_resize_window, set shrinking timer');
+			_rw.setWidthHeight();
+			__tmrResize = event_resize_window.delay(100, false, true);
+		} else {
+			__resize_window.log('.event_resize_window, finished in ' + FDWindowResize._ts.getTimeStamp() + ' ms');
+		}
+
+		window.clearTimeout(__tmrRecuring);
+		__tmrRecuring = 0;
+
+		_rw.setWidthHeight();
+		//__resize_window.log('.event_resize_window, recuring');
+
+	}
+
+	FD.addEvent('onResize', event_resize_window);
+
+})();
+
+function resize_window() {
+	event_resize_window(false, false);
+}
+function event_presize_window() {
+	with (__resize_window) {
+		if (!active) return;
+		_content.css('overflow', 'hidden');
+		if (_pages) {
+			var page = jQuery('.current-page');
+			if (page.length > 0) page.css('overflow', 'hidden');
+			_pages.css('overflow', 'hidden');
+		}
+	}
+}
+
+function checkVersion(npVersion) {
+	return true;
+}
+
+var FDBackend = new Class({
+
+	Extends: FDBaseClass,
+	Implements: Events,
+	_class: 'FDBackend',
+
+	_trace: true,
+
+	_contextUrlParams: null,
+	_contextUrlParamsGeneral: ['lang', 'action', 'step', 'nextstep' /*/^id_([^_]*)$/*/],
+	_contextSaveParamsRemove: ['id_session', 'sidn', 'save', 'login', 'msg', 'ids', 'token', 'token_id'],
+
+	_viewportTmr: 0,
+
+	_params: null,
+	//Context: null,
+
+	olCSS: { table: 'fdoltable', cap: 'fdolcap', text: 'fdoltext' },
+	Clipboard: null,
+
+	initialize: function () {
+		this.parent();
+
+		this._contextUrlParams = this._contextUrlParamsGeneral.clone();
+		this.Context._parent = this;
+		this.Settings._parent = this;
+
+		this.getContext();
+
+		var dialog = false;
+		try { dialog = window.opener && window.opener.FD; } catch (e) { }
+
+		if (!this.Context.get('lockContext', false, 'boolean') || dialog) {
+			// when one of the context parameters is changed server side, the server will add the lockContext parameter to the cookie
+			this.setContextFromUrl(document.location.href);
+		}
+		this.Context.remove('lockContext');
+		this.Clipboard = new FDClipboard(this.Context.get('clipboard'));
+		this.Context.remove('clipboard');
+
+
+		// the .remove already saves the context // this.saveContext();
+
+		this.log('.initialize, context=' + this.Context.toString());
+
+		// temporary, remove the settings cookie with the wrong domain attribute
+		FD.Cookie.Remove('settings', '/' + FD.getInfo().domain + '/');
+
+
+		/*
+		var _fn = function () {
+		var toggle = 0;
+		$('.button-icon span.text').each(function () {
+		var self = $(this), parent = self.parent();
+		toggle = (self.css('display') == 'none' ? 2 : (parent.data('title') ? 1 : 0));
+		if (toggle == 2 && !parent.hasClass('tooltip-set')) {
+		parent.attr('title', self.html());
+		String.log('button-icon span.text changes, set tooltip events');
+		FD.Tooltip.setEvents(parent);
+		} else if (toggle < 2) {
+		FD.Tooltip.clearEvents(parent);btnAdd
+		if (toggle == 1) parent.attr('title', '');
+		}
+		});
+		};
+		$(document).ready(_fn);
+		$(window).resize(function () { String.log('window.resize'); if (_fn._tmr) clearTimeout(_fn._tmr); _fn._tmr = _fn.delay(200); });
+		*/
+
+		$(window).resize(
+			(function (e) {
+				clearTimeout(this._viewportTmr);
+				this._viewportTmr = this._viewport.delay(this, 100, e);
+			}).bind(this)
+		);
+		$(document).ready(this._init.bind(this));
+	},
+
+	_init: function () {
+
+		this._viewport();
+
+		try {
+			var routeInfo = FDUri.current.getRouteInfo();
+//alert(routeInfo.route);
+			if (!routeInfo.isEmpty()) {
+				var baseElement = $('base');
+				if (baseElement.length == 0) baseElement = $('<base href="" />').appendTo($('head'));
+				baseElement.attr('href', (!routeInfo.base || routeInfo.base == '/' && FD.getInfo().domain ? '/' + FD.getInfo().domain + '/' : routeInfo.base));
+
+				var loc = document.location.href;
+				if (loc.search('#') > -1) loc = loc.split('#')[0];
+
+				$('[href^="#"]').each(function () {
+					this.href = loc + $(this).attr('href');
+				});
+//alert(document.location.hash);
+				if (!String.empty(document.location.hash)) {
+					$(document.location.hash).click();
+				}
+			}
+		} catch (e) { alert(e); }
+
+		this.Title.Set();
+
+		//if (FD.getAuth().type == 'user')
+		var userName = (FD.getAuth().fullname || '');
+		$('#btnEditProfile span.text, .user-name span.text').html('&nbsp' + userName);
+
+		var _itemClick = function (e) {
+			var el = $(e.target);
+			if (!el.hasClass('item')) el = el.parents('.item').eq(0);
+			if (el.hasClass('button-disabled') || el.hasClass('is-disabled')) return;
+			FD.Backend.Pages.GoTo(Number.int(/[\d]+/.exec(el.prop('id'))));
+		};
+		$('[role="tablist"] .item').each(function () {
+			this.onmouseover = this.onmouseout = null;
+		}).on({
+			mouseover: BTN.MouseOver,
+			mouseout: BTN.MouseOut,
+			click: _itemClick,
+			keyup: function (e) {
+				if (e.keyCode.list(FDChar.KEYCODE_ENTER, FDChar.KEYCODE_TAB)) _itemClick(e);
+				else if (e.keyCode == FDChar.KEYCODE_UP) {
+					var self = $(this), list = self.parents('[role="tablist"]').find('[role="tab"]'), index = list.index(self);
+					if (index == 0) index = list.length;
+					list.get(--index).focus();
+				} else if (e.keyCode == FDChar.KEYCODE_DOWN) {
+					var self = $(this), list = self.parents('[role="tablist"]').find('[role="tab"]'), index = list.index(self);
+					if (index == list.length - 1) index = -1;
+					list.get(++index).focus();
+				}
+			}
+		}).attr('tabindex', 0);
+
+		$('.settings-yesno').each(function () {
+			var $self = $(this), f = function (e) {
+				$self.find('a').toggle(Boolean.create($self.find('input[type=radio]:checked').val()));
+			};
+			$self.find('input[type=radio]').on('change', f);
+			f();
+		});
+
+		var inIFrame = true;
+		try {
+			inIFrame = wnd.self != window.top;
+		} catch (e) { }
+
+		// This script is also loaded in the WYSIWYG (which is the form and therefore considered frontend), so we check if we are in the frontend or backend.
+		if (FD.isBackend() && !inIFrame) { // We are in the backend.
+
+			FDVisibilityChange.addEvent(function (type) {
+
+				// The frontend has it's own event method. To prevent conflicts in adding and removing the onbeforeunload event we make a distinction in the event namespace (thumb for jQuery). 
+				// The name of the FDVisibilityChange class is Backend or Frontend
+				var eventName = 'beforeunload.visibilitychange' + this.name;
+
+				this.log('.onChange, type=' + type + ', eventName=' + eventName);
+
+				var f = (function (evt, fromIFrame) {
+
+					var context = (fromIFrame ? top : window);
+
+					if (!context.FDVisibilityChange.isEnabled()) return;
+
+					var msg = FD.Texts.get('Alert.ALERT_NAVIGATE_AWAY');
+					evt.returnValue = msg;
+
+					this.log('.onChange.event, type=' + type + ', fromIFrame=' + fromIFrame);
+
+					top.FD.Backend.setMessage(msg);
+
+					var href = top.location.href;
+					window.setTimeout(function () { top.location = href; }, 100);
+
+					try {
+
+						$(context).off(eventName);
+						context.FDVisibilityChange.toggle(false);
+
+						$(context).find('iframe').each(function () {
+							$(this.contentWindow).off(eventName);
+						});
+
+					} catch (e) { this.log(e.message || '', 'error'); }
+
+					return msg;
+
+				}).bind(this);
+
+				if (type == 'hidden') {
+					$(window).on(eventName, f);
+				} else {
+					$(window).off(eventName);
+				}
+
+				$('iframe').each(function () {
+					if (type == 'hidden') {
+						$(this.contentWindow).on(eventName, function (evt) { return f(evt, true); });
+					} else {
+						$(this.contentWindow).off(eventName);
+					}
+				});
+
+			});
+		}
+
+		var meta = doc.getElementsByName('validation-message')[0];
+		if (!meta) meta = doc.getElementsByName('client-message')[0];
+		if (meta && $('.message-alert').length == 0) {
+			this.setMessage(meta.content);
+		}
+
+		this.showMessage.delay(this, 1000);
+
+	},
+
+	_viewport: function (e) {
+		var mode = $('.navbar-mode'), setting = this.Settings.get('responsive/mode', 'mobile'), body = $('body');
+		if (mode.length > 0 && mode.css('display') != 'none') {
+			if (!body.hasClass('mode-mobile') && !body.hasClass('mode-desktop')) {
+				setting = (setting.list('mobile', 'desktop') ? setting : 'mobile');
+				$('body').addClass('mode-' + setting);
+				var _click = function (e) {
+					try {
+						var setting = ($(this).hasClass('mode-mobile') ? 'mobile' : 'desktop'); //this.className.replace('icon-', '');
+						$('body').removeClass('mode-mobile mode-desktop').addClass('mode-' + setting);
+						FD.Backend.Settings.set('responsive/mode', setting);
+					} catch (e) { alert(e); }
+					//alert(setting);
+					if (setting == 'desktop') {
+						FD.ViewPort.Set(null, 1024); //FD.ViewPort.remove();
+					} else if (FD.Browser.mobile) FD.ViewPort.setToScreenWidth();
+					FD.Tooltip.hide();
+					$(window).resize();
+				};
+				mode
+					.append(FDButtonFactory.create({ buttonClassName: 'mode-mobile', suffix: 'icon', className: 'mobile', label: FD.Texts.get('MODE_MOBILE'), onclick: _click }))
+					.append(FDButtonFactory.create({ buttonClassName: 'mode-desktop', suffix: 'icon', className: 'desktop', label: FD.Texts.get('MODE_DESKTOP'), onclick: _click }));
+
+				if (setting == 'desktop') { /*FD.ViewPort.Set(null, 768);*/ }
+				else if (FD.Browser.mobile) FD.ViewPort.setToScreenWidth();
+			}
+			//$(window).unload(function () { FD.ViewPort.Set(null, 1024); });
+		} else {
+			$('body').removeClass('mode-mobile mode-desktop');
+			//alert('resetting viewport, ' + e.type);
+			//FD.ViewPort.Set(null, 1024);
+			if (e && (!String.is(e.type) || e.type != 'resize')) setTimeout('$(window).resize();', 100);
+		}
+	},
+
+	Context: {
+		_parent: null,
+		_get: function () {
+			return this.getCurrent(); // 16-12-2021
+			//			return FD.getContext().remove('nextstep');
+		},
+		_current: null,
+		getCurrent: function () {
+			if (!this._current) {
+				this._current = FD.getContext().remove('nextstep');
+			}
+			return this._current;
+		},
+		setCurrent: function (context) {
+			if (!context) {
+				context = FD.getContext().remove('nextstep');
+			}
+			this._current = context;
+		},
+		get: function () {
+			var context = this.getCurrent();
+			return context.get.apply(context, arguments);
+		},
+		set: function () {
+			var context = this.getCurrent();
+			context.set.apply(context, arguments);
+			this._parent.saveContext(context);
+			return this;
+		},
+		merge: function () {
+			var context = this.getCurrent();
+			context.merge.apply(context, arguments);
+			this._parent.saveContext(context);
+			return this;
+		},
+		remove: function () {
+			var context = this.getCurrent(), retval = context.remove.apply(context, arguments);
+			this._parent.saveContext(context);
+			return retval;
+		},
+		exists: function () {
+			var context = this.getCurrent();
+			return context.exists.apply(context, arguments);
+		},
+		getSnapshot: function () {
+			return this._get();
+		}
+	},
+
+	getContext: function () {
+		//this.log('.getContext');
+		//this.Context = FD.getContext().remove('nextstep');
+	},
+	setContext: function (context) {
+		this.Context.merge(context);
+	},
+	saveContext: function (context) {
+		if (!FD.getInfo().domain || FD.isFrontend()) return;
+
+		if (!context) context = this.Context.getCurrent();
+
+		if (context.exists('step_real')) context.remove('step').keyChange('step_real', 'step');
+		//if (this.Clipboard && this.Clipboard.Count() > 0) this.Context.set('clipboard', this.Clipboard.toString());
+		context.remove('clipboard');
+
+		this.log('.saveContext, context=' + context.toString());
+
+		try { FD.saveContext(context.remove(this._contextSaveParamsRemove)); } catch (e) { alert(e); }
+
+		// Take a kind of snapshot of the current context
+		// Each instance, loaded in different windows, have their own snapshot
+		// The snapshot can be / is used when calling Save or Go methods
+		this.Context.setCurrent(context);
+	},
+	resetContext: function (context) {
+		this.Context.setContent(context);
+	},
+
+	// use a getter and a setter which communicate with the settings cookie constantly
+	// getting and setting values in different windows concurrently won't conflict this way
+	Settings: {
+		_parent: null,
+		// lowercase method names to stay in sync with the FDKeys object
+		get: function () {
+			var settings = FD.Cookie.GetKeys('settings', null, true);
+			return settings.get.apply(settings, arguments);
+		},
+		set: function () {
+			var settings = FD.Cookie.GetKeys('settings', null, true, FD.getInfo().domain);
+			settings.set.apply(settings, arguments);
+			if (settings.changed) {
+				settings.set('domain', FD.getInfo().domain);
+				this._parent.log(['.Settings.set', settings]);
+				FD.Cookie.Set('settings', settings, 365, '/' + FD.getInfo().domain, FDUri.current.isSecure()); //
+				//FD.Cookie.Set('settings', settings, 365, '/', FDUri.current.isSecure());
+			}
+		}
+	},
+
+	setContextFromUrl: function (url) {
+		var url = new FDUri(url);
+		if (url.query.length > 0) {
+
+			url.removeVersion().query.remove(['login', 'layout']);
+
+			if (url.query.exist('nextstep_real')) url.query.remove('step').keyChange('nextstep_real', 'step');
+			else if (url.query.exist('nextstep')) url.query.remove('step').keyChange('nextstep', 'step');
+
+			this.log('.setContextFromUrl, merge=' + url.query);
+
+			this.Context.merge(url.query);
+
+			if (!url.queryExists('action')) this.Context.remove('action');
+			if (!url.queryExists('step')) {
+				this.Context.remove(['nextstep', 'step', 'prevaction']);
+			}
+
+			this._contextUrlParams = this._contextUrlParams.concat(url.query.getKeys()).distinct();
+
+			this.log('.setContextFromUrl, urlkeys=' + url.query.getKeys() + ', contextUrlParams=' + this._contextUrlParams);
+		}
+	},
+
+	_getContext: function (args) {
+		if (typeof args.action != 'undefined' || typeof args.step != 'undefined' || typeof args.route != 'undefined') { // consider the parameter the be the next context
+			this.log('._getContext, consider the argument to be the next context (args=' + Object.inspect(args));
+			var context = { current: this.Context.getCurrent(), next: new FDKeys(args) };
+		} else if (typeof args.context != 'undefined') {
+			var context = { current: new FDKeys(args.context).merge(args.current || []), next: new FDKeys(args.next || args.context) };
+		} else {
+			// 16-12-2021 var context = { current: new FDKeys(this.Context._get()).merge(args.current || []), next: new FDKeys(args.next || this.Context._get()) };
+			var context = { current: new FDKeys(this.Context.getCurrent()).merge(args.current || []), next: new FDKeys(args.next || this.Context.getCurrent()) };
+		}
+		if (!context.next.exists('action') && !context.current.get('action', '', 'string').empty()) context.next.set('action', context.current.get('action'));
+		if (!context.next.exists('step') && !context.current.get('step', '', 'string').empty()) context.next.set('step', context.current.get('step'));
+
+		// In case we are working with the new route url structure (eg. formdesk.com/demo/~form/layout), then the action is left empty
+		// When no route is passed, take the route from the current route information
+		var routeInfo = FDUri.current.getRouteInfo();
+		if (context.next.get('action', '', 'string').empty() && !context.next.exists('route') && routeInfo.route) context.next.set('route', routeInfo.route);
+		if (!context.next.exists('from') && routeInfo.route) context.next.set('from', routeInfo.route);
+
+
+		this.log('._getContext, current=' + context.current.toString() + ', next=' + context.next.toString());
+
+		return context;
+	},
+
+	Save: function (args, recuring) {
+
+		this.log('.Save');
+
+		var self = this, context = this._getContext(args), wnd = args.window || window;
+		recuring = recuring || 0;
+
+		if (!recuring && !FD.Events.FireEvent('BeforeSubmit', { arguments: arguments, final: function () { self.Save(args, 1); } })) {
+			return false;
+		}
+
+		if (recuring < 2) {
+			// do stuff before any validation or decision making stuff
+			this.fireEvent('onPrepareSave');
+
+			if (!this._validate()) return false;
+			if (!FD.Events.FireEvent('ValidateForm', null, true)) { this.fireEvent('onCancelSave'); return false; }
+			if (!this.fireDecision('onBeforeSave', { final: function () { self.Save(args, 2); }, save: function () { self.Save(args); } })) { this.fireEvent('onCancelSave'); return false; }
+			if (typeof wnd.CheckForm == 'function') {
+				var retval = wnd.CheckForm();
+				if (typeof retval == 'boolean' && !retval) { this.fireEvent('onCancelSave'); return false; }
+			}
+		}
+
+		if (!FD.Lock.Check(function () { self.Save(args, true); })) {
+			return;
+		}
+
+		this.fireEvent('onBeforeSubmit'); // realy last chance to do something before submitting
+
+		//alert(context.current.get('action', 0, 'int') + ', ' + context.current.get('step', 0, 'int') + '\n' + wnd.document.builder.action);
+		var url = this.getUrl(args, wnd.document.builder.action), routeInfo = FDUri.current.getRouteInfo();
+		if (routeInfo.next)
+			url.querySet('next', routeInfo.next);
+
+		wnd.document.builder.action = url.toString();
+
+		this.addRvToken(wnd.document);
+		FD.Form.AppendElement(wnd.document, 'input[type="hidden"]', '_fd_charset', wnd.document.charset, false);
+
+		if (context.current.get('action', 0, 'int') == 7 && context.current.get('step', 0, 'int').list(43, 50)) {
+			if (context.next.get('step', 0, 'int').list(40, 43, 12)) {
+				try { parent.top.FD.Window.showLoader(); } catch (e) { };
+			}
+
+			wnd.document.builder.target = '';
+
+		} else {
+			try { /*top.FD.Window.hideDialogs();*/top.FD.Window.showLoader(); } catch (e) { };
+		}
+
+		this.Context.merge(context.next);
+		top.FDVisibilityChange.toggle(false);
+		FDVisibilityChange.toggle(false);
+
+		wnd.document.builder.submit();
+
+	},
+
+	addRvToken: function (doc) {
+		var rvtoken = FD.getAuth().rvtoken, rvtokenid = FD.getAuth().rvtokenid;
+		if (rvtoken) {
+			FD.Form.AppendElement(doc, 'input[type="hidden"]', '__rvtoken', rvtoken, false);
+		}
+		if (rvtokenid) {
+			FD.Form.AppendElement(doc, 'input[type="hidden"]', '__rvtoken_id', rvtokenid, false);
+		}
+	},
+
+	_validate: function () {
+		var elements = {}, i, j, lenI, lenJ, types, page, value, key, question;
+		var validate = (typeof FD.Validate == 'undefined' ? top.FD.Validate : FD.Validate);
+
+		//this.log('.validate', 'group');
+
+		$('.validate').each(function (index, el) {
+			var self = $(el);
+			if (self.css('display') != 'none' && self.parents().filter(function () { return $(this).css('display') == 'none'; }).length == 0) { // self.parents('.value').parent().css('display') != 'none' && self.parents('.fieldset').css('display') != 'none') {
+				var name = el.name;
+				if (typeof elements[name] == 'undefined') elements[name] = [el];
+				else {
+					elements[name].push(el);
+				}
+			}
+		});
+		this.log(['._validate', elements]);
+		for (i in elements) {
+			types = elements[i][0].className.match(/validate-(\S*)/gi);
+			page = FD.Backend.Pages.find(elements[i][0]);
+			question = '';
+			if ($(elements[i][0]).attr('aria-labelledby')) question = $('#' + $(elements[i][0]).attr('aria-labelledby').split(',')[0]).html();
+			else {
+				value = $(elements[i][0]).closest('.value');
+				if (value.length > 0) {
+					key = value.prev('.key');
+					if (key.length > 0) question = key.html();
+				}
+			}
+			for (j = 0, lenJ = types.length; j < lenJ; j++) {
+				this.log(['.validate, types=' + types + ', question=' + question, elements[i]]);
+				// el, type, range, question, fel, wnd, page
+				if (!validate.CheckValue(elements[i], types[j], null, question, null, window, page)) return false;
+			}
+		}
+		return true;
+	},
+
+	saveDialog: function (args, recuring) {
+
+	},
+
+	Go: function (args, recuring) {
+
+		this.log(['.Go', args]);
+
+		var self = this, context = this._getContext(args), wnd = args.window || window;
+		recuring = recuring || 0;
+
+		if (context.current.get('save', false, 'boolean')) return this.Save(args); // the current page is marked to be saved using a post
+
+		if ((typeof args.cancel == 'undefined' || !args.cancel) && recuring < 2) {
+			if (!FD.Events.FireEvent('ValidateForm', null, true)) return false;
+			if (!this.fireDecision('onBeforeSave', { final: function () { self.Go(args, 2); } })) return false;
+			if (typeof wnd.CheckForm == 'function') {
+				var retval = wnd.CheckForm();
+				if (typeof retval == 'boolean' && !retval) { return false; }
+			}
+		}
+
+		try { /*top.FD.Window.hideDialogs();*/top.FD.Window.showLoader.delay(top.FD.Window, 0); } catch (e) { };
+		if (!FD.Lock.Check(function () { self.Go(args, true); })) {
+			return;
+		}
+
+		var url = this.getUrl(args, null, true).set('hash', ''); //.toString();
+		// this is done in the getUrl
+		//this.Context.merge(context.next);
+		//this.saveContext();
+
+		this.log('.Go, url=' + url.toString());
+
+		if (context.current.delaySubmit || context.next.delaySubmit) {
+			(function () { url.goto({ document: wnd.document }); }).delay(1000);
+		} else {
+			url.goto({ document: wnd.document });
+		}
+
+	},
+
+	Previous: function () {
+		var current = $('.navbar .current-navbar-item'), prev = current.prev();
+		if (prev.size() > 0) prev.click();
+	},
+	Next: function () {
+		var current = $('.navbar .current-navbar-item'), next = current.next();
+		if (next.size() > 0) next.click();
+	},
+
+	getUrl: function (args, url, mergeContext, sameContext) {
+
+		this.log('.getUrl', 'group');
+		this.log(['.getUrl', args, url]);
+
+		var wnd = args.window || window, omitFrom = url != null;
+		if (args.window) delete args.window;
+		var context = this._getContext(args), params = this.getParameters(context, sameContext);
+
+		url = new FDUri(url && (!args.route || args.route == '#') ? url : '/' + FD.getInfo().domain + '/'); // (wnd.location.href.search('formdesk_error') < 0 && wnd.location.href.search('empty.htm') < 0 && /https?\:\/\//.test(wnd.location.href) ? wnd.location.href : 'builder.asp'));
+
+		if (context.next.get('mergeQuery', false, 'boolean')) url.query.remove('id_form').merge(params.remove('mergeQuery'));
+		else url.query = params; //.remove('id_form').merge(params);
+
+		if (args.route) {
+
+			if (!String.is(args.route) || args.route != '#') {
+				var route = args.route;
+				if (!FDUriRoute.is(route)) {
+					route = FDUriRoute.create(route);
+					url.queryRemove('route');
+				}
+				if (typeof (args.id) != 'undefined') {
+					route.segments.last().id = args.id;
+					url.queryRemove('id');
+				}
+				if (typeof (args.extension) != 'undefined') {
+					route.segments.push({ name: args.extension });
+					url.queryRemove('extension');
+				}
+				url.setRoute(route, { omitFrom: omitFrom });
+				context.next.set('route', route.toString());
+
+			} else if (String.is(args.route) && args.route == '#') {
+				var routeInfo = url.getRouteInfo();
+				if (typeof (args.id) != 'undefined') {
+					var last = routeInfo.segments.last();
+					if (last) {
+						last.id = args.id;
+					}
+				}
+				if (typeof (args.extension) != 'undefined') {
+					routeInfo.segments.push({ name: args.extension });
+				}
+			}
+
+			url.query.remove('route');
+
+			if (!args.action) url.query.remove('action');
+			if (!args.nextstep) {
+				url.query.remove(['nextstep', 'step', 'prevaction']);
+			}
+		}
+
+		url.query.set('sidn', FD.getAuth().sidn || '');
+		url.addVersion();
+
+		this.log('.getUrl, url=' + url.toString());
+
+		if (mergeContext) this.Context.merge(context.next);
+		this.saveContext();
+
+		this.log('', 'groupEnd');
+
+		return url;
+	},
+
+	makeSessionUrl: function (url) {
+		var url = new FDUri(url);
+		return url.makeSession();
+	},
+
+	replaceUrl: function (url) {
+
+		FDVisibilityChange.toggle(false);
+		window.location.replace(url);
+
+	},
+
+	getParameters: function (context, sameContext) {
+
+		var routeInfo = FDUri.current.getRouteInfo();
+		var filter = null;
+
+		if (sameContext || (context.current.get('action', 0, 'int') == context.next.get('action', 0, 'int') && (context.next.get('route', '').empty() || context.next.get('route', '') == '#' || context.next.get('route', '') == routeInfo.route))) {
+			filter = this._contextUrlParams;
+			this.log('.getParameters, filter urlParams');
+		} else {
+			filter = this._contextUrlParamsGeneral;
+			this.log('.getParameters, filter urlParamsGeneral');
+		}
+
+		params = new FDKeys({ lang: FD.getInfo().lang }).merge(context.current.filter(filter), context.next.filter(['step'], true));
+
+		this.log(['.getParameters', filter, routeInfo, context, params]);
+
+		if (routeInfo.route) {
+			params.set('from', routeInfo.route);
+		} else {
+			params.merge({ prevaction: context.current.get('action'), step: context.current.get('step') });
+			params.remove('from');
+		}
+
+		if (context.next.get('route'))
+			params.set('route', context.next.get('route'));
+		else {
+			if (context.next.exists('prevstep'))
+				params.set('step', context.next.get('prevstep'));
+			params.set('nextstep', context.next.get('step'));
+		}
+
+		//params.merge({ prevaction: context.current.get('action'), step: context.current.get('step'), nextstep: context.next.get('step') });
+		params.keyChange('step_real', 'nextstep_real');
+
+		if (((params.get('action') == 7 && params.get('nextstep') == 10) || params.get('route') == 'form/settings') && params.exist('id_form')) { // the form settings tab
+			this.log('.getParameters, remove id_form');
+			params.remove('id_form');
+		}
+
+		if ((params.get('action') == 5 && params.get('nextstep') == 100) || params.get('route') == 'account') { // account/personal data request
+			var date = new Date();
+			params.set('tzi', date.getTimezoneOffset());
+		}
+
+		this._params = params;
+
+		this.log(['.getParameters, ' + params.toString(), params]);
+
+		return params;
+	},
+
+	Title: {
+
+		_org: '',
+		_title: '',
+		_added: [],
+
+		Set: function () {
+			var wnd = window, fromOpener = false;
+			try {
+				if (window.opener && window.opener.top.FD) {
+					wnd = window.opener.top;
+					fromOpener = true;
+				}
+			} catch (e) { }
+
+			if (typeof FD.Backend == 'undefined') return; // this can happen when a pdf is loaded. the pdf whipes out the variables.
+
+			if (!this._org) this._org = document.title;
+
+			var title = this._org.split(' - '), preTitle = title[0] || FD.getLabel().name, top;
+			if (fromOpener) {
+				title = wnd.document.title.append((title.length > 1 ? title[1] : ''), ' - ');
+				document.title = title;
+			} else {
+				preTitle = preTitle.append(FD.getInfo().domain, ' - ');
+				preTitle = preTitle.append(FD.Backend.Context.get('window.title'), ' - ');
+				preTitle = preTitle.append($('.current-navbar-item a').html() || '', ' - ');
+
+				title[0] = preTitle;
+				document.title = title.join(' - ');
+			}
+
+			FD.Backend.log('.Title.Set, title=' + document.title);
+
+			this._title = document.title;
+		},
+
+		Add: function (part, pos) {
+			if (arguments.length == 1 || pos > this._added.length)
+				this._added.push(part);
+			else
+				this._added[pos - 1] = part;
+			document.title = this._title.append(this._added.join(' - '), ' - ');
+		},
+		Remove: function (pos) {
+			if (Number.is(pos)) {
+				if (pos.between(1, this._added.length)) {
+					this._added.remove(pos - 1);
+				}
+			} else {
+				this._added = [];
+			}
+			document.title = this._title.append(this._added.join(' - '), ' - ');
+		},
+		Restore: function () {
+			document.title = this._title;
+		}
+	},
+
+	showMessage: function (has_message, show_message) {
+		if (top.FD.Window && top.FD.Window.isOpen()) return;
+		if (arguments.length > 0 && Boolean.is(arguments[0]))
+			this.Context.set('hasMessage', has_message);
+
+		this.log('.showMessage, hasMessage=' + this.Context.get('hasMessage', false, 'boolean') + ', showMessage=' + (this.Context.get('showMessage', true, 'boolean') || show_message));
+
+		if (this.Context.get('hasMessage', false, 'boolean') && (this.Context.get('showMessage', true, 'boolean') || show_message)) {
+
+			top.FD.Window.frame({ url: this.getUrl({ action: 13, step: 10 }), width: 600, height: 300, stickOnTop: true });
+
+		} else if (this.Context.get('message')) {
+
+			var msg = this.Context.get('message');
+			this.Context.remove('message')
+			this.saveContext();
+
+			top.FD.Window.alert({ content: msg, stickOnTop: true }); //, width: 600, height: 300
+
+		}
+	},
+
+	setMessage: function (message) {
+
+		this.Context.set('message', message);
+		this.saveContext();
+
+	}
+
+});
+
+// Add an empty backend object to the jQuery formdesk object for rest client functionality
+$.formdesk.backend = {};
+
+var FDFormResultsFilter = new Class({
+
+	Extends: FDBaseClass,
+	_class: 'FDFormResultsFilter',
+
+	current: 0,
+	previous: 0,
+
+	currentView: 0,
+
+	initialize: function () {
+
+		this.parent.apply(this, arguments);
+
+		this.current = FD.Backend.Context.get('filters/' + FD.Backend.Context.get('id_form') + '/type', 0, 'int');
+		this.previous = this.current;
+
+		$(document).ready(this._init.bind(this));
+
+	},
+
+	_init: function () {
+		FD.get('rdoType')[this.current].checked = true;
+		$('[for="rdoType' + (this.current + 1) + '"]').css('fontWeight', 700);
+		$('#btnS').setDisabled(FD.get('txtKeyword').value.empty());
+		$('#btnP2').setDisabled(this.current != 2);
+		$('#btnP3').setDisabled(this.current != 3);
+	},
+
+	setFilter: function () {
+		this.set.apply(this, arguments);
+	},
+	set: function (type, noload) {
+
+		$('[for="rdoType' + (this.current + 1) + '"]').css('fontWeight', '');
+
+		this.previous = this.current;
+		this.current = (arguments.length > 0 ? type : parseInt(FD.selected('rdoType', 'value')))
+
+		FD.get('rdoType')[this.current].checked = true;
+		$('[for="rdoType' + (this.current + 1) + '"]').css('fontWeight', 700);
+
+		var url = FD.Backend.getUrl({ route: 'form/results' /*action: 8, step: 120*/ }), el;
+		FD.Backend.Context.set('filters/' + FD.Backend.Context.get('id_form') + '/type', this.current);
+
+		$('#btnP2').setDisabled(this.current != 2);
+		$('#btnP3').setDisabled(this.current != 3);
+
+		if (this.current == 1) {
+
+			el = FD.get('txtKeyword');
+			if (el.value.empty()) {
+
+				if (this.current == this.previous)
+
+					this.set(0);
+
+				else {
+
+					FD.Window.alert(FD.Texts.get('FormResults.FILTER_EMPTY'));
+					this.set(this.previous, true);
+					el.focus();
+
+				}
+
+				return;
+			}
+
+			url.query.set('keyword', el.value);
+			FD.Backend.Context.set('filters/' + FD.Backend.Context.get('id_form') + '/keyword', el.value);
+
+		} else if (this.current == 2 && nRules <= 0 && !lColumns && !noload) {
+
+			if (this.previous != this.current)
+				this.set(this.previous, true);
+
+			this.openSettings(1);
+
+			return;
+
+		} else if (this.current == 3) {
+
+			el = FD.get('cboViews');
+			if (el.length == 0) {
+
+				if (this.previous != this.current)
+					this.set(this.previous, true);
+
+				this.openSettings(2);
+
+				return;
+			}
+			if (el.selectedIndex <= -1)
+				el.selectedIndex == 0;
+
+			url.set('id_view', el.value);
+			FD.Backend.Context.set('filters/' + FD.Backend.Context.get('id_form') + '/id', el.value);
+		}
+		FD.Backend.saveContext();
+
+		FD.get('rdoType')[this.current].focus();
+
+		if (!noload) {
+			FD.Window.showLoader();
+			document.location.replace(url.toString());
+		}
+	},
+
+	openSettings: function (type) {
+		if (type == 1) {
+			FD.Window.showClassic({ standalone: true, url: FD.Backend.getUrl({ action: 8, step: 100 }), width: 880, height: 600 });
+		} else if (type == 2) {
+			FD.Window.showClassic({ standalone: true, url: FD.Backend.getUrl({ action: 15, step: 20, id_view: FD.get('cboViews').value.int() }), width: 880, height: 700 });
+		}
+	},
+	cancel: function () {
+		if (nRules <= 0) this.set(this.previous, true);
+	},
+	setView: function (list, set) {
+
+		var el = FD.get('cboViews');
+		this.currentView = el.value.int();
+
+		removeOptions(null, el);
+		copyOptions(list, el);
+
+		if (set) {
+			el.selectedIndex = list.selectedIndex;
+			if (el.options.length == 0)
+				this.set(0);
+			else
+				this.set(3);
+		} else {
+			el.value = this.currentView;
+			if (this.current == 3 && (this.currentView != el.value || el.selectedIndex == -1))
+				this.set(0);
+		}
+	}
+
+});
+
+var FDClipboard = new Class({
+
+	Extends: FDBaseClass,
+	_class: 'FDClipboard',
+
+	_trace: false,
+
+	_items: [],
+	_id_form: 0,
+	_type: '',
+	_func: null,
+
+	initialize: function (settings) {
+		this.parent();
+		if (settings) this.fromString(settings);
+	},
+
+	fromString: function (settings) {
+		if (!Array.is(settings)) settings = new FDKeys(settings, { decode: true });
+		this._items = settings.get('items').split(',');
+		this._id_form = settings.get('id_form', 0, 'int');
+		this._func = settings.get('func');
+
+		this.log('.fromString, id_form=' + this._id_form + ', func=' + this._func + ', items=' + this._items);
+	},
+	toString: function () {
+		var settings = new FDKeys({ id_form: this._id_form, type: this._type, func: this._func, items: this._items.toString() });
+		return settings.toString();
+	},
+
+	Set: function (type, func, items) {
+		this._id_form = FD.Backend.Context.get('id_form', 0, 'int');
+		this._type = type;
+		this._func = func;
+		this._items = [];
+		for (var i = 0; i < items.length; i++) {
+			this._items[i] = items[i];
+		}
+	},
+	Get: function () {
+		if (this._func) {
+			if (Function.is(this._func)) this._func();
+			else {
+				var frame = $('iframe');
+				if (frame.length > 0) {
+					var WYSIWYG = frame[0].contentWindow.WYSIWYG;
+					if (WYSIWYG) WYSIWYG.Actions[this._func]();
+				}
+			}
+		}
+	},
+	Items: function () {
+		return this._items;
+	},
+
+	Check: function () {
+		return (this._items.length > 0 && this._id_form == FD.Backend.Context.get('id_form', 0, 'int'));
+	},
+	GetType: function () {
+		return this._type;
+	},
+	Count: function () {
+		return this._items.length;
+	}
+});
+
+FD.Backend = new FDBackend();
+
+var FDMergeCodes = new Class({
+
+	Extends: FDBaseClass,
+	_class: 'FDMergeCodes',
+
+	_key: { 'string': 'identifier', 'number': 'id' },
+	_systemcodes: null,
+	_items: null,
+
+	_deferred: null,
+
+	initialize: function (options) {
+
+		if (FDOptions.is(options)) {
+
+			this.parent.apply(this, arguments);
+
+			this.get();
+
+		} else if (Array.is(options)) {
+			this.set('items', options);
+		}
+
+	},
+
+	get: function () {
+
+		this._deferred = new $.Deferred();
+		this._deferred
+			.done((function () { this.log('.done'); }).bind(this))
+			.promise(this);
+
+		this.progress(this._progress.bind(this));
+
+		if ((this.options.type & FDMergeCodes.TYPE_SYSTEM) != 0) {
+			FD.Ajax.Form.Task.get('mergecodes')
+				.done((function (data) { this._deferred.notify(FDMergeCodes.TYPE_SYSTEM, data.results); }).bind(this))
+				.fail((function () { this._deferred.notify(FDMergeCodes.TYPE_SYSTEM, []); }).bind(this));
+		}
+		if ((this.options.type & FDMergeCodes.TYPE_ITEMS) != 0) {
+			FD.Ajax.Form.Task.get('items', { async: true, query: { format: 'JSON' } })
+				.done((function (data) { this._deferred.notify(FDMergeCodes.TYPE_ITEMS, data.results); }).bind(this))
+				.fail((function () { this._deferred.notify(FDMergeCodes.TYPE_ITEMS, []); }).bind(this));
+		}
+	},
+
+	_progress: function (type, results) {
+
+		this.log(['._progress, type=' + type, results]);
+
+		var mergecodes = (this.options.type & FDMergeCodes.TYPE_SYSTEM) != 0,
+			items = (this.options.type & FDMergeCodes.TYPE_ITEMS) != 0;
+
+		if (type == FDMergeCodes.TYPE_SYSTEM) {
+			this.set('systemcodes', results);
+		} else if (type == FDMergeCodes.TYPE_ITEMS) {
+			this.set('items', results);
+		}
+
+		if ((mergecodes && items && this._mergecodes && this._items)
+			|| (mergecodes && !items && this._mergecodes)
+			|| (!mergecodes && items && this._items)) {
+
+			this._deferred.resolve();
+
+		}
+
+	},
+
+	set: function (type, list) {
+
+		this['_' + type] = new FDObjects(FDOptions.create({ key: this._key }), list);
+		this['_' + type].sort();
+
+	},
+
+	render: function (options) {
+
+		if (this._deferred) {
+			this.done(this._render.bind(this, options));
+		} else {
+			this._render(options);
+		}
+
+		return this;
+
+	},
+	_render: function (options) {
+
+		this.log(['._render', options]);
+
+		switch (options.format) {
+			case 'options':
+				var list = options.list, i, keys = (options.keys || { value: this._key['string'], text: this._key['string'] });
+				list.append($('<option value=""></option>'));
+
+				if (this._systemcodes && ((!options.type && (this.options.type & FDMergeCodes.TYPE_SYSTEM) != 0) || (options.type && (options.type & FDMergeCodes.TYPE_SYSTEM) != 0))) {
+					this._systemcodes.forEach(function (el) {
+						list
+							.append($("<option></option>")
+								.attr("value", el[keys.value])
+								.text(el[keys.text]));
+					});
+				}
+
+				if (this._items && ((!options.type && (this.options.type & FDMergeCodes.TYPE_ITEMS) != 0) || (options.type && (options.type & FDMergeCodes.TYPE_ITEMS) != 0))) {
+					this._items.forEach(function (el) {
+						list
+							.append($("<option></option>")
+								.attr("value", el[keys.value])
+								.text(el[keys.text]));
+					});
+				}
+
+				if (options.value) list.attr("value", unescape(options.value));
+				break;
+		}
+
+	},
+
+	setLabel: function (options) {
+
+		if (this._deferred) {
+			this.done(this._setLabel.bind(this, options));
+		} else {
+			this._setLabel(options);
+		}
+
+		return this;
+
+	},
+	_setLabel: function (options) {
+
+		var list;
+		if ((options.type && (options.type & FDMergeCodes.TYPE_SYSTEM)) || (this.options.type & FDMergeCodes.TYPE_SYSTEM) != 0) {
+			list = this._systemcodes;
+		} else {
+			list = this._items;
+		}
+		if (!list) return;
+
+		var code = list.search(options.search), label = (code ? code['label'] : '');
+		if (options.truncate) {
+			label = label.stripHTML().truncate(Number.is(options.truncate) ? options.truncate : 50);
+		}
+
+		options.el.val(label);
+
+	}
+
+}).extend({
+
+	TYPE_ITEMS: 1,
+	TYPE_SYSTEM: 2,
+	TYPE_BOTH: 3,
+
+	create: function (options) {
+		options = options || {}
+		if (!options.type) options.type = this.TYPE_BOTH;
+
+		return new FDMergeCodes(FDOptions.create(options));
+
+	}
+
+});
+
+// to depricate
+function setVersions(info) {
+	return;
+	try {
+		if (String.is(info)) {
+			info = FD.setInfo(info);
+		}
+		if (!info) info = FD.getInfo();
+		var version = top.Global.Version;
+		if (info.version) {
+			version.product = info.version.app;
+			if (info.version.assets && version.all != info.version.assets.all) {
+				version.all = info.version.assets.all;
+				//if (info.found) {
+				Object.extend(version, info.version);
+				//}
+			}
+		}
+	} catch (e) { String.log('setVersions, error setting version, ' + (e.message || e)); }
+}
+
+function getBldString(expr1, expr2, element, defProp, cssElement, noProp) {
+
+	//id_session=' + top.Global.Id_Session + '&
+	var url = FDUri.getAdminUri().set('file', 'get.asp').querySet({ lang: FD.getInfo().lang, expr1: expr1, expr2: expr2 });
+	if (isFinite(expr1)) url.querySet('mode', 2);
+	if (typeof element != 'undefined' && element != '') {
+		url.querySet('element', element)
+		if (!noProp) url.querySet('properties', FD.get(element).value);
+		if (defProp && typeof defProp == 'string') url.querySet('defaultproperties', defProp);
+	}
+	if (cssElement && cssElement != '') {
+		url.querySet('csselement', cssElement);
+		if (!noProp) url.queryset('cssproperties', FD.get(cssElement).value);
+	}
+	url.makeSession().addVersion();
+
+	return url;
+}
+
+function showLoad(lpClose, opTop, lpStay) {
+	//try {
+		if (lpClose) top.FD.Window.hideLoader();
+		else top.FD.Window.showLoader();
+	//} catch (e) { String.log(e.message || e, 'error'); };
+	return;
+}
+
+
+function fdFinalOnError(opWindow, cpMessage, cpUrl, npLine, cpStack, lpSilent, lpConstruct) {
+	if (!lpConstruct) {
+		var orgOnError = opWindow.onerror, stack = '<empty>';
+		opWindow.onerror = null;
+		try {
+			stack = FD.Stack.Format('; ');
+		} catch (e) { }
+		opWindow.fdError = new fdFinalOnError(opWindow, cpMessage, cpUrl, npLine, stack, lpSilent, true);
+		opWindow.fdError.Send();
+		opWindow.onerror = orgOnError;
+	} else {
+		// Error data
+		this.Window = opWindow;
+		this.Message = cpMessage;
+		this.Url = cpUrl;
+		this.Line = npLine;
+		this.Stack = cpStack;
+		this.Silent = lpSilent || false;
+
+		this.RequestId = (this.Window && this.Window.RequestId ? this.Window.RequestId : '');
+
+		this.Send = function SendError() {
+
+			if (typeof top.showLoad != 'undefined') top.showLoad(true);
+			showLoad(true);
+
+			if (String.is(this.Message) && this.Message.search('Script error') > -1) return;
+
+			var params = new FDKeys();
+			params.set('wname', this.Window.name);
+			params.set('id_request', this.RequestId);
+
+			// Environment data
+			params.set('application-info', Object.inspect(FD.getInfo()));
+			params.merge(FD.Backend.Context);
+
+			FD.Error.Send(this.Message, this.Url, this.Line, 'fdFinalOnError', params);
+			if (!this.Silent) {
+				OpenWindow(opWindow, '/error.asp?msg=' + URLEncode(this.Message) + '&line=' + this.Line + '&' + params.toString(), 470, 225, 'yes', 'yes', 'no', 'error');
+			}
+		}
+	}
+}
+function fdTranslate(opWindow, cpTransString) {
+	var oTop, lDialog = typeof opWindow.dialogArguments != 'undefined';
+	if (opWindow.opener) {
+		oTop = opWindow.opener.top;
+		while (oTop.opener)
+			oTop = oTop.opener.top;
+	} else oTop = opWindow.top;
+	oTop.transWindow = (lDialog ? null : opWindow);
+	OpenWindow(opWindow, (oTop.Global ? '/' + oTop.Global.usrDomain + '/' : '') + 'translate.asp?code=' + URLEncode(cpTransString) + (lDialog ? '&id_session=' : '&reload'), 700, 300, 'yes', 'yes', 'no', 'translate');
+	return false;
+}
+function fdTransReset() {
+	var aWnd = new Array(), oWnd = top.transWindow;
+	try {
+		if (typeof oWnd == 'object') {
+			do {
+				if (typeof oWnd.dialogArguments == 'undefined')
+					aWnd[aWnd.length] = oWnd;
+				oWnd = oWnd.opener;
+				if (typeof oWnd.dialogArguments != 'undefined')
+					oWnd.close();
+			} while (oWnd)
+			for (var i = aWnd.length - 1; i >= 0; i--) {
+				aWnd[i].focus();
+				aWnd[i] = null;
+			}
+		}
+	} catch (e) { };
+	OpenWindow(top.transWindow, (top.Global ? '/' + top.Global.usrDomain + '/' : '') + 'translate.asp?action=RESET&reload=' + (top.transWindow ? 'true' : 'false'), 700, 300, 'yes', 'yes', 'no', 'translate');
+}
+function fdTransRefresh() {
+	var frm;
+	if (typeof top.TransMode == 'undefined') top.TransMode = false;
+	top.TransMode = !top.TransMode;
+	for (var i = 0; i < top.frames.length; i++)
+		top.frames[i].location.replace(setLocationVars(top.frames[i].location.href, new Array('transmode', top.TransMode, 'reload', Math.random())));
+}
+
+FD.Stylesheet = new Object();
+FD.Stylesheet.tmr = 0;
+FD.Stylesheet.Add = function (filePath, onload, check_version) {
+	if (check_version) filePath += '?' + this.getVersion(check_version);
+	var e = document.createElement("link");
+	e.rel = "stylesheet";
+	e.type = "text/css";
+
+	// Add the new object to the HEAD.
+	document.getElementsByTagName("head")[0].appendChild(e);
+
+	// Start downloading it.
+	// Gecko fires the "onload" event and IE fires "onreadystatechange"
+	if (onload) {
+		e.onload = onload;
+		if (FD.Browser.ie) {
+			e.onreadystatechange = function () {
+				if (this.readyState == 'complete') this.tmr = setTimeout(this.onload, 500);
+				if (this.readyState == 'loaded') {
+					if (this.tmr > 0) clearTimeout(this.tmr);
+					this.onload();
+				}
+			};
+		}
+	}
+	e.href = filePath;
+	//	alert(filePath);
+}
+FD.Stylesheet.getVersion = function (cssname) {
+	var links = document.getElementsByTagName("link"), version = '';
+	for (var i = 0; i < links.length; i++) {
+		if (links[i].rel == "stylesheet" && links[i].href.search(cssname) > -1) {
+			var match = /\?(.*)?/.exec(links[i].href);
+			if (match) version = match[1];
+			return version;
+		}
+	}
+	return version;
+}
+FD.Stylesheet.getPath = function (cssname) {
+	var links = document.getElementsByTagName("link"), version = '';
+	for (var i = 0; i < links.length; i++) {
+		if (links[i].rel == "stylesheet" && links[i].href.search(cssname) > -1) {
+			var parts = links[i].href.split('/');
+			parts.pop();
+			return (parts.join('/') + '/');
+		}
+	}
+	return '';
+}
+FD.Stylesheet.Search = function (id) {
+	for (var i = 0; i < document.styleSheets.length; i++) {
+		if (FD.Browser.ie && document.styleSheets[i].title == id) return document.styleSheets[i];
+		else if (!FD.Browser.ie && document.styleSheets[i].title == id) return document.styleSheets[i];
+	}
+}
+FD.Stylesheet.addRule = function (stylesheet, selectorText, rule) {
+	if (selectorText.charAt(0) == '@') return; // rules like @media print { ... } can not be added at runtime
+	this.removeRules(stylesheet, selectorText);
+	if (stylesheet.addRule) {
+		stylesheet.addRule(selectorText, /{(.*)}/.exec(rule)[1]);
+	} else {
+		stylesheet.insertRule(rule, stylesheet.cssRules.length);
+	}
+}
+FD.Stylesheet.removeRules = function (stylesheet, selectorText) {
+	var i;
+	while ((i = this.getRuleIndex(stylesheet, selectorText, false)) >= 0) {
+		//		FD.Debug.trace( 'removeRules', 'found; ' + selectorText + ', ' + i ) ;
+		this.removeRule(stylesheet, i);
+	}
+}
+FD.Stylesheet.removeRule = function (stylesheet, index) {
+	if (stylesheet.removeRule) stylesheet.removeRule(index);
+	else stylesheet.deleteRule(index);
+}
+FD.Stylesheet.getRuleIndex = function (stylesheet, selectorText, strict) {
+	var rules = stylesheet.rules || stylesheet.cssRules;
+	selectorText = selectorText.toUpperCase();
+	for (var i = 0; i < rules.length; i++) {
+		if (strict && rules[i].selectorText && rules[i].selectorText.toUpperCase() == selectorText) return i;
+		else if (!strict && rules[i].selectorText && rules[i].selectorText.toUpperCase().search(selectorText) >= 0) return i;
+	}
+	return -1;
+}
+
+function objStylesheet(cpStylesheet, opClasses, opTags, lpLoaded, opDoc, cpMsg, cpTagName) {
+	this.stylesheet; this.ready = false; this.href = cpStylesheet; this.imports = 0; this.rules = 0; this.checked = 0; this.classes = opClasses; this.tags = opTags; this.doc = opDoc || document, this.tagname = cpTagName || '';
+	if (this.classes) addOption(null, this.classes, '', (cpMsg || 'Loading...'));
+	if (this.tags) addOption(null, this.tags, '', (cpMsg || 'Loading...'));
+	this.fillStylesheet = function () {
+		if (this.stylesheet) {
+			if (this.classes) removeOptions(null, this.classes);
+			if (this.tags) removeOptions(null, this.tags);
+			if (this.stylesheet.imports && this.stylesheet.rules) {
+				this.checkImports(this.stylesheet.imports);
+				this.addRules(this.stylesheet.rules);
+			} else if (this.stylesheet.cssRules) {
+				this.addRules(this.stylesheet.cssRules);
+			}
+			this.stylesheet.disabled = true;
+			try {
+				var sht = this.stylesheet;
+				this.stylesheet = null;
+				sht.ownerNode.parentNode.removeChild(sht.ownerNode);
+			} catch (e) { }
+		}
+	}
+	this.checkImports = function (imports) {
+		if (imports.length > 0) {
+			for (var i = 0; i < imports.length; i++) {
+				try {
+					this.checkImports(imports(i).imports);
+					this.addRules(imports(i).rules);
+				} catch (e) { }
+			}
+		}
+	}
+	this.addRules = function (rules) {
+		if (rules.length > 0) {
+			var i, j;
+			var aRules = new Array(), aRule, cRule, cTag, lExist;
+			for (i = 0; i < rules.length; i++) {
+				if (rules.item(i).selectorText) {
+					aRule = rules.item(i).selectorText.split(',');
+					for (j = 0; j < aRule.length; j++)
+						aRules[aRules.length] = aRule[j].trim();
+				}
+			}
+			aRules.sort();
+			for (i = 0; i < aRules.length; i++) {
+				if (aRules[i].substr(0, 1) != '#') { // unique id's worden niet ondersteund
+					if (this.classes && aRules[i].indexOf('.') >= 0) {
+						cTag = aRules[i].substr(0, aRules[i].indexOf('.'));
+						if (this.tagname == '' || cTag == '' || cTag == this.tagname) {
+							cRule = aRules[i].substr(aRules[i].indexOf('.') + 1);
+							if (cRule.indexOf(' ') >= 0) cRule = cRule.substring(0, cRule.indexOf(' '));
+							addOption(null, this.classes, cRule, aRules[i]);
+						}
+					} else if (this.tags && aRules[i].indexOf('.') == -1) {
+						lExist = lExist || this.tagname == aRules[i];
+						addOption(null, this.tags, aRules[i], aRules[i]);
+					}
+				}
+			}
+			if (this.tagname != '' && !lExist && this.tags) addOption(null, this.tags, this.tagname, this.tagname);
+			if (this.classes) this.classes.selectedIndex = 0;
+			if (this.tags) this.tags.selectedIndex = 0;
+		}
+	}
+	this.findStylesheet = function () {
+		this.stylesheet = null;
+		var re = new RegExp(this.href.toRegExp(), "gi");
+		for (var i = 0; i < this.doc.styleSheets.length; i++) {
+			//alert('findStylesheet: ' + this.href + '; ' + this.doc.styleSheets[i].href + '; ' + (re.test(this.doc.styleSheets[i].href) && this.doc.styleSheets[i].title == '__imported') + '; ' + this.doc.styleSheets[i].title);
+			if (re.test(this.doc.styleSheets[i].href) && this.doc.styleSheets[i].title == '__imported') {
+				//alert('got it');
+				this.stylesheet = this.doc.styleSheets[i];
+				break;
+			}
+		}
+	}
+
+	if (!lpLoaded) {
+		window.objStylesheet = this;
+		//this.stylesheet	= document.createStyleSheet( '/stylesheet.asp?url=' + checkUrl( cpStylesheet ) );
+		var oLnk = this.doc.createElement('LINK');
+		oLnk.rel = 'stylesheet';
+		oLnk.type = 'text/css';
+		oLnk.href = cpStylesheet;
+		oLnk.title = '__imported';
+		this.doc.getElementsByTagName('head').item(0).appendChild(oLnk);
+		//		alert(oLnk + ', ' + oLnk.href + ', ' + this.doc.styleSheets.length);
+		//this.stylesheet = this.findStylesheet(); // this.doc.styleSheets[this.doc.styleSheets.length - 1];
+		//alert(this.stylesheet.href);
+		//		alert(oLnk.href);
+		this.tmr = window.setInterval("window.objStylesheet.checkReady()", 600);
+	} else {
+		for (var i = 0; i < this.doc.styleSheets.length; i++) {
+			//alert( document.styleSheets[ i ].type );
+			if (this.doc.styleSheets[i].title == cpStylesheet && this.doc.styleSheets[i].type == 'text/css') {
+				this.stylesheet = this.doc.styleSheets[i];
+				break;
+			}
+		}
+		this.fillStylesheet();
+		if (typeof window.setCSS != 'undefined') window.setCSS();
+	}
+	this.checkReady = function () {
+		var nImports = -1, nRules = -1;
+		if (!this.stylesheet) this.findStylesheet();
+		try {
+			nImports = (this.stylesheet.imports ? this.stylesheet.imports.length : 0);
+		} catch (e) { }
+		try {
+			nRules = (this.stylesheet.rules ? this.stylesheet.rules.length : (this.stylesheet.cssRules ? this.stylesheet.cssRules.length : 0));
+		} catch (e) { }
+		if (this.imports == nImports && this.rules == nRules) {
+			this.checked++;
+			if (this.checked >= (nRules == 0 ? 4 : 2)) {
+				window.clearInterval(this.tmr);
+				this.fillStylesheet();
+				window.objStylesheet = null;
+				this.ready = true;
+				if (typeof window.setCSS != 'undefined') window.setCSS();
+			}
+		} else {
+			this.imports = nImports;
+			this.rules = nRules;
+		}
+	}
+}
+
+var BTN = {
+	prevBTN: null,
+	TimerID: 0,
+	overlib: true,
+	MouseOver: function (e, cname /*, func, text, title*/) {
+		var args = $A(arguments), _self = BTN, e = args.shift(), cname = (args.length > 0 ? args.shift() : null), el = e;
+		if (e instanceof jQuery) el = e[0];
+		else if (typeof e.tagName == 'undefined') el = e.currentTarget;
+
+		var jel = jQuery(el);
+		if (jel.hasClass('icon') || jel.hasClass('text')) return;
+		if (el.isMouseOver || el.disabled || jel.hasClass('button-disabled')) return;
+
+		var icon = jel.find('.icon');
+		if (String.is(cname) || jel.hasClass('button-out') || jel.hasClass('item')) {
+			//	if (!el.prevClass || el.prevClass == '') el.prevClass = el.className;
+			/* 15-08-2017if (!el.getAttribute('fdClassD') && el.getAttribute('fdClass')) {
+				var match = el.getAttribute('fdClass').match(/fdButtonOut([^ ]*)/);
+				if (match) el.setAttribute('fdClassD', match[1]);
+			}*/
+			if (!cname) cname = 'button-over'
+			jel.data('cname', cname);
+			jel.addClass(cname);
+		}
+		jel.addClass('is-over');
+		if ((!FD.Browser.ie || FD.Browser.version >= 9) && icon.size() > 0 && !jel.hasClass('button-disabled')) {
+			if (icon.data('fontSize')) {
+				icon.stop().css('fontSize', icon.data('fontSize') || '16px');
+			}
+			var size = icon.css('font-size');
+			icon.data('fontSize', size);
+			icon.animate({ fontSize: jel.data('fontSizeTo') || (size ? (size.float() + 4) + 'px' : '20px') }, 100);
+		}
+
+		_self.showTooltip(el, e, args);
+
+		el.isMouseOver = true;
+	},
+
+	showTooltip: function (el, e, args) {
+		var _self = BTN, tt = $('div[role="tooltip"]#' + el.id + '-tooltip');
+		if (!args) args = [];
+		if (tt.length > 0) args.push({ element: tt });
+
+		//String.log(['BTN.showTooltip, overlib=' + _self.overlib, e, args]);
+
+		if (_self.overlib && args.length > 0 /*&& !el.overlib*/) {
+			el.overlib = true;
+			var options = { content: '', title: '', dirX: FDTooltip.RIGHT, sticky: true }, text = '', title = '';
+			if (e && e.type == 'focus') options.hideWhenMoving = true;
+			if (Object.is(args[0]) && typeof args[0].currentTarget != 'undefined') e = args.shift();
+			if (args.length > 0) {
+				if (Object.is(args[0]) && args[0].text) { options.content = args[0].text; options.title = args[0].title || ''; }
+				else if (Object.is(args[0]) && args[0].element) { options.element = args[0].element; }
+				else if (args.length > 0 && !args[0]) { options.content = args[1]; options.title = args[2] || ''; } // old func param
+				else { options.content = args[0]; options.title = args[1] || ''; }
+				if (Function.is(options.content)) options.content = options.content();
+				if (options.content || options.element) {
+					//String.log('BTN.MouseOver, tooltip options=' + Object.inspect(options));
+					try { FD.Tooltip.show(options, e); } catch (e) { String.log('BTN.MouseOver, tooltip error=' + (e.message || e), 'error'); }
+				}
+			}
+		}
+	},
+	hideTooltip: function (el, e) {
+		el = el || this.prevBTN;
+		if (el && el.overlib) {
+			FD.Tooltip.hide(e);
+			if (!FD.Tooltip.visible) {
+				el.overlib = false;
+			}
+		}
+	},
+
+	MouseOut: function (e) {
+		var el = e;
+		if (e instanceof jQuery) el = e[0];
+		else if (typeof e.tagName == 'undefined') {
+			var btn = $(e.fromElement || e.target).closest('.is-over');
+			if (btn.length == 0 || (e.toElement && btn[0].contains(e.toElement))) return;
+			el = btn[0];
+		}
+		//String.log('BTN.MouseOut');
+		BTN.prevBTN = el;
+		BTN.doMouseOut(el);
+
+	},
+	doMouseOut: function (btn) {
+		window.clearTimeout(this.TimerID);
+		btn = btn || this.prevBTN;
+		this.prevBTN = null;
+		try {
+			var jel = jQuery(btn), icon = jel.find('.icon');
+			//String.log('isMouseOver=' + btn.isMouseOver + ', hasClass=' + jel.hasClass('is-over'));
+			if (!btn.isMouseOver && !jel.hasClass('is-over')) return;
+			btn.isMouseOver = false;
+			if (jel.data('cname')) {
+				jel.removeClass(jel.data('cname'));
+			}
+			jel.removeClass('is-over');
+			if ((!FD.Browser.ie || FD.Browser.version >= 9) && icon.size() > 0) icon.animate({ fontSize: icon.data('fontSize') || '16px' }, 100);
+			BTN.hideTooltip(btn);
+		} catch (e) { };
+	},
+	clearTimeout: function () {
+		window.clearTimeout(this.TimerID);
+
+	},
+	Select: function (el, cname) {
+		el.prevClass = cname;
+		if (!cname) cname = 'button-on';
+		jQuery(el)
+			.addClass(cname || 'button-on')
+			.attr('aria-pressed', true)
+			.unwatch()
+			.watch({
+				properties: 'attr_class',
+				callback: function (data, i) {
+					var $el = $(this);
+					if (data.props[i] == 'attr_class') $el.attr('aria-pressed', $el.hasClass(cname));
+				}
+			});
+		if (el.scrollIntoView) {
+			var items = FD.get('divItems');
+			if (items) {
+				var y1 = getY(el, true), y2 = getY(items, true) + items.scrollTop;
+				var top = y1 < y2, bottom = y1 + el.offsetHeight > y2 + items.offsetHeight;
+				if (top || bottom) {
+					el.scrollIntoView(top);
+					if (FD.get("tblContent")) FD.get("tblContent").scrollIntoView(true);
+				}
+			}
+		}
+	},
+	Click: function () {
+		var e, el;
+		if (arguments.length == 1) e = arguments[0];
+		else e = arguments[1];
+		el = checkEvent(e);
+		if (el.tagName != 'A') el = $(el).parent().get(0);
+		var match = el.id.match(/btn(.*)/);
+		if (!match) return;
+		//el.className = el.getAttribute('fdClass');
+		//jQuery(el).focus();
+		eval('btn' + match[1] + '(e)');
+	},
+	AClick: function (el, e) {
+		e = e || window.event;
+		var match = el.id.match(/a(.*)/);
+		if (!match) return;
+		var btn = FD.get('btn' + match[1]);
+		if (btn.onclick) {
+			el.state = '2';
+			eval(btn.id + '(e)');
+		}
+	},
+	AFocus: function () { BTN.Focus.apply(this, arguments); },
+	Focus: function () {
+		var e, el;
+		if (arguments.length == 1) e = arguments[0]
+		else e = arguments[1];
+		el = checkEvent(e);
+		if (el.onclick) {
+			el.hasFocus = '1';
+			jQuery(el).addClass('button-focus');
+			if (Browser.ie && e.altKey && el.state == '0') {
+				eval(el.id + '(e)');
+			}
+			el.state = '1';
+		}
+		BTN.showTooltip(el, e);
+	},
+	ABlur: function () { BTN.Blur.apply(this, arguments); },
+	Blur: function (e) {
+		var el = checkEvent(e);
+		if (el.onclick) {
+			el.hasFocus = '0';
+			jQuery(el).removeClass('button-focus');
+			if (el.state != '2') el.state = '0';
+		}
+		BTN.hideTooltip(el, e);
+	}
+
+}
+var FDPdf = new Class({
+
+	Extends: FDBaseClass,
+	_class: 'FDPdf',
+
+	createElements: function (contextWindow, prefix) {
+		contextWindow = contextWindow || window;
+		prefix = prefix || '';
+
+		this.log('.createElements, prefix=' + prefix);
+
+		var doc = $(contextWindow.document), form = doc.find('form');
+		var body = form.find('#txtBody' + prefix), style = form.find('#txtBodyStyle' + prefix);
+		form.append(
+			'<input type="hidden" name="rdoActive' + prefix + '" value="">' +
+			'<input type="hidden" name="txtFilename' + prefix + '" value="">' +
+			'<input type="hidden" name="txtPaperSize' + prefix + '" value="">' +
+			'<input type="hidden" name="rdoOrientation' + prefix + '" value="">' +
+			'<input type="hidden" name="opgScaleType' + prefix + '" value="">' +
+			'<input type="hidden" name="txtScaling' + prefix + '" value="">' +
+			'<input type="hidden" name="txtMarginLeft' + prefix + '" value="">' +
+			'<input type="hidden" name="txtMarginRight' + prefix + '" value="">' +
+			'<input type="hidden" name="txtMarginTop' + prefix + '" value="">' +
+			'<input type="hidden" name="txtMarginBottom' + prefix + '" value="">' +
+			'<input type="hidden" name="chkEncrypt' + prefix + '" value=""><input type="hidden" name="txtPassword' + prefix + '" value="">' +
+			'<input type="hidden" name="chkSetPrivileges' + prefix + '" value="">' +
+			'<input type="hidden" name="chkEditProtect' + prefix + '" value="">' +
+			(body.length == 0 ? '<input type="hidden" name="txtBody' + prefix + '" value="">' : '') +
+			(style.length == 0 ? '<input type="hidden" name="txtBodyStyle' + prefix + '" value="">' : '')
+		);
+	},
+
+	saveElements: function (contextWindow, pdfWindow, update, prefix) {
+		contextWindow = contextWindow || window;
+		pdfWindow = pdfWindow || window;
+		prefix = prefix || '';
+		var unit = this.getText('UNIT', 'Pdf');
+
+		this.log('.saveElements, prefix=' + prefix);
+
+		if (update) pdfWindow.oFCKeditor.FCK.UpdateLinkedField();
+		var contextDoc = contextWindow.document, pdfDoc = pdfWindow.document;
+
+		if (!FD.get('rdoActive' + prefix, contextDoc)) this.createElements(contextWindow, prefix);
+
+		FD.get('rdoActive' + prefix, contextDoc).value = (!FD.get('rdoActive', pdfDoc) || FD.get('rdoActive', pdfDoc)[0].checked ? '1' : '0');
+		FD.get('txtFilename' + prefix, contextDoc).value = FD.get('txtFilename', pdfDoc).value;
+		FD.get('txtPaperSize' + prefix, contextDoc).value = FD.get('txtPaperSize', pdfDoc).value;
+		FD.get('rdoOrientation' + prefix, contextDoc).value = (FD.get('rdoOrientation', pdfDoc)[0].checked ? '1' : '2');
+		FD.get('opgScaleType' + prefix, contextDoc).value = FD.selected('opgScaleType', 'value', pdfDoc);
+		FD.get('txtScaling' + prefix, contextDoc).value = FD.get('txtScaling', pdfDoc).value;
+
+		FD.get('txtMarginLeft' + prefix, contextDoc).value = this.convertToInch($('#txtMarginLeft', pdfDoc).reversed(), unit);
+		FD.get('txtMarginRight' + prefix, contextDoc).value = this.convertToInch($('#txtMarginRight', pdfDoc).reversed(), unit);
+		FD.get('txtMarginTop' + prefix, contextDoc).value = this.convertToInch($('#txtMarginTop', pdfDoc).reversed(), unit);
+		FD.get('txtMarginBottom' + prefix, contextDoc).value = this.convertToInch($('#txtMarginBottom', pdfDoc).reversed(), unit);
+
+		if (FD.get('chkEncrypt', pdfDoc)) {
+			FD.get('chkEncrypt' + prefix, contextDoc).value = FD.get('chkEncrypt', pdfDoc).checked;
+			FD.get('txtPassword' + prefix, contextDoc).value = FD.get('txtPassword', pdfDoc).value;
+		}
+		FD.get('chkSetPrivileges' + prefix, contextDoc).value = FD.get('chkSetPrivileges', pdfDoc).checked;
+		FD.get('chkEditProtect' + prefix, contextDoc).value = FD.get('chkEditProtect', pdfDoc).checked;
+		FD.get('txtBody' + prefix, contextDoc).value = FD.get('txtBody', pdfDoc).value;
+		FD.get('txtBodyStyle' + prefix, contextDoc).value = FD.get('txtBodyStyle', pdfDoc).value;
+	},
+	saveElementsToProp: function (prop) {
+
+		var unit = this.getText('UNIT', 'Pdf');
+		prop.set('filename', FD.get('txtFilename').value);
+		prop.set('papersize', FD.get('txtPaperSize').value);
+		prop.set('orientation', (FD.get('rdoOrientation')[0].checked ? 1 : 2));
+		prop.set('scaletype', FD.selected('opgScaleType', 'value'));
+		prop.set('scaling', FD.get('txtScaling').value);
+		prop.set('doc-marginLeft', this.convertToInch($('#txtMarginLeft').reversed(), unit));
+		prop.set('doc-marginRight', this.convertToInch($('#txtMarginRight').reversed(), unit));
+		prop.set('doc-marginTop', this.convertToInch($('#txtMarginTop').reversed(), unit));
+		prop.set('doc-marginBottom', this.convertToInch($('#txtMarginBottom').reversed(), unit));
+
+		if (FD.get('chkEncrypt')) {
+			prop.set('encrypt', FD.get('chkEncrypt').checked);
+			prop.set('userpassword', FD.get('txtPassword').value);
+		}
+		prop.set('setprivileges', FD.get('chkSetPrivileges').checked);
+		prop.set('editprotect', FD.get('chkEditProtect').checked);
+	},
+
+	convertToInch: function (value, unit) {
+		value = Number.float(value);
+		if (unit != 'inch') value = (value / 2.54);
+		return value.decimals(3);
+	},
+	convertFromInch: function (value, unit) {
+		unit = unit || this.getText('UNIT', 'Pdf');
+		var org = value;
+		if (unit != 'inch') value = (value * 2.54);
+		this.log('.convertFromInch, org=' + org + ', value=' + value);
+		return value;
+	},
+
+	setElements: function (contextWindow, pdfWindow, prefix) {
+
+		this.log('.setElements, prefix=' + prefix);
+
+		contextWindow = contextWindow || window;
+		pdfWindow = pdfWindow || window;
+		prefix = prefix || '';
+		var unit = this.getText('UNIT', 'Pdf');
+
+		var contextDoc = contextWindow.document, pdfDoc = pdfWindow.document;
+
+		if (FD.get('rdoActive', pdfDoc)) FD.get('rdoActive', pdfDoc)[0].checked = Boolean.create(FD.get('rdoActive' + prefix, contextDoc).value);
+		FD.get('txtFilename', pdfDoc).value = FD.get('txtFilename' + prefix, contextDoc).value;
+		FD.get('txtPaperSize', pdfDoc).value = FD.get('txtPaperSize' + prefix, contextDoc).value;
+		FD.get('rdoOrientation', pdfDoc)[0].checked = FD.get('rdoOrientation' + prefix, contextDoc).value == '1';
+		FD.get('rdoOrientation', pdfDoc)[1].checked = FD.get('rdoOrientation' + prefix, contextDoc).value == '2';
+		setSelectedOption(pdfDoc, 'opgScaleType', FD.get('opgScaleType' + prefix, contextDoc).value);
+
+		FD.get('txtScaling', pdfDoc).value = FD.get('txtScaling' + prefix, contextDoc).value || 100;
+
+		$('#txtMarginLeft', pdfDoc).format(this.convertFromInch(Number.float(FD.get('txtMarginLeft' + prefix, contextDoc).value), unit));
+		$('#txtMarginRight', pdfDoc).format(this.convertFromInch(Number.float(FD.get('txtMarginRight' + prefix, contextDoc).value), unit));
+		$('#txtMarginTop', pdfDoc).format(this.convertFromInch(Number.float(FD.get('txtMarginTop' + prefix, contextDoc).value), unit));
+		$('#txtMarginBottom', pdfDoc).format(this.convertFromInch(Number.float(FD.get('txtMarginBottom' + prefix, contextDoc).value), unit));
+
+		if (FD.get('chkEncrypt', pdfDoc)) {
+			FD.get('chkEncrypt', pdfDoc).checked = Boolean.create(FD.get('chkEncrypt' + prefix, contextDoc).value);
+			FD.get('txtPassword', pdfDoc).value = FD.get('txtPassword' + prefix, contextDoc).value;
+		}
+		FD.get('chkSetPrivileges', pdfDoc).checked = Boolean.create(FD.get('chkSetPrivileges' + prefix, contextDoc).value);
+		FD.get('chkEditProtect', pdfDoc).checked = Boolean.create(FD.get('chkEditProtect' + prefix, contextDoc).value);
+		FD.get('txtBodyStyle', pdfDoc).value = FD.get('txtBodyStyle' + prefix, contextDoc).value;
+		FD.get('txtBody', pdfDoc).value = FD.get('txtBody' + prefix, contextDoc).value;
+
+		pdfWindow.initPaperSize();
+		pdfWindow.oFCKeditor.FCK.fdInitStyle();
+		pdfWindow.oFCKeditor.FCK.SetHTML(FD.get('txtBody', pdfDoc).value, true);
+
+	},
+
+	setElementsFromProp: function (prop, prefix) {
+
+		this.log('.setElementsFromProp, prefix=' + prefix);
+
+		if (String.is(prop)) prop = (new FDKeys()).fromXml(prop);
+		prefix = prefix || '';
+		var unit = this.getText('UNIT', 'Pdf');
+
+		if (!FD.get('txtFilename' + prefix)) this.createElements(window, prefix);
+
+		if (FD.get('rdoActive' + prefix)) {
+			FD.get('rdoActive' + prefix)[0].checked = prop.get('active', false, 'boolean');
+			FD.get('rdoActive' + prefix)[1].checked = !FD.get('rdoActive' + prefix)[0].checked;
+		}
+		FD.get('txtFilename' + prefix).value = prop.get('filename') || '[_fd_Form]_[_fd_Id]';
+		FD.get('txtPaperSize' + prefix).value = prop.get('papersize') || this.getText({ key: 'Pdf', text: 'DEFAULT_PAPERSIZE' });
+		FD.get('rdoOrientation' + prefix)[0].checked = prop.get('orientation', 1, 'int') == 1;
+		FD.get('rdoOrientation' + prefix)[1].checked = !FD.get('rdoOrientation' + prefix)[0].checked;
+		var scaleType = prop.get('scaletype', 4, 'int') || 0;
+		if (!prop.exists('scaletype')) scaleType = (prop.get('fittoonepage', false, 'boolean') ? 2 : 0);
+		setSelectedOption('opgScaleType', scaleType + '');
+		FD.get('txtScaling' + prefix).value = prop.get('scaling') || '100';
+
+		$('#txtMarginLeft' + prefix).format(this.convertFromInch(Number.float(prop.get('doc-marginLeft') || 0.25), unit));
+		$('#txtMarginRight' + prefix).format(this.convertFromInch(Number.float(prop.get('doc-marginRight') || 0.25), unit));
+		$('#txtMarginTop' + prefix).format(this.convertFromInch(Number.float(prop.get('doc-marginTop') || 0.25), unit));
+		$('#txtMarginBottom' + prefix).format(this.convertFromInch(Number.float(prop.get('doc-marginBottom') || 0.25), unit));
+
+		if (FD.get('chkEncrypt' + prefix)) {
+			FD.get('chkEncrypt' + prefix).checked = prop.get('encrypt', false, 'boolean');
+			FD.get('txtPassword' + prefix).value = prop.get('userpassword');
+		}
+		FD.get('chkSetPrivileges' + prefix).checked = prop.get('setprivileges', false, 'boolean');
+		FD.get('chkEditProtect' + prefix).checked = prop.get('editprotect', false, 'boolean');
+	},
+
+	setParentElementsFromProp: function (prop, prefix) {
+
+		this.log('.setParentElementsFromProp, ' + prop + ', prefix=' + prefix);
+
+		if (String.is(prop)) prop = (new FDKeys()).fromXml(prop);
+		prefix = prefix || '';
+
+		if (!FD.get('txtFilename' + prefix)) this.createElements(window, prefix);
+
+		if (FD.get('rdoActive' + prefix)) {
+			FD.get('rdoActive' + prefix).value = prop.get('active', false, 'boolean');
+		}
+		FD.get('txtFilename' + prefix).value = prop.get('filename') || '[_fd_Form]_[_fd_Id]';
+		FD.get('txtPaperSize' + prefix).value = prop.get('papersize') || this.getText({ key: 'Pdf', text: 'DEFAULT_PAPERSIZE' });
+		FD.get('rdoOrientation' + prefix).value = prop.get('orientation', 1, 'int') || 1;
+		var scaleType = prop.get('scaletype', 4, 'int') || 0;
+		if (!prop.exists('scaletype')) scaleType = (prop.get('fittoonepage', false, 'boolean') ? 2 : 0);
+		FD.get('opgScaleType' + prefix).value = scaleType + '';
+		FD.get('txtScaling' + prefix).value = prop.get('scaling', 100, 'int') || '100';
+
+		$('#txtMarginLeft' + prefix).format(this.convertFromInch(Number.float(prop.get('doc-marginLeft') || 0.25), unit));
+		$('#txtMarginRight' + prefix).format(this.convertFromInch(Number.float(prop.get('doc-marginRight') || 0.25), unit));
+		$('#txtMarginTop' + prefix).format(this.convertFromInch(Number.float(prop.get('doc-marginTop') || 0.25), unit));
+		$('#txtMarginBottom' + prefix).format(this.convertFromInch(Number.float(prop.get('doc-marginBottom') || 0.25), unit));
+
+
+		if (FD.get('chkEncrypt' + prefix)) {
+			FD.get('chkEncrypt' + prefix).value = prop.get('encrypt', false, 'boolean');
+			FD.get('txtPassword' + prefix).value = prop.get('userpassword');
+		}
+		FD.get('chkSetPrivileges' + prefix).value = prop.get('setprivileges', false, 'boolean');
+		FD.get('chkEditProtect' + prefix).value = prop.get('editprotect', false, 'boolean');
+	}
+
+});
+FD.Backend.Pdf = new FDPdf();
+
+var FDPages = new Class({
+
+	Extends: FDBaseClass,
+	Implements: Events,
+	_class: 'FDPages',
+
+	_trace: false,
+
+	final: null,
+
+	previous: 0,
+	previousInfo: { active: false, loaded: false },
+
+	current: 1,
+	currentInfo: { active: false, loaded: false },
+
+	next: 0,
+	nextInfo: { active: false, loaded: false },
+
+	params: null,
+	setfocus: true,
+
+	focusTmr: 0,
+
+	initialize: function () {
+		this.parent();
+		this.createProxies({
+			afterFadeIn: (function () {
+				this.previous = this.current; this.current = this.next;
+				this.previousInfo = this.currentInfo; this.currentInfo = this.nextInfo;
+
+				var current = $('#page' + this.current);
+				this.log('.GoTo.afterFadeIn, visibility=' + Boolean.create(current.data('visible')) + ', resizeAlways=' + current.hasClass('resize-always'));
+
+				if (!current.hasClass('current-page')) current.addClass('current-page');
+				if (!this.currentInfo.active) current.addClass('active-page');
+				this.currentInfo.active = true;
+
+				if (this.setfocus) {
+					focusTmr = setTimeout(function () {
+						current.find('[tabindex="0"],input[type!="hidden"]:visible,textarea:visible,select:visible').not('.has-tooltip').eq(0).focus();
+					}, 400);
+				}
+
+				this.fireEvent('onAfterPageShow');
+				this.fireEvent('onAfterPageChange');
+
+				if (!Boolean.create(current.data('visible')) || current.hasClass('resize-always')) { this.log('.GoTo, resize'); window.setTimeout('$(window).resize();', 0); }
+				current.data('visible', true); // for resizing purposes
+
+			}).bind(this)
+		});
+	},
+
+	GoTo: function (page, params, fn) {
+
+		if (page instanceof jQuery) {
+			page = /\w+([\d]+)$/.exec(page[0].id);
+			if (page) page = Number.create(page[1]);
+		}
+
+		var curr_page = $('#page' + this.current),
+			next_page = $('#page' + page),
+			diff = this.current != page,
+			force = (params && params.force);
+
+		this.log(['.GoTo, current=' + this.current + ', next=' + page + ', diff=' + diff + ', fn=' + fn, params]);
+
+		this.setfocus = (!params || !params.omitFocus);
+
+		this.next = page;
+		Object.extend(this.nextInfo, { active: next_page.hasClass('active-page'), loaded: next_page.hasClass('loaded-page') });
+
+		this.params = params || {};
+
+		if (!force && /*diff &&*/ !this.fireDecision('onBeforePageChange', { final: this.GoTo.bind(this, page, { force: true }) })) return false;
+
+		var afterFadeIn = this._proxy.afterFadeIn;
+		if (fn) afterFadeIn = afterFadeIn.after(fn, this);
+
+		if (diff) {
+			$('.menu #item' + this.current + ', .sidebar #item' + this.current + ', .topbar #item' + this.current).removeClass('current-item').attr('aria-selected', false);
+			this.fireEvent('onBeforePageHide');
+			curr_page[0].scrollTop = 0;
+			curr_page.removeClass('current-page')
+				.fadeOut(100, (function () { this.fireEvent('onAfterPageHide'); next_page.fadeIn(200, afterFadeIn); }).bind(this));
+		} else if (next_page.css('display') == 'none') {
+			next_page.addClass('current-page').fadeIn(100, afterFadeIn);
+			//next_page.show();
+			//this._proxy.afterFadeIn();
+		} else {
+			afterFadeIn();
+		}
+
+		$('.menu #item' + page + ', .sidebar #item' + page + ', .topbar #item' + page).addClass('current-item').attr('aria-selected', true).find('input[type="radio"]').prop('checked', true);
+		//		if (FD.get('item' + page)) BTN.Select(FD.get('item' + page), 'button-on');
+
+	},
+
+	isActive: function (page) {
+		return $('#page' + page).hasClass('active-page');
+	},
+	isLoaded: function (page) {
+		return $('#page' + page).hasClass('loaded-page');
+	},
+
+	setLoaded: function (wnd) {
+		var frm = wnd.frameElement;
+		if (!frm) return;
+		var parent = $(frm).parents('.content-page'), page = Number.create(/page([\d]+)/.exec(parent[0].id)[1]);
+		parent.removeClass('loaded-page').addClass('loaded-page');
+		if (page == this.previous) this.previousInfo.loaded = true;
+		else if (page == this.current) this.currentInfo.loaded = true;
+		else if (page == this.next) this.nextInfo.loaded = true;
+
+		this.log('.setLoaded, page=' + page);
+
+		this.fireEvent('onPageLoaded', [page]);
+		if (typeof setPage != 'undefined') setPage();
+	},
+
+	find: function (el) {
+		if (!(el instanceof jQuery)) el = $(el);
+		return el.page();
+	}
+});
+
+FD.Backend.Pages = new FDPages();
+
+FDUri.extend({
+	challenge: function (area, next) {
+		var options = arguments[0];
+		if (!Object.is(arguments[0])) {
+			options = { area: area, next: next };
+		}
+		return FDUri.getDomainUri().setRoute('challenge', { omitFrom: true }).querySet({ area: options.area, next: options.next.toString() });
+	}
+});
+
+var FDUser = new Class({
+
+	Extends: FDBaseClass,
+	_class: 'FDUser',
+
+	_trace: false,
+
+}).extend({
+
+	iconMap: {
+		'api': 'key',
+		'external': 'user-external',
+		'internal': 'user'
+	},
+	getIcon: function (type) {
+		return this.iconMap[type] || 'user';
+	}
+
+});
+
+String.log('SCRIPT LOADED: forms.js');

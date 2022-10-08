@@ -1,0 +1,7 @@
+define(["require", "exports", "tslib", "./shadow", "./focusable", "./focus-trap"], function (require, exports, tslib_1, shadow_1, focusable_1, focus_trap_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    tslib_1.__exportStar(shadow_1, exports);
+    tslib_1.__exportStar(focusable_1, exports);
+    tslib_1.__exportStar(focus_trap_1, exports);
+});

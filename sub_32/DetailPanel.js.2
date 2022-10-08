@@ -1,0 +1,201 @@
+/*
+ *   Copyright (c) 2022 Esri
+ *   All rights reserved.
+
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+
+ *   http://www.apache.org/licenses/LICENSE-2.0
+
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ */
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        if (typeof b !== "function" && b !== null)
+            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+define(["require", "exports", "esri/core/accessorSupport/decorators", "esri/widgets/Widget", "esri/core/Handles", "esri/widgets/support/widget", "TemplatesCommonLib/functionality/token", "../utilites/utils", "esri/core/watchUtils"], function (require, exports, decorators_1, Widget_1, Handles_1, widget_1, token_1, utils_1, watchUtils_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    Widget_1 = __importDefault(Widget_1);
+    Handles_1 = __importDefault(Handles_1);
+    var CSS = {
+        calciteStyles: {
+            right: 'right',
+            left: 'left',
+            fontSize2: 'font-size--2',
+            paddingTrailer: 'padding-right-1',
+            panel: 'panel',
+            panelNoPadding: 'panel-no-padding',
+            btn: 'btn',
+            btnFill: 'btn-fill',
+            btnTransparent: 'btn-transparent',
+            phoneHide: 'phone-hide'
+        },
+        svgIcon: 'svg-icon',
+        detailsHeader: 'details-header',
+        detailsTitle: 'details-title',
+        detailsContent: 'details-content',
+        hide: 'hide',
+        filter: "filter",
+        details: 'detail'
+    };
+    var DetailPanel = /** @class */ (function (_super) {
+        __extends(DetailPanel, _super);
+        function DetailPanel(props) {
+            var _this = _super.call(this, props) || this;
+            //--------------------------------------------------------------------------
+            //
+            //  Properties
+            //
+            //--------------------------------------------------------------------------
+            _this.config = null;
+            _this.view = null;
+            _this.portal = null;
+            _this.content = null;
+            _this.messages = null;
+            _this._handles = new Handles_1.default();
+            _this._resultsPanel = document.getElementById("resultsPanel");
+            _this.mapPanel = null;
+            return _this;
+        }
+        Object.defineProperty(DetailPanel.prototype, "state", {
+            //----------------------------------
+            //
+            //  state - readOnly
+            //
+            //----------------------------------
+            get: function () {
+                var ready = this.get('view.ready');
+                return ready ? 'ready' : 'loading';
+            },
+            enumerable: false,
+            configurable: true
+        });
+        DetailPanel.prototype.initialize = function () {
+            var _this = this;
+            (0, watchUtils_1.on)(this.portal, "credential", "token-change", function () {
+                _this._getContent();
+            });
+        };
+        DetailPanel.prototype.destroy = function () {
+            this._handles.removeAll();
+            this._handles = null;
+        };
+        DetailPanel.prototype.render = function () {
+            var _a;
+            var _b = this.config, share = _b.share, theme = _b.theme, panelSize = _b.panelSize;
+            var title = this._getTitle();
+            var hasTitle = title === null || title === "" ? false : true;
+            var themeClass = theme === "light" ? "calcite-theme-light" : "calcite-theme-dark";
+            this.content = this._getContent();
+            var isTouch = (0, utils_1._isTouchDevice)();
+            var mapViewMobile = ((_a = this === null || this === void 0 ? void 0 : this.mapPanel) === null || _a === void 0 ? void 0 : _a.isMobileView) ? "map-view-mobile" : null;
+            if (share) {
+                document.body.classList.add("social-share");
+            }
+            else {
+                document.body.classList.remove("social-share");
+            }
+            var scale = panelSize === "s" ? "s" : "m";
+            if (isTouch)
+                scale = "s";
+            var socialShare = share ? ((0, widget_1.tsx)("div", { class: "detail-footer", key: Date.now().toString() },
+                (0, widget_1.tsx)("instant-apps-social-share", { bind: this, view: this.view, "share-url": window.location.href, "display-tip-text": "false", scale: scale, "inline-success-popover-placement": (scale === "s" || isTouch) ? "bottom" : "auto", "share-icons-layout": (scale === "s" || isTouch) ? "vertical" : "horizontal", mode: "inline" }))) : null;
+            return ((0, widget_1.tsx)("div", { bind: this, class: this.classes(mapViewMobile, "has-title-".concat(hasTitle), "is-touch-".concat(isTouch), CSS.calciteStyles.panel, CSS.calciteStyles.panelNoPadding) },
+                (0, widget_1.tsx)("calcite-panel", { class: themeClass, heading: title },
+                    (0, widget_1.tsx)("calcite-action", { icon: "x", bind: this, title: this.config.bundle.close, intlClose: this.config.bundle.close, "aria-label": this.config.bundle.close, onclick: this.hidePanel, appearance: "transparent", color: "neutral", slot: "header-actions-end" }),
+                    (0, widget_1.tsx)("div", { tabindex: "0", class: this.classes(CSS.detailsContent) },
+                        (0, widget_1.tsx)("div", { innerHTML: this.content }),
+                        socialShare))));
+        };
+        DetailPanel.prototype.hidePanel = function () {
+            var _a, _b, _c;
+            var container = this.container;
+            container.classList.add("hide");
+            this._resultsPanel.classList.remove("hide");
+            if ((_a = this === null || this === void 0 ? void 0 : this.mapPanel) === null || _a === void 0 ? void 0 : _a.isMobileView) {
+                (_c = (_b = this.mapPanel) === null || _b === void 0 ? void 0 : _b.container) === null || _c === void 0 ? void 0 : _c.classList.remove("hide");
+            }
+        };
+        DetailPanel.prototype.showPanel = function () {
+            var _a, _b, _c;
+            var container = this.container;
+            container.classList.remove("hide");
+            this._resultsPanel.classList.add("hide");
+            if ((_a = this === null || this === void 0 ? void 0 : this.mapPanel) === null || _a === void 0 ? void 0 : _a.isMobileView) {
+                (_c = (_b = this.mapPanel) === null || _b === void 0 ? void 0 : _b.container) === null || _c === void 0 ? void 0 : _c.classList.add("hide");
+            }
+        };
+        DetailPanel.prototype._attachToNode = function (node) {
+            var content = this;
+            node.appendChild(content);
+        };
+        DetailPanel.prototype._getTitle = function () {
+            var title = this.config.introductionTitle || null;
+            return title;
+        };
+        DetailPanel.prototype._getContent = function () {
+            var token = this.portal.get("credential.token");
+            var updatedContent = (token && token !== "" && token !== undefined) ? (0, token_1.applyImgTokens)(this.config.introductionContent, token) : this.config.introductionContent;
+            if (!updatedContent) {
+                updatedContent = this.messages.onboarding.content;
+            }
+            return updatedContent;
+        };
+        __decorate([
+            (0, decorators_1.property)()
+        ], DetailPanel.prototype, "config", void 0);
+        __decorate([
+            (0, decorators_1.property)()
+        ], DetailPanel.prototype, "view", void 0);
+        __decorate([
+            (0, decorators_1.property)()
+        ], DetailPanel.prototype, "portal", void 0);
+        __decorate([
+            (0, decorators_1.property)()
+        ], DetailPanel.prototype, "content", void 0);
+        __decorate([
+            (0, decorators_1.property)(),
+            (0, widget_1.messageBundle)("nearby/app/t9n/common")
+        ], DetailPanel.prototype, "messages", void 0);
+        __decorate([
+            (0, decorators_1.property)({
+                dependsOn: ['view.ready'],
+                readOnly: true
+            })
+        ], DetailPanel.prototype, "state", null);
+        __decorate([
+            (0, decorators_1.property)()
+        ], DetailPanel.prototype, "mapPanel", void 0);
+        DetailPanel = __decorate([
+            (0, decorators_1.subclass)('app.DetailPanel')
+        ], DetailPanel);
+        return DetailPanel;
+    }((Widget_1.default)));
+    exports.default = DetailPanel;
+});

@@ -1,0 +1,125 @@
+var loadMoreButton = "<button class='b_btn load-more load-more-search' title='Toon meer zoekresultaten' style='opacity: 0;'>Toon meer zoekresultaten</button>";
+
+$(document).ready(function () {
+	// MENU BUTTON NAVIGATION HAMBURGER
+	$("#pull").on('click', function (e) {
+		e.preventDefault();
+		$(".menu").slideToggle();
+		$(this).toggleClass('active');
+	});
+	
+	$('#p1 a').prop('title', 'Ga naar home');
+
+    $(".newspreviews .clear").remove();
+    var link = $("#lnkdownload a");
+    $("#lnkdownload").empty();
+    $("#lnkdownload").append(link);
+    $(".container_meta").append(link);
+
+    $(".nieuwsitem").each(function () {
+        $(this).find(".nieuwsdatum").insertAfter($(this).find(".titeltekst"));
+    });
+
+    $("#newsarchive").prepend("<button class='b_btn load-more' id='load-news'>Bekijk ouder nieuws</button>");
+
+    $("#load-news").click(function (e) {
+        e.preventDefault();
+        $("#load-news").toggleClass("more-news");
+
+        if ($('#load-news').hasClass('more-news')) {
+            $("#load-news").text("Verberg ouder nieuws");
+            $("#load-news").attr("title", "Verberg ouder nieuws");
+            $("#newsarchive .newslist").fadeIn("500");
+        } else {
+            $("#load-news").text("Bekijk ouder nieuws");
+            $("#load-news").attr("title", "Bekijk ouder nieuws");
+            $("#newsarchive .newslist").fadeOut("500");
+        }
+    });
+
+    if ($(".document, #container_links ul li").length > 6) {
+        $("<button class='b_btn load-more' id='load-more-items' title='Toon meer " + $("h1").text().trim().toLocaleLowerCase() + "'>Toon meer " + $("h1").text().trim().toLocaleLowerCase() + "</button>").appendTo("#ctl00_QsPH_documents, #ctl00_QsPH_linksList");
+
+        $('#container_documents .document:gt(6), #container_links ul li:gt(6)').hide();
+        $('#load-more-items').click(function (e) {
+            e.preventDefault();
+            $("#load-more-items").toggleClass("more-items");
+
+            if ($('#load-more-items').hasClass('more-items')) {
+                $("#load-more-items").text("Verberg " + $("h1").text().trim().toLocaleLowerCase());
+                $("#load-more-items").attr("title", "Verberg " + $("h1").text().trim().toLocaleLowerCase());
+                $('#container_documents .document:gt(6), #container_links ul li:gt(6)').show();
+            } else {
+                $("#load-more-items").text("Toon meer " + $("h1").text().trim().toLocaleLowerCase());
+                $("#load-more-items").attr("title", "Toon meer " + $("h1").text().trim().toLocaleLowerCase());
+                $('#container_documents .document:gt(6), #container_links ul li:gt(6)').hide();
+            }
+        });
+    }
+	
+	$('.document').each(function () {
+        var linkUrl = $(this).children("h2").children("a").attr("href");
+		var linkText = $(this).children("h2").text();
+		
+        var link = "<div class='linkurl'><a title='Download het rapport " + linkText + "' href='" + linkUrl + "'>Download het rapport</a></div>"
+		
+		$(this).append(link);
+    });
+
+    addLoadMoreBtn();
+	
+	$("#hide-feedback").click(function(e){
+		setIframe();
+		$("#feedback-panel").toggleClass("hide-panel");
+	});
+});
+
+function setIframe(){
+	var	url = "https://algemeen.quevi.nl/form/Start/109c529d-207d-467d-aa62-75643622c5f0?version=erfgoed",
+		iframe = document.getElementById("feedback__frame"),
+		iframeUrl = $(iframe).attr("src");
+
+	if(url != iframeUrl) {
+		iframe.src=url;
+		iframe.onload= function() {
+			$(iframe).fadeIn(500);
+		};
+	}
+	else {
+		$(iframe).fadeIn(500);
+	}
+}
+
+window.addEventListener('message', function(event) { 
+	if(event.data=="closewindow"){
+		$("#feedback-panel").addClass("hide-panel");
+	}
+});
+
+$(document).on("click", ".load-more-search", function (e) {
+    e.preventDefault();
+    var parentElement = $(this).parent(".result_group");
+
+    $(this).toggleClass("more-searchitems");
+
+    if ($(this).hasClass('more-searchitems')) {
+        $(this).text("Verberg zoekresultaten");
+        $(this).attr("title", "Verberg zoekresultaten");
+        $(parentElement).children(".result_item:gt(4)").show();
+    } else {
+        $(this).text("Toon meer zoekresultaten");
+        $(this).attr("title", "Toon meer zoekresultaten");
+        $(parentElement).children(".result_item:gt(4)").hide();
+    }
+});
+
+function addLoadMoreBtn() {
+    $(".result_group").each(function () {
+        var results = $(this).children(".result_item").length;
+
+        if (results > 5) {
+            $(loadMoreButton).insertAfter($(this).children(".result_item").last());
+            $(this).children(".load-more-search").fadeTo(100, "1");
+        }
+    });
+};

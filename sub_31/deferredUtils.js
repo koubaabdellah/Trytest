@@ -1,0 +1,3 @@
+//>>built
+define("esri/deferredUtils",["dojo/_base/lang","dojo/has","./kernel"],function(h,f,k){f={_dfdCanceller:function(a){a.canceled=!0;var b=a._pendingDfd;if(!a.isFulfilled()&&b&&!b.isFulfilled()){b.cancel();var c=b.results&&b.results[1]}a._pendingDfd=null;return c},_fixDfd:function(a){var b=a.then;a.then=function(c,d,l){if(c){var g=c;c=function(e){return e&&e._argsArray?g.apply(null,e):g(e)}}return b.call(this,c,d,l)};return a},_resDfd:function(a,b,c){var d=b.length;1===d?c?a.errback(b[0]):a.callback(b[0]):
+1<d?(b._argsArray=!0,a.callback(b)):a.callback()}};h.mixin(k,f);return f});

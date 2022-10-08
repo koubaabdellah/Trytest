@@ -1,0 +1,1074 @@
+var sVersie = "1.24.05.06";
+var strJaar;
+var strInkomenJaar;
+var strAangroeiJaar;
+var strLeeftijd;
+var bEindberekening = false;
+var bInvoer1, bInvoer2, bInvoer3, bInvoer4;
+
+$(document).ready(function () {
+  doInit();
+});
+
+function doPrnRadio(oRadio) {
+  try {
+    var sType = document.getElementById(oRadio.id).type
+  } catch (err) {
+    sType = ""
+  }
+  if (sType == 'radio') {
+    document.getElementById("prn" + oRadio.name).innerHTML = oRadio.value;
+  }
+}
+
+function doReserveringsruimte(objWaarde) {
+  // Functie vult ook een array met de betreffende jaren waarover de reserveringsruimte kan worden berekend
+  document.getElementById("but_bereken").value = "Bereken";
+  document.getElementById("but_bereken").disabled = false;
+  DisableBerekenButton("but_bereken", false);
+  var iJaar;
+  // Eerst alle Blokken uitzetten
+  for (i = 1; i <= 7; i++) {
+    eval("document.getElementById('pJaarruimte" + i + "').style.display = 'none'")
+  }
+  for (i = 1; i <= 7; i++) {
+    eval("document.getElementById('pAfgetrokken" + i + "').style.display = 'none'")
+  }
+  for (i = 1; i <= 7; i++) {
+    eval("document.getElementById('divReserveringsruimte" + i + "').style.display = 'none'")
+  }
+  if (objWaarde.value == "ja") {
+    // Dan weer Blokken aanzetten, alleen de juiste... LET OP check op geldige jaren ivm leeftijd
+    for (i = 7; i > 0; i--) {
+      iJaar = (parseInt(strJaar) - i);
+      if (iJaar <= v_aow_jaar) {
+        eval("document.getElementById('divReserveringsruimte" + i + "').style.display = 'block'");
+      }
+    }
+    // Headers vullen en juiste vragen voorzetten
+    for (i = 7; i > 0; i--) {
+      iJaar = (parseInt(strJaar) - i);
+      if (iJaar <= v_aow_jaar) {
+        // Vullen van de array aReserveringsJaar (gedeclareerd in berekening.js)!
+        aReserveringsJaren[i] = iJaar;
+        sJaarRuimte = "<h2>Niet benutte jaarruimte van " + iJaar + "</h2>\n";
+        sJaarRuimte += "<img src=\"../images/bttn_help_normal.gif\" alt=\"Klik hier voor help over deze vraag.\" class=\"clBtnInfoTitle\" onclick=\"doHelpReserveringsruimte('divHelpNietBenutteJaarruimte', this, aReserveringsJaren[" + i + "])\" />";
+        document.getElementById("Jaarruimte" + i).innerHTML = sJaarRuimte;
+        eval("document.getElementById('pJaarruimte" + i + "').style.display = 'block'");
+        eval("document.getElementById('pAfgetrokken" + i + "').style.display = 'block'");
+      }
+    }
+  } else {
+    // automatisch doorgaan indien reserveringsruimte-radio = nee
+    for (i = 2; i <= 7; i++) {
+      eval("document.getElementById('divMaxResBereikt" + i + "').style.display = 'none'")
+    }
+    CheckBlok4(false);
+  }
+}
+
+function doHelpReserveringsruimte(strWelkeDiv, strX, iJaar) {
+  //para1 : Welke helpDiv moet getoond worden
+  //para2 : object waarmee de x en y coordinaten worden bepaald om de help naast de vraag te plaatsen.
+  //para3 : Vult de <span> in de help met de juiste teksten (op basis van de div en jaren.
+  if (strWelkeDiv == "divHelpNietBenutteJaarruimte") {
+    strTemp = "<p>Vul de vragen in als u uw niet-benutte jaarruimte van " + iJaar + " wilt berekenen. Rond bedragen af op hele euro's.</p>";
+    strWelkeSpan = strWelkeDiv.substring(3)
+  }
+  if (strWelkeDiv == "divHelpJaarruimte") {
+    strTemp = "<p>Bereken het bedrag met deze digitale rekenhulp. </p>";
+    strTemp += "<h2>Let op!</h2>"
+    strTemp += "<p>Als u met deze rekenhulp in ditzelfde venster de jaarruimte in " + iJaar + " gaat berekenen, gaan de gegevens die u hebt ingevuld en alle berekeningen voor " + strJaar + " verloren.</p>";
+    strTemp += '<p>Open daarom <a href="#" title="De Rekenmodule Lijfrentepremie opent in een nieuw venster" onclick="NieuwVenster(\'index.html\',\'ih_link\')">deze rekenhulp in een nieuw venster</a>, kies jaar ' + iJaar + ', vul de gevraagde gegevens in en vul de daar berekende en getoonde jaarruimte dan handmatig hier in.</p>';
+    strWelkeSpan = strWelkeDiv.substring(3)
+  }
+  if (strWelkeDiv == "divHelpAfgetrokken") {
+    strTemp = "<p>Vul het totaalbedrag in van de lijfrentepremies die u in " + iJaar + " hebt afgetrokken.</p>"
+    var iTemp = parseInt(strJaar);
+    if (iJaar + 1 == iTemp - 1) {
+      strTemp += "<p>Tel ook de premies mee die u al in de reserveringsruimte van " + (iTemp - 1) + " hebt afgetrokken vanwege niet-benutte jaarruimte in " + iJaar + ".</p>"
+    } else if (iJaar + 1 < iTemp - 1) {
+      strTemp += "<p>Tel ook de premies mee die u al in de reserveringsruimte van " + (iJaar + 1) + " tot en met " + (iTemp - 1) + " hebt afgetrokken vanwege niet-benutte jaarruimte in " + iJaar + ".</p>"
+    }
+    strWelkeSpan = strWelkeDiv.substring(3)
+  }
+  document.getElementById(strWelkeSpan).innerHTML = strTemp;
+  toonDivs(strWelkeDiv, "divHelp", "", "", strX);
+}
+
+function checkLeeftijd() {
+  if (iLeeftijd >= v_aow_leeftijd + 7) {
+    document.getElementById("divButtons1").style.display = 'none';
+    document.getElementById("fsInvoer1").style.display = 'none';
+    document.getElementById("fsInvoer2").style.display = 'none';
+    document.getElementById("fsInvoer3").style.display = 'none';
+    document.getElementById("fsInvoer4").style.display = 'none';
+    document.getElementById("fsUitvoer").style.display = 'none';
+    document.getElementById("but_bereken").disabled = true;
+    DisableBerekenButton("but_bereken", true);
+    document.getElementById("ResultOuderDan71Leeftijd").innerHTML = iLeeftijd;
+    doUitvoerResult('divResultOuderDan71');
+    return "72plus";
+  }
+  return true;
+}
+
+function doWissel(objPeriode) {
+  // Bereken button uitzetten
+  document.getElementById("but_bereken").disabled = true;
+  DisableBerekenButton("but_bereken", true);
+  var intPeriode = parseInt(objPeriode.value);
+  document.getElementById("divOndernemer").style.display = 'none';
+  document.getElementById("divGebdat").style.display = 'none';
+  document.getElementById("divButtons1").style.display = 'none';
+  if (intPeriode != -1) {
+    document.getElementById("frmBerekening").reset();
+    document.getElementById("frmBerekening").selectPeriode.value = intPeriode;
+    doInit("");
+    document.getElementById("divGebdat").style.display = 'block';
+    document.getElementById("divOndernemer").style.display = 'block';
+    strJaar = intPeriode.toString();
+    strInkomenJaar = (intPeriode - 1).toString();
+    strAangroeiJaar = strInkomenJaar;
+    $("#selectPensioenaangroeiLeeftijd option[value='65']").remove();
+    $("#selectPensioenaangroeiLeeftijd option[value='66']").remove();
+    if (intPeriode >= 2015) {
+      $('#selectPensioenaangroeiLeeftijd').find('option[value="64"]').before("<option value='66'>66</option>");
+      $('#selectPensioenaangroeiLeeftijd').find('option[value="64"]').before("<option value='65'>65</option>");
+//      $("#selectPensioenaangroeiLeeftijd").append("<option value='66'>66</option>").before("<option>64</option>");
+//      $("#selectPensioenaangroeiLeeftijd").append("<option value='65'>65</option>").before("<option>64</option>");
+    }
+  }
+  VulSpan();
+  fillDatepickers(strJaar);
+}
+
+function doInkomenJaar(objJaar) {
+  strInkomenJaar = objJaar.value.toString();
+  doPrnRadio(objJaar);
+  VulSpan();
+  document.getElementById("OndernemerVraag").innerHTML = strInkomenJaar;
+  document.getElementById("OndernemerHelp").innerHTML = strInkomenJaar;
+  document.getElementById("divOndernemer").style.display = 'block';
+
+  document.getElementById("divButtons1").style.display = 'block';
+}
+
+function doChkSelPeriode() {
+  SaveJaar = document.getElementById("frmBerekening").selectPeriode.value;
+}
+
+function ResetTussenResult() {
+  document.getElementById("divTussenResult1").style.display = 'none';
+  document.getElementById("divTussenResult2a").style.display = 'none';
+  document.getElementById("divTussenResult2b2").style.display = 'none';
+}
+
+function doInit(strWelkVeld) {
+  toonDivs("", "divResult", "fsUitvoer", "", '');
+  toonDivs("", "divMaxResBereikt", "", "", '');
+  toonDivs("", "divHelp", "", "", "", "", "");
+  ResetTussenResult();
+  document.getElementById("fsInvoer1").style.display = 'none';
+  document.getElementById("fsInvoer2").style.display = 'none';
+  document.getElementById("fsInvoer3").style.display = 'none';
+  document.getElementById("fsInvoer4").style.display = 'none';
+  document.getElementById("divOndernemer").style.display = 'none';
+  document.getElementById("divGebdat").style.display = 'none';
+  //	schakelButtons("fsButtons", true, "all", true);
+  document.getElementById("fsUitvoer").style.display = 'none';
+  for (i = 1; i <= 7; i++) {
+    eval("document.getElementById('divReserveringsruimte" + i + "').style.display = 'none'")
+  }
+  ZetInputUit("fsKeuze", false);
+  ZetSelectUit("fsKeuze", false);
+  ZetSelectUit("fsInvoer1", false);
+  ZetInputUit("fsInvoer1", false);
+  ZetInputUit("fsInvoer2", false);
+  ZetInputUit("fsInvoer3", false);
+  ZetInputUit("fsInvoer4", false);
+  if (strWelkVeld != "") {
+    //SetFocus(strWelkVeld);
+  }
+  iSaveJaarMaxBereikt = 7;
+}
+
+function doOpnieuw(strWelkVeld) {
+  ShowOrHideVerderButtons(true);
+  toonDivs("", "divResult", "fsUitvoer", "");
+  ZetSelectUit("fsKeuze", false);
+  ZetInputUit("fsKeuze", false);
+  ZetSelectUit("fsInvoer1", false);
+  ZetInputUit("fsInvoer1", false);
+  ZetInputUit("fsInvoer2", false);
+  ZetInputUit("fsInvoer3", false);
+  ZetSelectUit("fsInvoer3", false);
+  ZetInputUit("fsInvoer4", false);
+  schakelButtons("divButtons", true, "all", true);
+  // Indien 1e blok: verder knop aanzetten
+  if (strWelkVeld == "gebdat_jaar") {
+    document.getElementById("divButtons1").style.display = 'block';
+  }
+  if (strWelkVeld != "") {
+    SetFocus(strWelkVeld);
+  }
+}
+
+function doUitvoerResult(strWelkeDiv) {
+  ShowOrHideVerderButtons(false);
+  ZetSelectUit("fsKeuze", true);
+  ZetInputUit("fsKeuze", true);
+  ZetSelectUit("fsInvoer1", true);
+  ZetInputUit("fsInvoer1", true);
+  ZetInputUit("fsInvoer2", true);
+  ZetInputUit("fsInvoer3", true);
+  ZetSelectUit("fsInvoer3", true);
+  ZetInputUit("fsInvoer4", true);
+  toonDivs("", "divHelp", "", "", "", "", "");
+  toonDivs(strWelkeDiv, "divResult", "", "fsUitvoer", "", "", "");
+  toonDivs("divResultaat", "", "", "fsUitvoer", "", "", "");
+  schakelButtons("divButtons", false, "all", false);
+}
+
+function doTussenResultaat(strWelkeDiv) {
+  eval("document.getElementById('divMaxResBereikt" + i + "').innerHTML = '<p>U hebt bij de berekening van de niet-benutte jaarruimte over ' + (parseInt(strJaar) - 7) + ' tot en met ' + aReserveringsJaren[i] + ' al het maximum bereikt dat u in ' + strJaar + ' in de reserveringsruimte mag aftrekken. Als u toch uw totale niet-benutte jaarruimte van de periode ' + (parseInt(strJaar) - 7) + ' tot en met ' + (parseInt(strJaar) - 1) + ' wilt berekenen, kunt u verdergaan met de volgende vragen.</p>'");
+  eval("document.getElementById('divMaxResBereikt" + i + "').style.display = 'block'");
+  toonDivs("", "divHelp", "", "", "", "", "");
+  toonDivs(strWelkeDiv, "divResult", "", "fsUitvoer", "", "", "");
+  toonDivs("divResultaat", "", "", "fsUitvoer", "", "", "");
+  schakelButtons("divButtons", true, "", true);
+}
+
+function Wissen() {
+  document.getElementById("frmBerekening").reset();
+  doInit("");
+  doHelp("divHelpStartTekst");
+  parent.location = "#";
+}
+
+function ToonPensioenOpgaaf(oRadio) {
+  doPrnRadio(oRadio);
+  if (isChecked("PensioenopbouwWerkgeverTrue")) {
+    // Pensioenopbouw bij werkgever = ja
+    document.getElementById("divPensioenaangroeiBerekenenJaNee").style.display = 'none'
+    document.getElementById("divPensioenaangroeiBerekenen").style.display = 'none'
+    document.getElementById("divSpaarloonregeling").style.display = 'none';
+    document.getElementById("divButtons3").style.display = 'none';
+    document.getElementById("divOpgaaf").style.display = 'block';
+    document.getElementById("divButtons3a").style.display = 'block';
+
+  } else if (isChecked("PensioenopbouwWerkgeverFalse")) {
+    // Pensioenopbouw bij werkgever = nee
+    document.getElementById("divOpgaaf").style.display = 'none'
+    document.getElementById("divSpaarloonregeling").style.display = 'none';
+    document.getElementById("divPensioenaangroeiBerekenenJaNee").style.display = 'none'
+    document.getElementById("divPensioenaangroeiBerekenen").style.display = 'none'
+    document.getElementById("divButtons3a").style.display = 'none';
+    CheckBlok3b(true);	// automatisch doorgaan indien pensioen-radio = nee
+  }
+}
+
+function toonPensioenaangroeiBerekenenExtra(oThis) {
+  try {
+    var sType = document.getElementById(oThis.id).type
+  } catch (err) {
+    sType = ""
+  }
+  if (sType == 'radio') {
+    doPrnRadio(oThis);
+  }
+
+  if (document.getElementById("inpGrondslag").value > 0 || document.getElementById("inpVrijwillig").value > 0) {
+    document.getElementById("divPensioenaangroeiBerekenenExtra").style.display = 'block'
+    var iPercentage = checkBedragen(document.getElementById("inpPercentage"), this.name, true, false, false, false, false, false);
+    if (parseFloat(iPercentage) > 0 && parseInt(strJaar) >= 2008) {
+      document.getElementById("divPensioenleeftijdVoor65").style.display = 'block'
+      if (isChecked("PensioenIngangVoor65True")) {
+        document.getElementById("divPensioenaangroeiLeeftijd").style.display = 'block'
+      } else {
+        document.getElementById("divPensioenaangroeiLeeftijd").style.display = 'none'
+      }
+    } else {
+      document.getElementById("divPensioenaangroeiLeeftijd").style.display = 'none'
+      document.getElementById("divPensioenleeftijdVoor65").style.display = 'none'
+    }
+  } else {
+    document.getElementById("divPensioenaangroeiLeeftijd").style.display = 'none'
+    document.getElementById("divPensioenleeftijdVoor65").style.display = 'none'
+    document.getElementById("divPensioenaangroeiBerekenenExtra").style.display = 'none'
+  }
+}
+
+function checkOpbouwPercentage(oThis) {
+  var iPercentage = checkBedragen(oThis, this.name, true, false, false, false, true, false);
+  if (parseInt(iPercentage) < 0 || parseInt(iPercentage) > 100) {
+    alert("Vul bij een percentage een getal in van 0 tot 100.");
+    SetFocus(oThis.id);
+    oThis.select();
+    return;
+  }
+}
+
+function CheckBut_Bereken3a() {
+  var bSwitch = true;
+  if (document.getElementById("inpOpgaaf").value > 0) {
+    bSwitch = false;
+  } else if (document.getElementById("divPensioenaangroeiBerekenenJaNee").style.display == 'block' && isChecked("PensioenaangroeiBerekenenTrue")) {
+    bSwitch = false;
+  } else if (document.getElementById("divSpaarloonregeling").style.display == 'block' && document.getElementById("inpSpaarloonregeling").value > 0) {
+    bSwitch = false;
+  }
+  document.getElementById("but_bereken3").disabled = bSwitch;
+
+}
+
+function ToonPensioenaangroei(oRadio) {
+  doPrnRadio(oRadio);
+  if (oRadio.id == "PensioenopbouwWerkgeverTrue") {
+    // Pensioenopbouw bij werkgever = ja
+    document.getElementById("divOpgaaf").style.display = 'block';
+    if (parseInt(strJaar) <= 2011) {
+      document.getElementById("divSpaarloonregeling").style.display = 'block';
+    } else {
+      document.getElementById("divSpaarloonregeling").style.display = 'none';
+    }
+    // Pensioenaangroei al geklikt?
+    if (isChecked("PensioenaangroeiBerekenenTrue")) {
+      // Zo ja, auto-click pensioenaangroei
+      document.getElementById("PensioenaangroeiBerekenenTrue").onclick();
+    }
+  } else if (oRadio.id == "PensioenopbouwWerkgeverFalse") {
+    // Pensioenopbouw bij werkgever = nee
+    document.getElementById("divOpgaaf").style.display = 'none'
+    document.getElementById("divSpaarloonregeling").style.display = 'none';
+    document.getElementById("divPensioenaangroeiBerekenen").style.display = 'none'
+    CheckBlok3b(false);	// automatisch doorgaan indien pensioen-radio = nee
+
+  } else if (oRadio.id == "PensioenaangroeiBerekenenTrue") {
+    // Pensioenaangroei berekenen = ja
+    document.getElementById("divPensioenaangroeiBerekenen").style.display = 'block'
+    document.getElementById("inpGrondslag").onkeyup();
+
+  } else if (oRadio.id == "PensioenaangroeiBerekenenFalse") {
+    // Pensioenaangroei berekenen = nee
+    document.getElementById("divPensioenaangroeiBerekenen").style.display = 'none'
+  }
+
+  if (isChecked("PensioenopbouwWerkgeverTrue")) {
+    document.getElementById("divButtons3").style.display = 'block';
+  } else {
+    document.getElementById("divButtons3").style.display = 'none';
+  }
+  CheckBut_Bereken3a();
+}
+
+function VulSpan() {
+
+  $('.inkomensjaar').text(strInkomenJaar);
+  $('.voriginkomensjaar').text(parseInt(strInkomenJaar) - 1);
+  if (parseInt(strJaar) < 2015) {
+    $('.aowleeftijdgrens').text("65");
+  } else {
+    $('.aowleeftijdgrens').text("67");
+  }
+
+  //Vragen
+  document.getElementById("OndernemerVraag").innerHTML = strInkomenJaar;
+  document.getElementById("OndernemerHelp").innerHTML = strInkomenJaar;
+
+  //Vragen Plusposten
+  document.getElementById("WinstVraag").innerHTML = strInkomenJaar;
+  document.getElementById("SalarisVraag").innerHTML = strInkomenJaar;
+  document.getElementById("FORPreserveVraag").innerHTML = strInkomenJaar;
+  document.getElementById("AutoVraag").innerHTML = strInkomenJaar;
+  document.getElementById("BuitenlandVraag").innerHTML = strInkomenJaar;
+  document.getElementById("OverigVraag").innerHTML = strInkomenJaar;
+  document.getElementById("VroegerVraag").innerHTML = strInkomenJaar;
+  document.getElementById("VermogenVraag").innerHTML = strInkomenJaar;
+  document.getElementById("AlimentatieVraag").innerHTML = strInkomenJaar;
+  document.getElementById("UitkeringVraag").innerHTML = strInkomenJaar;
+  document.getElementById("ReisaftrekVraag").innerHTML = "aftrek in " + strInkomenJaar;
+  document.getElementById("ZeedagenVraag").innerHTML = strInkomenJaar;
+  document.getElementById("FORMaftrekVraag").innerHTML = strInkomenJaar;
+  document.getElementById("HelpFOR").innerHTML = strInkomenJaar;
+
+  //Vragen PensioenAangroeiWerkgever
+  document.getElementById("PensioenopbouwWerkgeverVraag").innerHTML = strAangroeiJaar;
+  document.getElementById("OpgaafVraag").innerHTML = strAangroeiJaar;
+  //	document.getElementById("").innerHTML = strInkomenJaar;
+  document.getElementById("GrondslagVraag").innerHTML = strAangroeiJaar;
+  document.getElementById("FranchiseVraag").innerHTML = strAangroeiJaar;
+  document.getElementById("PercentageVraag").innerHTML = strAangroeiJaar;
+  //	document.getElementById("VrijwilligVraag").innerHTML = strInkomenJaar;
+  document.getElementById("SpaarloonregelingVraag").innerHTML = strAangroeiJaar;
+
+  //Resultaatteksten
+
+  document.getElementById("spanTussen2b2Jaar").innerHTML = strJaar;
+  document.getElementById("ResultJongerDan71Jaar").innerHTML = strJaar;
+  document.getElementById("ResultOuderDan71VorigJaar").innerHTML = parseInt(strJaar) - 1;
+  document.getElementById("ResultTussen65En71Jaar").innerHTML = strJaar;
+  // Let op: diverse spans worden in de berekeningen gevuld! Een aantal zou hier kunnen worden opgenomen (bv: alles met strJaar)
+
+  //Helpteksten Plusposten
+  document.getElementById("PremiegrondslagVraag").innerHTML = strJaar;
+
+  strTemp = "";
+  if (strJaar == strInkomenJaar) {
+    strTemp += "<p>Met uw premiegrondslag kunt u uw jaarruimte en uw reserveringsruimte bepalen. Ga hierbij uit van uw inkomen van " + strInkomenJaar + ". Wij verwijzen u in deze rekenhulp naar vergelijkbare vragen van uw aangifte over " + strInkomenJaar + ". U kunt de bedragen overnemen die u in die aangifte hebt ingevuld.</p>";
+  } else {
+    strTemp += "<h2>Jaarruimte en reserveringsruimte</h2><p>Met uw premiegrondslag kunt u uw jaarruimte en uw reserveringsruimte bepalen. Ga hierbij uit van uw inkomen van " + strInkomenJaar + ", dus niet van " + strJaar + ". Wij verwijzen u in deze rekenhulp naar vergelijkbare vragen van uw aangifte over " + strInkomenJaar + ". U kunt de bedragen overnemen die u in die aangifte hebt ingevuld.</p>";
+  }
+  strTemp += "<h2>Bedragen invullen</h2><p>Rond de bedragen af op hele euro's en gebruik geen spaties, komma's of punten. Als een bedrag nul is, vul dan niets in.</p>";
+  strTemp += "<h2>Let op!</h2>";
+  strTemp += "<p>U mag ook negatieve bedragen invullen. Zet dan een liggend streepje direct v&oacute;&oacute;r het bedrag, bijvoorbeeld: -100.</p>";
+
+  document.getElementById("HelpPlusposten").innerHTML = strTemp;
+
+  strTemp = "";
+  if (parseInt(strInkomenJaar) <= 2006) {
+    strTemp = "<p>Neem het bedrag over van uw aangifte bij 'Uw winst uit onderneming v&oacute;&oacute;r ondernemersaftrek'.</p>";
+  } else {
+    strTemp += "<p>Neem het bedrag over van uw aangifte bij 'Winst uit onderneming v&oacute;&oacute;r ondernemersaftrek'.</p>";
+  }
+  document.getElementById("HelpWinst").innerHTML = strTemp;
+
+  strTemp = "";
+  if (parseInt(strInkomenJaar) <= 2009) {
+
+    strTemp = "<p>Neem het totaalbedrag over van uw aangifte bij 'Loon en ziektewetuitkeringen' en bij 'Fooien, aandelenoptierechten en andere inkomsten uit loondienst die niet onder de loonheffing vielen'.</p>";
+  } else if (parseInt(strInkomenJaar) >= 2010 && parseInt(strInkomenJaar) < 2014) {
+    strTemp += "<p>Neem het totaalbedrag over van uw aangifte bij 'Loon en ziektewetuitkeringen' en bij 'Fooien, aandelenoptierechten en andere inkomsten uit loondienst die niet onder de loonheffing vielen'.</p>";
+  }else {
+    strTemp += "<p><strong>Hebt u online aangifte gedaan op Mijn Belastingdienst?</strong><br />Neem het totaalbedrag over van uw aangifte bij ‘Inkomsten uit loondienst in Nederland’ en bij 'Fooien, aandelenoptierechten en andere inkomsten uit loondienst waarover geen loonheffing werd ingehouden'.</p>";  
+    strTemp += "<p><strong>Hebt u op een andere manier aangifte gedaan?</strong><br />Neem het totaalbedrag over van uw aangifte bij  'Loon en ziektewetuitkeringen' en bij 'Fooien, aandelenoptierechten en andere inkomsten uit loondienst die niet onder de loonheffing vielen'.</p>";      
+  }
+  
+  document.getElementById("HelpSalaris").innerHTML = strTemp;
+
+  strTemp = "";
+  if (parseInt(strInkomenJaar) <= 2005) {
+    strTemp = "<p>Hebt u digitaal aangifte gedaan, neem dan het bedrag over van 'Totaal buitenlands loon e.d.'.</p><p>Hebt u op papier aangifte gedaan, neem dan het totaal over van 'Buitenlandse inkomsten uit tegenwoordige dienstbetrekking' en 'Buitenlandse inkomsten uit vroegere dienstbetrekking'.</p>";
+  } else if (parseInt(strInkomenJaar) <= 2008) {
+    strTemp += "<p>Hebt u digitaal aangifte gedaan, neem dan het bedrag over van 'Totaal buitenlands loon e.d.'.</p><p>Hebt u op papier aangifte gedaan, neem dan het totaal over van 'Buitenlandse inkomsten uit tegenwoordige dienstbetrekking zoals loon' en 'Buitenlandse inkomsten uit vroegere dienstbetrekking zoals pensioen, invaliditeitsuitkeringen, werkloosheidsuitkeringen of overheidsuitkeringen'.</p>";
+  } else if (parseInt(strInkomenJaar) >= 2009 && parseInt(strInkomenJaar) < 2014) {
+    strTemp += "<p>Neem het totaalbedrag over van uw aangifte bij 'Totaal buitenlandse inkomsten uit loondienst' en 'Totaal buitenlandse uitkeringen'.</p>";
+  } else {
+    strTemp += "<p><strong>Hebt u online aangifte gedaan op Mijn Belastingdienst?</strong><br />Neem het totaalbedrag over van uw aangifte bij ‘Inkomsten uit loondienst in het buitenland’ en bij ‘Buitenlands pensioen en uitkeringen’.</p>";  
+    strTemp += "<p><strong>Hebt u op een andere manier aangifte gedaan?</strong><br />Neem het totaalbedrag over van uw aangifte bij 'Totaal buitenlandse inkomsten uit loondienst' en 'Totaal buitenlandse uitkeringen'.</p>";      
+  }
+  document.getElementById("HelpBuitenland").innerHTML = strTemp;
+
+  strTemp = "";
+  if (parseInt(strInkomenJaar) <= 2008) {
+    strTemp += "<p>Neem het bedrag over van uw aangifte bij 'Inkomsten uit overige werkzaamheden'.</p>";
+  } else if (parseInt(strInkomenJaar) >= 2009 && parseInt(strInkomenJaar) < 2014) {
+    strTemp += "<p>Neem het bedrag over van uw aangifte bij 'Inkomsten uit overige werkzaamheden'.</p>";
+  } else {
+    strTemp += "<p>Neem het bedrag over van uw aangifte bij 'Inkomsten uit overig werk (niet in loondienst)'.</p>";
+  }
+  document.getElementById("HelpOverig").innerHTML = strTemp;
+
+  strTemp = "";
+  if (parseInt(strInkomenJaar) <= 2005) {
+    strTemp += "<p>Neem het bedrag over van uw aangifte bij 'Pensioen, AOW, WAO, WW, bijstand en andere inkomsten van uzelf uit vroegere dienstbetrekking en lijfrente-uitkeringen en afkoopsommen die onder de loonheffing vielen'.</p>";
+  } else if (parseInt(strInkomenJaar) <= 2008) {
+    strTemp += "<p>Neem het bedrag over van uw aangifte bij 'AOW, pensioen, WAO, WIA, WW, Anw, bijstand of een andere uitkering uit vroegere dienstbetrekking, zoals lijfrente-uitkeringen of afkoopsommen die onder de loonheffing vielen'.</p>";
+  } else if (parseInt(strInkomenJaar) == 2009) {
+    strTemp += "<p>Neem het bedrag over van uw aangifte bij 'AOW, pensioen, lijfrente, bijstand en andere uitkeringen'.</p>";
+  } else if (parseInt(strInkomenJaar) >= 2010 && parseInt(strInkomenJaar) < 2014) {
+    strTemp += "<p>Hebt u digitaal aangifte gedaan, neem dan het totaalbedrag over van uw aangifte bij 'Uitkeringen en afkoopsommen'. Tel de volgende bedragen bij elkaar:</p>";
+    strTemp += "<ul>";
+    strTemp += "<li>'Totaal uitkeringen e.d.'</li>";
+    strTemp += "<li>'Totaal afkoopsommen lijfrente'</li>";
+    strTemp += "</ul>";
+    strTemp += "<p>Hebt u op papier aangifte gedaan, neem dan het totaal over van de volgende bedragen:</p>";
+    strTemp += "<ul>";
+    strTemp += "<li>'AOW, pensioen, WAO, WIA, WW, Anw, bijstand of andere uitkeringen, zoals lijfrente-uitkeringen of afkoopsommen die onder de loonheffing vielen'</li>";
+    strTemp += "<li>'Afkoopsommen lijfrente van meer dan &euro;&nbsp;4.146'</li>";
+    strTemp += "</ul>";
+  } else {
+    strTemp += "<p><strong>Hebt u online aangifte gedaan op Mijn Belastingdienst?</strong><br />Neem het bedrag over van uw aangifte bij 'Pensioen en andere uitkeringen'.</p>";
+    strTemp += "<p><strong>Let op!</strong><br />Als u een buitenlands pensioen hebt, geeft u dat op bij 'Buitenlands pensioen en uitkeringen' en <strong>niet</strong> bij 'Pensioen en andere uitkeringen'.</p>";    
+    strTemp += "<p><strong>Hebt u op een andere manier aangifte gedaan?</strong><br />Neem het totaalbedrag over van uw aangifte bij 'Uitkeringen en afkoopsommen'. Tel de volgende bedragen bij elkaar:</p>";     
+    strTemp += "<ul>";
+    strTemp += "<li>'Totaal uitkeringen e.d.'</li>";
+    strTemp += "<li>'Totaal afkoopsommen lijfrente'</li>";
+    strTemp += "</ul>";
+  }
+  document.getElementById("HelpVroeger").innerHTML = strTemp;
+
+  strTemp = "";
+  if (parseInt(strInkomenJaar) <= 2009) {
+    strTemp = "<p>Neem het bedrag over van uw aangifte bij 'Inkomsten uit het ter beschikking stellen van vermogensbestanddelen'.</p>";
+  } else if (parseInt(strInkomenJaar) >= 2010 && parseInt(strInkomenJaar) < 2014 ){
+    strTemp += "<p>Hebt u digitaal aangifte gedaan, neem dan het bedrag over uit uw aangifte bij 'Inkomsten uit beschikbaar gestelde bezittingen'.</p>";
+    strTemp += "<p>Hebt u op papier aangifte gedaan, neem dan het totaal over van 'Inkomsten uit ter beschikking gestelde vermogensbestanddelen'.</p>";
+  } else{
+    strTemp += "<p><strong>Hebt u online aangifte gedaan op Mijn Belastingdienst?</strong><br />Neem het bedrag over van uw aangifte bij 'Inkomsten uit het beschikbaar stellen van bezittingen aan een eigen bv of een onderneming van een fiscale partner'.</p>";  
+    strTemp += "<p><strong>Hebt u op een andere manier aangifte gedaan?</strong><br />Neem het bedrag over van uw aangifte bij 'Inkomsten uit beschikbaar gestelde bezittingen'.</p>";     
+  }
+  document.getElementById("HelpVermogen").innerHTML = strTemp;
+
+  strTemp = "";
+  if (parseInt(strInkomenJaar) < 2014) {
+    strTemp += " <p>Neem het bedrag over van uw aangifte bij 'Totaal alimentatie of afkoopsommen daarvan'.</p>";
+  } else {
+    strTemp += "<p><strong>Hebt u online aangifte gedaan op Mijn Belastingdienst?</strong><br />Neem het bedrag over van uw aangifte bij ‘Partneralimentatie’.</p>";  
+    strTemp += "<p><strong>Hebt u op een andere manier aangifte gedaan?</strong><br />Neem het bedrag over van uw aangifte bij 'Totaal alimentatie of afkoopsommen daarvan'.</p>"; 
+  }
+  document.getElementById("HelpAlimentatie").innerHTML = strTemp;
+
+  strTemp = "";
+  if (parseInt(strInkomenJaar) <= 2005) {
+    strTemp += "<p>Neem het bedrag over	van uw aangifte bij 'Inkomsten uit periodieke uitkeringen'.</p>";
+  } else if (parseInt(strInkomenJaar) <= 2009) {
+    strTemp += "<p>Neem het bedrag over van	uw aangifte bij 'Periodieke uitkeringen'.</p>";
+
+  } else if (parseInt(strInkomenJaar) >= 2010 && parseInt(strInkomenJaar) < 2014){
+    strTemp += "<p>Neem het bedrag over van uw aangifte bij 'Totaal periodieke uitkeringen en afkoopsommen daarvan'.</p>";
+  } else{
+    strTemp += "<p><strong>Hebt u online aangifte gedaan op Mijn Belastingdienst?</strong><br />Deze inkomsten hebt u al elders ingevuld. Vul hier dus niets in.</p>";  
+    strTemp += "<p><strong>Hebt u op een andere manier aangifte gedaan?</strong><br />Neem het bedrag over van uw aangifte bij 'Totaal periodieke uitkeringen en afkoopsommen daarvan'.</p>";     
+  }
+  
+  document.getElementById("HelpUitkering").innerHTML = strTemp;
+
+  //Helpteksten Minposten
+  strTemp = "";
+  if (parseInt(strInkomenJaar) < 2008) {
+    strTemp += "<p>Neem het bedrag over van uw aangifte.</p>";
+  } else {
+    strTemp += "<p>Neem het bedrag over van uw aangifte bij 'Totaal reisaftrek openbaar vervoer'.</p>";
+  }
+  document.getElementById("HelpReisaftrek").innerHTML = strTemp;
+
+  strTemp = "<p>Samen met de premiegrondslag plusposten bepalen de premiegrondslag minposten uw premiegrondslag die de basis vormt voor de lijfrentepremieaftrek " + strJaar + ".<p>Rond de bedragen af op hele euro's en gebruik geen spaties, komma's of punten. Als een bedrag 0 is vul dan niets in.</p>";
+  document.getElementById("HelpMinposten").innerHTML = strTemp;
+
+  //Helpteksten Tussenresultaat Premiegrondslag
+  if (Premiegrondslag() > 0) {
+    document.getElementById("spanTussenResult1AOW").innerHTML = iAOWfranchise;
+  }
+
+  //Helpteksten Pensioenaangroei werkgever
+  strTemp = "<p>Naast de premiegrondslag is  uw pensioenaangroei nodig om uw jaarruimte van " + strJaar + " te bepalen.</p>";
+  document.getElementById("HelpPensioenAangroeiWerkgever").innerHTML = strTemp;
+
+  strTemp = "<p>Kies 'Ja':</p><ul><li>als u heel " + strAangroeiJaar + " in loondienst werkte en pensioen opbouwde</li><li>als u een deel van " + strAangroeiJaar + " in loondienst werkte en pensioen opbouwde</li><li>als u in " + strAangroeiJaar + " in loondienst werkte en uw pensioenpremie geheel of gedeeltelijk zelf betaalde</li><li>als u in " + strAangroeiJaar + " als vrije beroepsbeoefenaar deelnam aan een verplicht gestelde beroepspensioenregeling</li></ul><p>In alle andere gevallen kiest u 'nee'.</p>";
+  document.getElementById("PensioenopbouwWerkgever").innerHTML = strTemp;
+
+  strTemp = "<p>U vindt dit bedrag in de opgaaf van " + strAangroeiJaar + " die u speciaal voor de lijfrentepremieaftrek van uw pensioenfonds of pensioenverzekeraar krijgt.</p>";
+  strTemp += "<p>Hebt u meerdere opgaven ontvangen, vul dan het totaalbedrag van de opgaven in. (Dit kan het geval zijn als u in " + strAangroeiJaar + " in meerdere werkkringen hebt gewerkt.) Hebt u de speciale opgaaf van uw pensioenaangroei over " + strAangroeiJaar + " nog niet ontvangen, vul hier dan niets in.</p>";
+  strTemp += "<p><strong>Let op!</strong><br />Deze opgaaf is dus <strong>niet</strong> de opgaaf van uw jaarloon van uw werkgever. Ook is het <strong>niet</strong> de opgaaf van het pensioen dat u over de hele periode van loondienst hebt opgebouwd.</p>";
+  document.getElementById("Opgaaf").innerHTML = strTemp;
+
+  strTemp = "<p>Kies 'ja':</p>";
+  strTemp += "<ul>";
+  strTemp += "<li>Als u geen enkele opgaaf van uw pensioenaangroei over " + strAangroeiJaar + " hebt ontvangen.</li>"
+  strTemp += "<li>Als u w&eacute;l een opgaaf van uw pensioenaangroei over " + strAangroeiJaar + " hebt ontvangen en het bedrag hebt ingevuld bij de vorige vraag, maar daarnaast nog een ander pensioen hebt waarvan u geen opgaaf over " + strAangroeiJaar + " hebt ontvangen en geen bedrag hebt ingevuld bij de vorige vraag. Dit kan het geval zijn als u in " + strAangroeiJaar + " voor meerdere werkgevers hebt gewerkt.</li>"
+  strTemp += "<li>Als u  op basis van 'beschikbare premies' bij een werkgever pensioen opbouwde.</li>"
+  strTemp += "</ul>"
+  strTemp += "<p>In alle andere gevallen kiest u 'nee'.</p>";
+  document.getElementById("PensioenaangroeiBerekenen").innerHTML = strTemp;
+
+  strTemp = "<p>Vul deze vraag alleen in voor het pensioen dat u bij uw werkgever opbouwde op basis van de hoogte van uw loon &eacute;n waarvoor u nog geen pensioenaangroei hebt ingevuld.</p>";
+  strTemp += "<h2>Let op!</h2><p>Bouwt u pensioen op op basis van 'beschikbare premies'? Vul dan 0 in.</p>";
+  strTemp += "<p>U vindt het pensioengevend loon op uw loonstroken (<strong>niet</strong> de jaaropgaaf) die u in " + strAangroeiJaar + " van uw werkgever kreeg, onder 'pensioengevend loon' of 'pensioengrondslag'. Vul het bedrag in van uw laatste loonstrook van " + strAangroeiJaar + ". Kunt u dit bedrag niet vinden op uw loonstrook, of hebt u geen loonstrook, vraag uw werkgever dan naar de hoogte van het loon waarover u in " + strAangroeiJaar + " pensioen opbouwde.</p>";
+  strTemp += "<h2>Let op!</h2><p>Het kan zijn dat het bedrag op de loonstrook geldt voor fulltime werk. Als u parttime werkt, moet u dat bedrag herrekenen tot het pensioengevend loon dat voor u geldt.</p>";
+  document.getElementById("Grondslag").innerHTML = strTemp;
+
+  strTemp = "<p>Beantwoord deze vraag alleen voor het pensioen waarvoor u in de vorige vraag het pensioengevend loon hebt ingevuld.</p>";
+  strTemp += "<p>De franchise is een bedrag waarover u bij uw werkgever in " + strAangroeiJaar + " geen pensioen opbouwde, omdat u op 65-jarige leeftijd een AOW-uitkering ontvangt. Het bedrag hangt af van uw pensioenregeling.</p>";
+  strTemp += "<p>Het franchisebedrag vindt u meestal op uw laatste loonstrook (<strong>niet</strong> de jaaropgaaf) van " + strAangroeiJaar + ". Als dat niet het geval is, kunt u het franchisebedrag bij uw werkgever opvragen.</p>";
+  strTemp += "<h2>Let op!</h2><p>Als u parttime werkt, moet u van uw werkgever ook de franchise voor een parttimer krijgen.</p>";
+  document.getElementById("Franchise").innerHTML = strTemp;
+
+  strTemp = "<p>Beantwoord deze vraag alleen voor het pensioen waarvoor u zojuist het pensioengevend loon en de franchise hebt ingevuld.</p>";
+  strTemp += "<p>Vul het percentage in waarmee u in " + strAangroeiJaar + " op grond van de pensioenregeling pensioen opbouwde, bijvoorbeeld: 1,8 of 2,05.</p>";
+  strTemp += "<h2>Let op!</h2><p>De laatste jaren is uw opbouwpercentage mogelijk gewijzigd door wijzigingen in de pensioenwetgeving.</p>";
+  strTemp += "<p>U kunt het opbouwpercentage opvragen bij uw werkgever.</p>";
+  document.getElementById("Percentage").innerHTML = strTemp;
+
+  strTemp = "<ol><li>Deze vraag gaat alleen over de pensioenopbouw in " + strAangroeiJaar + " <strong>niet</strong> op basis van de hoogte van uw loon, maar op basis van 'beschikbare premies'. Ook als u als vrije beroepsbeoefenaar verplicht deelneemt aan een beroepspensioenregeling, moet u deze vraag beantwoorden.<br />Vul hier <strong>niet</strong> het bedrag in van de premies die u en/of uw werkgever betaalde voor een pensioen op basis van beschikbare premies, waarvan u de aangroei volgens de opgaaf van het pensioenfonds hierv&oacute;&oacute;r al invulde.</li>";
+  strTemp += "<li>Het kan ook zijn dat u in " + strAangroeiJaar + " een pensioen opbouwde op basis van de hoogte van uw loon en daarnaast vrijwillig extra pensioenpremies betaalde voor verbetering van uw pensioen. Vul deze premies hier in.<br />Vul hier <strong>niet</strong> het bedrag in van de premies die u vrijwillig betaalde voor een pensioen waarvan u de aangroei volgens de opgaaf van het pensioenfonds hierv&oacute;&oacute;r al invulde.</li></ol>";
+  strTemp += "<h2>Let op!</h2><p>De laatste jaren is uw opbouwpercentage mogelijk veranderd door wijzigingen in de pensioenwetgeving.</p>";
+  strTemp += "<p>Rond het bedrag af op hele euro's.</p>";
+  document.getElementById("Vrijwillig").innerHTML = strTemp;
+
+  strTemp = "<p>Beantwoord deze vraag alleen voor pensioen waarvoor u nog geen pensioenaangroei hebt ingevuld.</p>";
+  strTemp += "<p>Vul het bedrag in van de pensioenpremies die u in " + strAangroeiJaar + " vrijwillig betaalde via een spaarloonregeling.</p>";
+  strTemp += "<p>Het bedrag dat u gebruikt hebt voor spaarregeling(en) in " + strAangroeiJaar + " vindt u op de jaaropgaaf over " + strAangroeiJaar + " van uw werkgever. Welk bedrag u daarvan gebruikt hebt voor de vrijwillige betaling van pensioenpremies, hangt af van uw afspraken met uw werkgever.</p>";
+  strTemp += "<h2>Let op!</h2><p>Vul hier <strong>niet</strong> de <strong>lijfrentepremies</strong> in die u aan een verzekeringsmaatschappij betaalde via een spaarloonregeling.</p>";
+  document.getElementById("Spaarloonregeling").innerHTML = strTemp;
+
+  //TussenresultaatHelpteksten
+  strTemp = "<p>Uw jaarruimte " + strJaar + " is het bedrag aan premies dat u in " + strJaar + " mag aftrekken.</p>";
+  if (parseInt(strJaar) < 2011) {
+    strTemp += "<h2>Let op!</h2><p>U kunt het bedrag van de jaarruimte niet zomaar aftrekken. Dat kan alleen tot het bedrag dat u ook daadwerkelijk aan premies hebt betaald. Voor de jaarruimte kunt u premies gebruiken die u hebt betaald in " + strJaar + " <strong>en</strong> v&oacute;&oacute;r 1 april " + (parseInt(strJaar) + 1) + ". Maar u mag premies die u hebt betaald in " + strJaar + " en die u al gebruikte voor aftrek in " + (parseInt(strJaar) - 1) + ", niet nogmaals aftrekken.</p>";
+  } else if (parseInt(strJaar) == 2011) {
+    strTemp += "<h2>Let op!</h2><p>U kunt het bedrag van de jaarruimte niet zomaar aftrekken. Dat kan alleen tot het bedrag dat u ook daadwerkelijk aan premies hebt betaald. Voor de jaarruimte kunt u premies gebruiken die u hebt betaald in  " + strJaar + ". Maar u mag premies die u hebt betaald in " + strJaar + " en die u al gebruikte voor aftrek in " + (parseInt(strJaar) - 1) + ", niet nogmaals aftrekken.</p>";
+  } else {
+    strTemp += "<h2>Let op!</h2><p>U kunt het bedrag van de jaarruimte niet zomaar aftrekken. Dat kan alleen tot het bedrag dat u ook daadwerkelijk aan premies hebt betaald in " + strJaar + ".</p>";
+  }
+  document.getElementById("spanHelpTussenResult2b2Tekst").innerHTML = strTemp;
+}
+
+function CheckBlok1() {
+  // fsKeuze
+  Bereken1();
+  if (document.getElementById("selectPeriode").value == "-1") {
+    // just in case. periode zou gekozen moeten zijn, button is anders niet zichtbaar
+    alert("Kies eerst een periode");
+  } else if (isVisible("divOndernemer") && !isChecked("OndernemerTrue") && !isChecked("OndernemerFalse")) {
+    alert("Geef eerst aan of u aangifte heeft gedaan als ondernemer");
+  } else if (document.getElementById('gebdat').value === "") {
+    alert("Vul eerst de geboortedatum in");
+  } else if (checkLeeftijd() != "72plus") {
+    // toon volgende blok (plus- en minposten)
+    document.getElementById("divButtons1").style.display = 'none';
+    document.getElementById("divButtons2a").style.display = 'block';
+    document.getElementById("fsInvoer1").style.display = 'block';
+    document.getElementById("fsInvoer2").style.display = 'none';
+    // plusposten
+    document.getElementById("divWinst").style.display = 'none';
+    document.getElementById("divFORPreserve").style.display = 'none';
+    document.getElementById("divAuto").style.display = 'none';
+    document.getElementById("divAlimentatie").style.display = 'none';
+    // minposten
+    if (parseInt(strJaar) < 2007) {
+      document.getElementById("divZeedagen").style.display = 'block';
+    } else {
+      document.getElementById("divZeedagen").style.display = 'none';
+    }
+    document.getElementById("divFORMaftrek").style.display = 'none';
+    // Indien ondernemer
+    if (isChecked("OndernemerTrue")) {
+      document.getElementById("divWinst").style.display = 'block'
+      document.getElementById("divFORPreserve").style.display = 'block';
+      toonFORMaftrek();
+
+    }
+    // Auto
+    if (parseInt(strInkomenJaar) <= 2005) {
+      document.getElementById("divAuto").style.display = 'block';
+    }
+    // Alimentatie
+    if (parseInt(strInkomenJaar) >= 2006) {
+      document.getElementById("divAlimentatie").style.display = 'block';
+    }
+    // Setfocus
+    if (isChecked("OndernemerTrue")) {
+      SetFocus("inpWinst");
+
+    } else {
+      SetFocus("inpSalaris");
+    }
+  }
+}
+
+function toonFORMaftrek() {
+  var iJaar = parseInt(strJaar);
+  if (iJaar < 2013) {
+    document.getElementById("divFORMaftrek_voor_2013").style.display = 'block';
+    document.getElementById("divFORMaftrek_vanaf_2013").style.display = 'none';
+  } else {
+    document.getElementById("divFORMaftrek_voor_2013").style.display = 'none';
+    document.getElementById("divFORMaftrek_vanaf_2013").style.display = 'block';
+  }
+  document.getElementById("divFORMaftrek").style.display = 'block';
+}
+
+function CheckBlok2a() {
+  // fsInvoer1
+  aInputVelden1 = document.getElementById("fsInvoer1").getElementsByTagName("input");
+  //	aInputVelden2 = document.getElementById("fsInvoer2").getElementsByTagName("input");
+  if (CheckInputVelden(aInputVelden1)[0]) {
+    document.getElementById("fsInvoer2").style.display = 'block';
+    if (isChecked("OndernemerTrue")) {
+      toonFORMaftrek();
+      document.getElementById("divButtons2a").style.display = 'none';
+      document.getElementById("divButtons2b").style.display = 'block';
+    }
+    // Setfocus
+    SetFocus("inpReisaftrek");
+  } else {
+    alert("U mag alleen cijfers gebruiken");
+    if (CheckInputVelden(aInputVelden1)[1] != "") {
+      SetFocus(CheckInputVelden(aInputVelden1)[1].id);
+    } else if (CheckInputVelden(aInputVelden2)[1] != "") {
+      SetFocus(CheckInputVelden(aInputVelden2)[1].id);
+    }
+  }
+}
+
+function CheckBlok2b() {
+  // fsInvoer1 + fsInvoer2
+  //	aInputVelden1 = document.getElementById("fsInvoer1").getElementsByTagName("input");
+  aInputVelden2 = document.getElementById("fsInvoer2").getElementsByTagName("input");
+  if (CheckInputVelden(aInputVelden2)[0]) {
+    if (Bereken2()) {
+      document.getElementById("divButtons1").style.display = 'none';
+      document.getElementById("divButtons2a").style.display = 'none';
+      document.getElementById("divButtons2b").style.display = 'none';
+      //if (iLeeftijd < v_aow_leeftijd){
+      var aDate = v_aow_grensdatum.split('-');
+      if (gebdat > new Date(parseInt(aDate[2], 10), parseInt(aDate[1], 10) - 1, parseInt(aDate[0], 10))) {
+
+        // Toon volgende blok (pensioen)
+        document.getElementById("fsInvoer3").style.display = 'block';
+        // Verberg enkele pensioen-vragen
+        document.getElementById("divOpgaaf").style.display = 'none';
+        document.getElementById("divPensioenaangroeiBerekenenJaNee").style.display = 'none';
+        document.getElementById("divPensioenaangroeiBerekenen").style.display = 'none';
+        document.getElementById("divSpaarloonregeling").style.display = 'none';
+        // Is volgende blok al eerder getoond/geklikt?
+        document.getElementById("divButtons3").style.display = 'none';
+        if (isChecked("PensioenopbouwWerkgeverTrue")) {
+          document.getElementById("divButtons3").style.display = 'block';
+          document.getElementById("PensioenopbouwWerkgeverTrue").onclick();
+        } else if (isChecked("PensioenopbouwWerkgeverFalse")) {
+          document.getElementById("PensioenopbouwWerkgeverFalse").onclick();
+        }
+        if (document.getElementById("divResultaat").style.display == 'none') {
+          SetFocus("PensioenopbouwWerkgeverTrue");
+        }
+      } else {
+        CheckBlok3b(true);
+      }
+    }
+  } else {
+    alert("U mag alleen cijfers gebruiken");
+    if (CheckInputVelden(aInputVelden1)[1] != "") {
+      SetFocus(CheckInputVelden(aInputVelden1)[1].id);
+    } else if (CheckInputVelden(aInputVelden2)[1] != "") {
+      SetFocus(CheckInputVelden(aInputVelden2)[1].id);
+    }
+  }
+}
+
+function CheckBlok3a() {
+  document.getElementById("divButtons3a").style.display = 'none';
+  if (document.getElementById("inpOpgaaf").value > 0) {
+    var tmpStr = "Wilt u naast de opgaaf in de vorige vraag nog pensioenaangroei in " + strAangroeiJaar + " berekenen voor een ander pensioen?";
+  } else {
+    var tmpStr = "Wilt u de pensioenaangroei in  " + strAangroeiJaar + " berekenen?";
+  }
+  document.getElementById("PensioenaangroeiBerekenenVraag").innerHTML = tmpStr;
+  document.getElementById("divPensioenaangroeiBerekenenJaNee").style.display = 'block'
+  document.getElementById("divPensioenaangroeiBerekenenExtra").style.display = 'none'
+  document.getElementById("divPensioenleeftijdVoor65").style.display = 'none'
+  document.getElementById("divPensioenaangroeiLeeftijd").style.display = 'none'
+  if (isChecked("PensioenaangroeiBerekenenTrue")) {
+    // Zo ja, auto-click pensioenaangroei
+    document.getElementById("PensioenaangroeiBerekenenTrue").onclick();
+    toonPensioenaangroeiBerekenenExtra("");
+  }
+  if (parseInt(strJaar) <= 2011) {
+    document.getElementById("divSpaarloonregeling").style.display = 'block';
+  } else {
+    document.getElementById("divSpaarloonregeling").style.display = 'none';
+  }
+  document.getElementById("divButtons3").style.display = 'block';
+  CheckBut_Bereken3a();
+}
+
+function CheckBlok3b(bGeenValidatie) {
+  // fsInvoer3
+  aInputVelden = document.getElementById("divPensioenaangroeiBerekenen").getElementsByTagName("input");
+  iPercentage = document.getElementById("inpPercentage").value;
+  iFranchise = document.getElementById("inpFranchise").value;
+  iGrondslag = document.getElementById("inpGrondslag").value;
+  iVrijwillig = document.getElementById("inpVrijwillig").value;
+
+  if (bGeenValidatie != true && !isChecked("PensioenopbouwWerkgeverTrue") && !isChecked("PensioenopbouwWerkgeverFalse")) {
+    alert("Geef eerst aan of u pensioen hebt opgebouwd.");
+    return;
+
+  } else if (bGeenValidatie != true && isVisible("divOpgaaf") && !isNummer(document.getElementById("inpOpgaaf").value) && document.getElementById("inpOpgaaf").value != "") {
+    alert("U heeft geen geldig bedrag bij pensioenaangroei ingevoerd.");
+    return;
+
+  } else if (bGeenValidatie != true && isVisible("divOpgaaf") && !isChecked("PensioenaangroeiBerekenenTrue") && !isChecked("PensioenaangroeiBerekenenFalse")) {
+    alert("Geef eerst aan of u uw pensioenaangroei wilt berekenen.");
+    return;
+
+  } else if (bGeenValidatie != true && isVisible("divPensioenaangroeiBerekenen") && isChecked("PensioenaangroeiBerekenenTrue")
+          && (iGrondslag < 0 || iGrondslag == "") && (iVrijwillig < 0 || iVrijwillig == "")) {
+    alert("Vul eerst uw pensioengevend loon of vrijwillig betaald pensioen  in.");
+    return;
+
+  } else if (bGeenValidatie != true && isVisible("divPensioenaangroeiBerekenen") && isChecked("PensioenaangroeiBerekenenTrue") && iGrondslag > 0
+          && (iFranchise < 0 || iFranchise == "" || iPercentage < 0 || iPercentage == "")) {
+    alert("Vul eerst de franchise en het opbouwpercentage van uw pensioen in.");
+    return;
+
+  } else if (bGeenValidatie != true && isVisible("divPensioenaangroeiBerekenen") && isVisible("divPensioenaangroeiBerekenenExtra")
+          && (parseInt(iPercentage) < 0 || parseInt(iPercentage) > 100)) {
+    alert("Vul bij een percentage een getal in van 0 tot 100.");
+    return;
+
+  } else if (bGeenValidatie != true && isVisible("divPensioenaangroeiBerekenen") && isChecked("PensioenaangroeiBerekenenTrue") && iGrondslag > 0
+          && isVisible("divPensioenleeftijdVoor65") && !isChecked("PensioenIngangVoor65True") && !isChecked("PensioenIngangVoor65False")) {
+    alert("Geef eerst aan of de offici" + String.fromCharCode(235) + "le ingangsdatum van het pensioen v" + String.fromCharCode(243) + String.fromCharCode(243) + "r uw 65e ligt.");
+    return;
+
+  } else if (bGeenValidatie != true && isVisible("divPensioenaangroeiBerekenen") && isChecked("PensioenaangroeiBerekenenTrue") && iGrondslag > 0
+          && isVisible("divPensioenaangroeiLeeftijd") && document.getElementById("selectPensioenaangroeiLeeftijd").value == -1) {
+    alert("Selecteer eerst de pensioenleeftijd die in de voorwaarden wordt genoemd.");
+    return;
+
+  } else {
+    Bereken3();
+    // Toon volgende blok (reserveringsruimte)
+    document.getElementById("divButtons1").style.display = 'none';
+    document.getElementById("divButtons2a").style.display = 'none';
+    document.getElementById("divButtons3").style.display = 'none';
+    document.getElementById("fsInvoer4").style.display = 'block';
+    if (!isChecked("radioReserveringsruimteTrue") && !isChecked("radioReserveringsruimteFalse")) {
+      document.getElementById("but_bereken").disabled = true;
+      DisableBerekenButton("but_bereken", true);
+    } else {
+      document.getElementById("but_bereken").disabled = false;
+      DisableBerekenButton("but_bereken", false);
+    }
+    // Is volgende blok al eerder getoond/geklikt?
+    if (isChecked("radioReserveringsruimteTrue")) {
+      // Ja-radiobutton: auto-click radiobutton
+      document.getElementById("radioReserveringsruimteTrue").onclick();
+    } else if (isChecked("radioReserveringsruimteFalse")) {
+      //			// Nee-radiobutton: Enable Bereken knop
+      document.getElementById("radioReserveringsruimteFalse").onclick();
+    }
+  }
+}
+
+function CheckBlok4(bBereken) {
+  // fsInvoer4
+  aInputVelden = document.getElementById("fsInvoer4").getElementsByTagName("input");
+  if (!CheckInputVelden(aInputVelden)[0]) {
+    alert("U mag alleen cijfers gebruiken");
+    if (CheckInputVelden(aInputVelden)[1] != "") {
+      SetFocus(CheckInputVelden(aInputVelden)[1].id);
+    }
+  } else if (!isChecked("radioReserveringsruimteTrue") && !isChecked("radioReserveringsruimteFalse")) {
+    alert("Geef eerst aan of u uw reserveringsruimte wilt berekenen");
+  } else if (bBereken != false) {
+    // Start eindberekening
+    Bereken4();
+  }
+}
+
+function CheckInputVelden(sFieldset) {
+  bData = true;
+  sVeld = "";
+  for (i = 0; i < sFieldset.length; i++) {
+    if (sFieldset[1].type == "button") {
+      // alert("JA")
+    }
+    if (sFieldset[i].id.indexOf("radio") == -1 && isVisible(sFieldset[i].id) != "false" && sFieldset[i].id.substr(0, 4) != "but_") {
+      // radiobuttons niet controleren
+      iInput = sFieldset[i].value;
+      if (!isNummer(iInput) && iInput != "") {
+        bData = false;
+        sVeld = sFieldset[i];
+      }
+    }
+  }
+  return [bData, sVeld];	// bData = true: data is correct ingevuld. sVeld = veld met foutief ingevulde data
+}
+
+function VerbergBlok(sDiv) {
+  SluitHelp();
+  sObj = (typeof (sDiv) != "object") ? document.getElementById(elem) : sDiv;
+  sFs = GetCurrentFieldSet(sObj, 0);
+  sFs = sFs.toString().toLowerCase();
+  if (sFs == "fskeuze") {
+    document.getElementById("fsInvoer1").style.display = 'none';
+    document.getElementById("fsInvoer2").style.display = 'none';
+    document.getElementById("fsInvoer3").style.display = 'none';
+    document.getElementById("fsInvoer4").style.display = 'none';
+    if (document.getElementById("selectPeriode").value == -1) {
+      document.getElementById("divButtons1").style.display = 'none';
+    } else {
+      document.getElementById("divButtons1").style.display = 'block';
+    }
+    document.getElementById("divButtons2a").style.display = 'none';
+    document.getElementById("divButtons2b").style.display = 'none';
+    document.getElementById("divButtons3").style.display = 'none';
+    document.getElementById("divButtons3a").style.display = 'none';
+    document.getElementById("divTussenResult1").style.display = 'none';
+    document.getElementById("divTussenResult2a").style.display = 'none';
+    document.getElementById("divTussenResult2b2").style.display = 'none';
+  } else if (sFs == "fsinvoer1") {
+    document.getElementById("fsInvoer2").style.display = 'none';
+    document.getElementById("fsInvoer3").style.display = 'none';
+    document.getElementById("fsInvoer4").style.display = 'none';
+    document.getElementById("divButtons2a").style.display = 'block';
+    document.getElementById("divButtons2b").style.display = 'none';
+    document.getElementById("divButtons3").style.display = 'none';
+    document.getElementById("divButtons3a").style.display = 'none';
+    document.getElementById("divTussenResult1").style.display = 'none';
+    document.getElementById("divTussenResult2a").style.display = 'none';
+    document.getElementById("divTussenResult2b2").style.display = 'none';
+  } else if (sFs == "fsinvoer2") {
+    document.getElementById("fsInvoer3").style.display = 'none';
+    document.getElementById("fsInvoer4").style.display = 'none';
+    document.getElementById("divButtons2a").style.display = 'none';
+    document.getElementById("divButtons2b").style.display = 'block';
+    document.getElementById("divButtons3").style.display = 'none';
+    document.getElementById("divButtons3a").style.display = 'none';
+    document.getElementById("divTussenResult1").style.display = 'none';
+    document.getElementById("divTussenResult2a").style.display = 'none';
+    document.getElementById("divTussenResult2b2").style.display = 'none';
+  } else if (sFs == "fsinvoer3") {
+    document.getElementById("fsInvoer4").style.display = 'none';
+    document.getElementById("divButtons3").style.display = 'block';
+    document.getElementById("divTussenResult2b2").style.display = 'none';
+  }
+  // Bereken knop uitzetten (voor het geval de gebruiker reeds bij het 4e blok is geweest)
+  document.getElementById("but_bereken").disabled = true;
+  DisableBerekenButton("but_bereken", true);
+}
+
+function ShowOrHideVerderButtons(bShow) {
+  bShow = bShow ? false : true;
+  document.getElementById("but_bereken1").disabled = bShow
+  document.getElementById("but_bereken2a").disabled = bShow
+  document.getElementById("but_bereken2b").disabled = bShow
+  document.getElementById("but_bereken3").disabled = bShow
+}
+
+function doShowResultsDevelop(bSwitch) {
+
+  if (bSwitch == true) {
+    var tmpSub = "divResult";
+    var arrAllDIVs = document.getElementsByTagName("div");
+    for (var i = 0; i <= arrAllDIVs.length - 1; i++) {
+      if (arrAllDIVs[i].id.substr(0, tmpSub.length) == tmpSub) {
+        document.getElementById(arrAllDIVs[i].id).style.visibility = 'visible';
+        document.getElementById(arrAllDIVs[i].id).style.display = 'block'
+      }
+    }
+    toonDivs("divResultaat", "", "", "fsUitvoer", "", "", "");
+  } else if (bSwitch == false) {
+    toonDivs("", "divResult", "fsUitvoer", "", "", "", "");
+  }
+}
+
+function showBerekeningDetailsReserveringsruimte(bSwitch) {
+  bshowBerekeningDetailsReserveringsruimte = bSwitch;
+  if (bSwitch == true) {
+    document.getElementById('divDetailsReserveringsruimte').style.display = 'block';
+  } else {
+    document.getElementById('divDetailsReserveringsruimte').style.display = 'none';
+    document.getElementById('divDetailsReserveringsruimte').innerHTML = '';
+  }
+
+}
+
+function  fillDatepickers(jaar) {
+  var errTextMax = "Geboortedatum mag niet liggen na 31-12-" + jaar + ".";
+  var errTextMin = "Geboortedatum mag niet liggen vóór 01-01-" + (parseInt(jaar) - 110).toString() + ".";
+  addDatepicker($("#gebdat"), (parseInt(jaar) - 110).toString() + ":" + (parseInt(jaar)).toString(), errTextMin, errTextMax);
+}
+
+function addDatepicker(obj, year, errTextMin, errTextMax) {
+  if (year === undefined || year === '')
+    year = (new Date).getFullYear() + ":" + (new Date).getFullYear();
+  aYear = year.split(":");
+  yearChange = (aYear[0] === aYear[1]) ? false : true;
+  defaultYear = aYear[1];
+  $(obj).datepicker({
+    yearRange: year,
+    changeMonth: true,
+    constrainInput: true,
+    changeYear: yearChange,
+    showOn: 'button',
+    buttonImage: '../js/ui/calendar.gif',
+    buttonText: 'kalender tonen of verbergen',
+    buttonImageOnly: true,
+    dateFormat: 'dd-mm-yy',
+    defaultDate: '01-01-' + defaultYear,
+    minDate: '01-01-' + aYear[0],
+    maxDate: '31-12-' + aYear[1],
+    showButtonPanel: true,
+    closeText: 'Sluiten',
+    //autoclose: true,
+    beforeShow: function () {
+      //$(obj).prop("disabled", true);
+    },
+    onClose: function () {
+      //$(obj).prop("disabled", false);
+      //updateForm();
+    }
+  });
+  $(obj).keypress(function (event) {
+    var keycode = (event.keyCode ? event.keyCode : event.which);
+    if (keycode == '13') {
+      checkDatePicker(this, true, errTextMax, errTextMin);
+    }
+  });
+  $(obj).blur(function (e) {
+    checkDatePicker(this, true, errTextMax, errTextMin);
+  });
+}
+
+function checkDatePicker(oThis, bAlert, errTextMax, errTextMin) {
+  var string = oThis.value;
+  var showDatePicker = false;
+  var hideDatePicker = false;
+  range = $("#" + oThis.id).datepicker("option", "minDate") + ":" + $("#" + oThis.id).datepicker("option", "maxDate");
+  var errortxt = new Array();
+  var bValid = true;
+
+  if (string === "") {
+    return [false, errortxt, string];
+  }
+  var aString = string.split('-');
+  d = new Date(parseInt(aString[2], 10), parseInt(aString[1], 10) - 1, parseInt(aString[0], 10));
+  if (d.getDate() != parseInt(aString[0], 10) || d.getMonth() != (parseInt(aString[1], 10) - 1) || d.getFullYear() != parseInt(aString[2], 10)) {
+    errortxt[0] = "De datum is niet geldig. Vul de datum als volgt in: dd-mm-jjjj.";
+    bValid = false;
+    showDatePicker = true;
+  }
+
+  // valideer beperking jaartallen   ( bijvoorbeeld: 2020  i.c.m. range '2000:2010' )
+  var aRange = range.split(':');
+  var aString = aRange[0].split('-');
+  var dMin = new Date(parseInt(aString[2], 10), parseInt(aString[1], 10) - 1, parseInt(aString[0], 10));
+  var aString = aRange[1].split('-');
+  var dMax = new Date(parseInt(aString[2], 10), parseInt(aString[1], 10) - 1, parseInt(aString[0], 10));
+  if (d < dMin) {
+    if (typeof (errTextMin) != "undefined" && errTextMin != "") {
+      errortxt[0] = errTextMin;
+    } else {
+      errortxt[0] = "De datum mag niet voor " + aRange[0] + " liggen.";
+    }
+    bValid = false;
+  } else if (d > dMax) {
+    if (typeof (errTextMax) != "undefined" && errTextMax != "") {
+      errortxt[0] = errTextMax;
+    } else {
+      errortxt[0] = "De datum mag niet na " + aRange[1] + " liggen.";
+    }
+    bValid = false;
+  }
+
+//	$("#" + oThis.id).datepicker("hide")
+
+  if (bAlert == true && errortxt.length > 0) {
+    if (showDatePicker === true) {
+      $("#" + oThis.id).datepicker("show");
+    }
+    alert(errortxt[0]);
+  }
+
+  return [bValid, errortxt, string];
+}
+
+
+
+function initVersie() {
+  document.getElementById("divVersie").innerHTML = '<p>Versie: ' + sVersie + '</p><div class="clNietPrinten"><p>Switches t.b.v. bouw en test</p><p><label>Alle resultaatteksten tonen?</label><input type="radio" name="showResults" id="showResultsJa" value="ja" class="clRadioBtn" onclick="doShowResultsDevelop(true)"/>ja<input type="radio" name="showResults" id="showResultsNee" value="nee" class="clRadioBtn" checked="checked" onclick="doShowResultsDevelop(false);"/>nee</p><p><label>Toon details reserveringsruimte?</label><input type="radio" name="showBerekeningDetails" id="showBerekeningDetailsJa" value="ja" class="clRadioBtn" onclick="showBerekeningDetailsReserveringsruimte(true)"/>ja<input type="radio" name="showBerekeningDetails" id="showBerekeningDetailsNee" value="nee" class="clRadioBtn" checked="checked" onclick="showBerekeningDetailsReserveringsruimte(false);"/>nee</p><div id="divDetailsReserveringsruimte"></div></div>';
+}

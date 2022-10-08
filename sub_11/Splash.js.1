@@ -1,0 +1,99 @@
+/*
+ *   Copyright (c) 2022 Esri
+ *   All rights reserved.
+
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+
+ *   http://www.apache.org/licenses/LICENSE-2.0
+
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ */
+define(["require", "exports", "tslib", "esri/core/accessorSupport/decorators", "esri/widgets/support/widget", "esri/widgets/Widget"], function (require, exports, tslib_1, decorators_1, widget_1, Widget_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    Widget_1 = tslib_1.__importDefault(Widget_1);
+    var CSS = {
+        base: "media-splash-panel",
+        content: "media-splash-panel__content"
+    };
+    var Splash = /** @class */ (function (_super) {
+        tslib_1.__extends(Splash, _super);
+        function Splash(props) {
+            var _this = _super.call(this, props) || this;
+            _this.defaultDescription = null;
+            _this.defaultTitle = null;
+            _this.i18n = null;
+            _this.rootNode = null;
+            return _this;
+        }
+        Splash.prototype.initialize = function () {
+            var webmap = this.view.map;
+            if (webmap.portalItem) {
+                this.defaultDescription = webmap.portalItem.description || webmap.portalItem.snippet;
+                this.defaultTitle = webmap.portalItem.title;
+            }
+        };
+        Splash.prototype.render = function () {
+            var _a = this.config, splashTitle = _a.splashTitle, splashContent = _a.splashContent, splashButtonText = _a.splashButtonText, theme = _a.theme;
+            var themeClass = theme === "dark" ? "calcite-theme-dark" : "calcite-theme-light";
+            var title = splashTitle ? splashTitle : this.defaultTitle;
+            var content = splashContent ? splashContent : this.defaultDescription;
+            return ((0, widget_1.tsx)("div", { class: CSS.base },
+                (0, widget_1.tsx)("calcite-modal", { "aria-labelledby": "modal-title", "data-node-ref": "rootNode", bind: this, "disable-outside-close": "true", afterCreate: this.displaySplash, class: this.classes(CSS.base, themeClass) },
+                    (0, widget_1.tsx)("h2", { id: "modal-title", slot: "header" }, title),
+                    (0, widget_1.tsx)("div", { theme: theme, slot: "content", innerHTML: content }),
+                    (0, widget_1.tsx)("calcite-button", { bind: this, appearance: "clear", color: "neutral", onclick: this._closePanel, slot: "primary", width: "full" }, splashButtonText ? splashButtonText : this.i18n.close))));
+        };
+        Splash.prototype._closePanel = function () {
+            if (this.rootNode) {
+                this.rootNode.removeAttribute("active");
+            }
+        };
+        Splash.prototype.displaySplash = function (container) {
+            this.rootNode = container;
+            // if there isn't a value in session storage 
+            //show the splash screen 
+            container.setAttribute("active", "");
+            var sameSession = window.sessionStorage.getItem("splash-key");
+            if (sameSession) {
+                this._closePanel();
+            }
+            else {
+                window.sessionStorage.setItem("splash-key", "true");
+            }
+        };
+        Splash.prototype.open = function () {
+            // enable disable splash by adding and removing active prop
+            if (this.rootNode) {
+                this.rootNode.setAttribute("active", "");
+            }
+        };
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], Splash.prototype, "config", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], Splash.prototype, "view", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], Splash.prototype, "defaultDescription", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], Splash.prototype, "defaultTitle", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)(),
+            (0, widget_1.messageBundle)("instant/../t9n/common")
+        ], Splash.prototype, "i18n", void 0);
+        Splash = tslib_1.__decorate([
+            (0, decorators_1.subclass)("InfoPanel")
+        ], Splash);
+        return Splash;
+    }((Widget_1.default)));
+    exports.default = Splash;
+});

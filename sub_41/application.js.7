@@ -1,0 +1,1657 @@
+/***
+* ##SAMPLEAPP
+*/
+function SampleApp() { }
+SampleApp.prototype = {
+  init: function () {
+  }
+};
+
+$.fn.extend({
+  insertAtCursor: function (text) {
+    return this.each(function () {
+      var textarea = $(this).get(0);
+      //IE support
+      if (document.selection) {
+        textarea.focus();
+        sel = document.selection.createRange();
+        sel.text = text;
+      }
+      //MOZILLA and others
+      else if (textarea.selectionStart || textarea.selectionStart == '0') {
+        var startPos = textarea.selectionStart;
+        var endPos = textarea.selectionEnd;
+        textarea.value = textarea.value.substring(0, startPos)
+          + text
+          + textarea.value.substring(endPos, textarea.value.length);
+      } else {
+        textarea.value += text;
+      }
+    });
+  }
+});
+
+// Add ECMA262-5 Array methods if not supported natively
+// IE8
+if (!('indexOf' in Array.prototype)) {
+  Array.prototype.indexOf = function (find, i /*opt*/) {
+    if (i === undefined) i = 0;
+    if (i < 0) i += this.length;
+    if (i < 0) i = 0;
+    for (var n = this.length; i < n; i++)
+      if (i in this && this[i] === find)
+        return i;
+    return -1;
+  };
+}
+
+function PostalCodeService() { }
+PostalCodeService.prototype = {
+  spinner: null,
+  init: function (spinnerElement, postalCodeElement, cityElement, houseNumberElement, streetElement) {
+    var self = this;
+    self.spinner = $(spinnerElement);
+    self.streetElement = streetElement;
+    self.cityElement = cityElement;
+    $(postalCodeElement, houseNumberElement).on('blur', function () {
+      var postalcode = $(postalCodeElement).val();
+      if (postalcode.length > 0) {
+        var housenr = $(houseNumberElement).val();
+        self.getData(postalcode, housenr, cityElement);
+      }
+    });
+  },
+
+  getData: function (postalcode, housenr) {
+    var self = this;
+    self.spinner.show();
+    $.ajax({
+      type: "POST",
+      url: "/" + app.lang() + "/Address/GetAddress",
+      data: "zipcode=" + postalcode + "&housenumber=" + housenr,
+      dataType: "json",
+      success: function (json) {
+        self.spinner.hide();
+        if (json != undefined) {
+          $(self.cityElement).val(json.city);
+          $(self.streetElement).val(json.street);
+        }
+      },
+      error: function () {
+        self.spinner.hide();
+        $(self.cityElement).val("");
+        $(self.streetElement).val("");
+      }
+    });
+  }
+};
+
+function Filters() { }
+Filters.prototype = {
+  page: 1,
+  showAll: false,
+  elm: null,
+  realEstateCategory: null,
+  allRealEstateStateSelectBoxOptions: $('select#status option').clone(true), // Diepe kopie van alle mogelijke statussen tbv applyRealEstateStateSelectBoxFilter
+
+  init: function () {
+    var self = this;
+
+    self.initStatusFilter();
+
+    this.elm = $('form[name=filters]');
+
+    this.elm.on('submit', function (e) {
+      var x = e.target;
+      self.page = 1;
+      e.preventDefault();
+      self.applyRealEstateStateSelectBoxFilter();
+      self.loadObjects(self.collectFilters(), $("#rvoblang").val(), function () {
+        var sizeClass = foundationHelper.getCurrentSizeClass();
+        if (sizeClass == 'small' && e.originalEvent != undefined /* means it comes from a click */) {
+          $('html, body').animate({
+            scrollTop: $("#objects").offset().top - 16
+          }, 500);
+        }
+        self.applyRealEstateStateSelectBoxFilter();
+      });
+    });
+
+    $('.category-filter').on('click', function () {
+      self.resetAllFilters();
+    });
+
+    self.elm.find('.slider').on('valuesChanged', function () {
+      self.loadObjects(self.collectFilters(), $("#rvoblang").val());
+    });
+
+    // Instant zoeken:
+    //        self.elm.find('input.searchinput').on('keyup', function () {
+    //            if ($(this).val().length >= 3) {
+    //                $(this).submit();
+    //                window.location.hash = 1;
+    //                //self.loadObjects(self.collectFilters());
+    //            } else if ($(this).val().length == 0) {
+    //                window.location.hash = 1;
+    //                $(this).submit();
+    //                // self.loadObjects(self.collectFilters());
+    //            }
+    //        });
+
+    self.elm.find('input:not(.searchinput), select').on('change', function (event) {
+      $(this).submit();
+    });
+
+    self.elm.find('.searchsubmit').on('click', function (event) {
+      $(this).submit();
+    });
+
+    $('.reset-filters').on('click', function (e) {
+      e.preventDefault();
+      self.resetAllFilters();
+    });
+  },
+
+  activateTab: function (targetId, dataToLoad) {
+    var self = this;
+    $('.category-filter').removeClass("active");
+    if (targetId == undefined) {
+      targetId = 'total'; // Aanbod
+    }
+    $('#' + targetId).addClass("active"); // Tabje
+
+    switch (targetId) {
+      case "total": // Verkoop - eerder werd ondercheid gemaakt tussen "saleable" en "leaseable" (ingebruikgevingen)
+        sessionStorage.setItem('targetTabId', targetId);
+        self.realEstateCategory = "Sale";
+        break;
+      default: // Aanbod (Verkoop)
+        sessionStorage.setItem('targetTabId', targetId); // 'total'
+        self.realEstateCategory = "Sale";
+        $('.searchinput').val('');
+        break;
+    }
+    if (dataToLoad) {
+      self.fillFilterDomElementsWithData(dataToLoad);
+      self.loadObjects(self.collectFilters(), $("#rvoblang").val(), function () { self.applyRealEstateStateSelectBoxFilter(); }); // ipv dataToLoad omdat anders
+    } else {
+      self.loadObjects(self.collectFilters(), $("#rvoblang").val(), function () { self.applyRealEstateStateSelectBoxFilter(); });
+    }
+  },
+
+  fillFilterDomElementsWithData: function (dataToLoad) {
+    var self = this;
+    $('.searchinput').val(dataToLoad["search"]);
+    if (dataToLoad['filterprovinces'] == '1') {
+      $('#provinces').val(dataToLoad['provinces']);
+    }
+    $('.checkbox-filters input').each(function () {
+      var name = $(this).attr('name');
+      $(this).prop("checked", dataToLoad[name]);
+    });
+    $('.hidden-filters input').each(function () {
+      var name = $(this).attr('name');
+      $(this).prop("checked", dataToLoad[name]);
+    });
+    if (dataToLoad['type'] != undefined) {
+      $('.type-filter-select').val(dataToLoad['type']);
+    }
+    if (dataToLoad['state'] != undefined) {
+      if ($('.state-filter-select option[value=' + dataToLoad['state'] + ']').length > 0) {
+        $('.state-filter-select').val(dataToLoad['state']);
+      }
+    }
+    if (dataToLoad['pageToShow'] != undefined) {
+      self.page = parseInt(dataToLoad['pageToShow']);
+    }
+  },
+
+  resetAllFilters: function () {
+    sessionStorage.removeItem('data');
+    //window.location.hash = 1;
+    $('.searchinput').val('');
+    $('.checkbox-filters input').prop('checked', false);
+    $('.type-filter-select').val('');
+    $('.state-filter-select').val('');
+    $('#provinces').val('');
+    self.page = 1;
+    location.reload();
+  },
+
+  collectFilters: function () {
+    var self = this;
+    var data = {};
+
+    var currentSizeClass = foundationHelper.getCurrentSizeClass();
+    data.itemsPerPage = $('#objects').data('items-per-page-' + currentSizeClass);
+
+    data.pageToShow = self.page;
+    if (self.showAll) {
+      data.showAll = self.showAll;
+      data.itemsPerPage = 999999;
+      data.pageToShow = self.page = 1;
+    }
+
+    data.categories = [];
+
+    if (self.realEstateCategory) {
+      data.categories = [self.realEstateCategory];
+
+      if (self.realEstateCategory == "Sale") {
+        $('.checkbox-filters input').each(function () {
+          var name = $(this).attr('name');
+          data[name] = $(this).is(':checked') ? 1 : 0;
+        });
+        $('.hidden-filters input').each(function () {
+          var name = $(this).attr('name');
+          data[name] = $(this).is(':checked') ? 1 : 0;
+        });
+        if (self.elm.find('.state-filter-select').val() != 0) {
+          data.state = self.elm.find('.state-filter-select').val();
+        }
+        if (self.elm.find('.type-filter-select').val() != 0) {
+          data.type = self.elm.find('.type-filter-select').val();
+        }
+      }
+    }
+
+    if (self.elm.find('#provinces').val() != null && self.elm.find('#provinces').val() != '') {
+      data.provinces = self.elm.find('#provinces').val();
+      data.filterprovinces = true;
+    }
+    // surface & parcel size
+    if (self.elm.find('#building').is(':checked')) {
+      data.filterobjectsurface = true;
+      data.objectsurfacemin = $('.slider.building').rangeSlider("min"); //self.elm.find('#objectsurfacemin').val();
+      if ($('.slider.building').rangeSlider("max") == $('.slider.building').data('max')) {
+        data.objectsurfacenomax = true;
+      } else {
+        data.objectsurfacenomax = false;
+        data.objectsurfacemax = $('.slider.building').rangeSlider("max"); //self.elm.find('#objectsurfacemax').val();
+      }
+    }
+
+    data.search = $('.searchinput').val();
+
+    sessionStorage.setItem('data', JSON.stringify(data));
+
+    return data;
+  },
+
+  loadObjects: function (data, lang, onSuccess) {
+    var self = this;
+    if (!data)
+      data = {};
+
+    if (!lang)
+      lang = "nl";
+
+    data.language = lang;
+
+    $('ul.pagination li:not(.unavailable)').off(); // remove event handlers
+    $.ajax({
+      method: "POST",
+      url: "/" + lang + "/realestate/list",
+      data: data,
+      success: function (data) {
+        $('#objects').html(data);
+
+        $('ul.pagination li').on('click', 'a', function (e) {
+          e.preventDefault();
+          if ($(this).parents('li.arrow').hasClass('unavailable')) return false;
+          else if (number = parseInt($(this).html())) {
+            self.page = number;
+          } else {
+            self.showAll = false;
+            switch ($(this).data('page')) {
+              case "next": self.page++; break;
+              case "previous": self.page--; break;
+              case "all": self.showAll = true; break;
+              default: break;
+            }
+          }
+
+          self.loadObjects(self.collectFilters(), $("#rvoblang").val());
+        });
+        if (onSuccess != null) onSuccess();
+      }
+    });
+  },
+
+  initSlider: function () {
+    $('.slider').each(function () {
+      var max = $(this).data('max');
+      var step = $(this).data('step');
+
+      $(this).rangeSlider({
+        bounds: {
+          min: 0,
+          max: max
+        },
+        step: step,
+        defaultValues: {
+          min: 0,
+          max: max
+        },
+        formatter: function (val) {
+          if (val == max) return max + '+';
+          return val;
+        }
+      });
+    });
+  },
+
+  applyRealEstateStateSelectBoxFilter: function () {
+    var self = this;
+    // Pak de Soort Aanbod select box
+    var typeSelectBox = $('select#type');
+    var statusSelectBox = $('select#status');
+
+    // Kijk wat de geselecteerde Soort Aanbod is
+    var geselecteerdeSoortAanbod = parseInt(typeSelectBox.val());
+    var geselecteerdeSoortAanbodOption = $("option:selected", typeSelectBox); //with $("selector", this) you are finding all selector elements inside this's context.
+    var geselecteerdeStatus = statusSelectBox.val();
+
+
+    // Maak het lijstje met statussen helemaal leeg
+    $('select#status option').each(function () { $(this).remove(); });
+
+    // Haal op welke statussen zichtbaar mogen zijn bij deze Soort Aanbod
+    var validStates = geselecteerdeSoortAanbodOption.data('valid-states');
+
+    // Maak een lege array van RealEstateState id's
+    var arrayOfStates = [];
+    // Pak de string met statussen
+    switch (typeof validStates) {
+      case 'string': // als meer dan 1 type, is het een string
+        if (validStates.length > 0) {
+          arrayOfStates = validStates.split(';').map(function (n) {
+            return parseInt(n);
+          });
+        };
+        break;
+      case 'number': // als 1 type, is het een Int
+        arrayOfStates = [validStates]; break;
+      default: break
+    }
+    //console.log(arrayOfStates);
+
+    // Loop door de kopie (array) van alle statussen heen
+    self.allRealEstateStateSelectBoxOptions.each(function (index, element) {
+      var stateId = parseInt(element.value);
+      if (arrayOfStates.indexOf(stateId) != -1 /* als deze status toegestaan is voor deze soort aanbod of */ || geselecteerdeSoortAanbod == 0 /* als Soort aanbod == "Geen voorkeur" of */ || this.value == 0 /* als deze Status "Geen voorkeur" is (die mag er altijd bij) */) {
+        // Voeg dan deze Status toe aan het Status lijstje
+        $('select#status').append($(this));
+      }
+    });
+
+    // Selecteer de eerste optie ("Geen voorkeur")
+    //$('select#status option')[0].selected = true;
+    if ($("select#status option[value='" + geselecteerdeStatus + "']").length > 0) {
+      $("select#status option[value='" + geselecteerdeStatus + "']").prop('selected', true);
+    } else {
+      statusSelectBox.val("0");
+    }
+
+  },
+  initStatusFilter: function () {
+    var self = this;
+    // Als Soort Aanbod wijzigt
+    $('select#type').on('change', function () {
+      //self.applyRealEstateStateSelectBoxFilter();
+    })///* en activeer deze functie direct */.on('change', );
+  }
+};
+
+function FoundationHelper() { }
+FoundationHelper.prototype = {
+
+  aliases: 'small medium large'.split(/\s/g), //or just Object.keys(Foundation.media_queries)
+  events: 'load resize orientationchange',
+
+  getCurrentSizeClass: function () {
+    var self = this;
+    var matched, unmatched;
+    matched = [];
+    unmatched = [];
+
+    $.each(self.aliases, function (i, alias) {
+      if (window.matchMedia(Foundation.media_queries[alias]).matches) {
+        matched.push(alias);
+      } else {
+        unmatched.push(alias);
+      }
+    });
+    return matched.pop();
+  },
+
+  oldSizeClass: undefined,
+
+  registerSizeClassChangeListener: function (onSizeClassChange) {
+    var self = this;
+
+    self.onSizeClassChange = onSizeClassChange;
+
+    $(window).on(self.events, function () {
+      var newSizeClass = self.getCurrentSizeClass();
+      if (newSizeClass != self.oldSizeClass && self.oldSizeClass != undefined) {
+        self.onSizeClassChange();
+      }
+      self.oldSizeClass = self.getCurrentSizeClass();
+    });
+  },
+
+  registerSizeClassKnownListener: function (onSizeClassKnown) {
+    var self = this;
+
+    self.onSizeClassKnown = onSizeClassKnown;
+
+    $(window).on(self.events, function () {
+      var newSizeClass = self.getCurrentSizeClass();
+      if (!self.sizeClassKnown) {
+        self.onSizeClassKnown(newSizeClass);
+      }
+      self.sizeClassKnown = true;
+    });
+  },
+
+  sizeClassKnown: false,
+  onSizeClassKnown: undefined, // wat te doen als we er voor het eerst achter komen welke size class we zijn
+  onSizeclassChange: undefined // wat te doen bij size class change
+};
+
+// admin - realestate - edit specifieke code
+function SelectedCustomers() { }
+SelectedCustomers.prototype = {
+  whereToFindChosenLanguageId: null,
+  whereToFindTranslationId: null,
+
+  init: function (whereToFindTranslationId, whereToFindChosenLanguageId) {
+    var self = this;
+    self.whereToFindChosenLanguageId = whereToFindChosenLanguageId;
+    self.whereToFindTranslationId = whereToFindTranslationId;
+
+    self.initRemoveItemListener();
+    self.initAutocomplete();
+    self.refreshSelectedCustomers();
+  },
+
+  initRemoveItemListener: function () {
+    var self = this;
+    $('.select-customers-tbody').on('click', '.remove-selected-customer', function () {
+      var row = $(this).parents('.table-row');
+      if (confirm('Weet u het zeker dat u ' + row.find('.selected-customer-name').html() + ' wilt verwijderen uit "Geselecteerde gebruikers"?')) {
+        $.post('SelectCustomer', {
+          realEstateId: self.whereToFindTranslationId.val(),
+          customerId: $(this).data('selected-customer-id'),
+          chosenLanguage: self.whereToFindChosenLanguageId.val(),
+          remove: true
+        }, function (response) {
+          self.refreshSelectedCustomers();
+        }, 'json');
+      }
+    });
+  },
+
+  initAutocomplete: function () {
+    var self = this;
+    $("#select-customers").on("keydown", function (event) {
+      if (event.keyCode === $.ui.keyCode.TAB &&
+        $(this).autocomplete("instance").menu.active) {
+        event.preventDefault();
+      }
+    }).autocomplete({
+      source: function (request, response) {
+        $.getJSON("SelectedCustomersAutocomplete", {
+          q: request.term,
+          id: self.whereToFindTranslationId.val(),
+          chosenLanguage: self.whereToFindChosenLanguageId.val()
+        }, response);
+      },
+      select: function (event, ui) {
+        var customerId = ui.item.id;
+        var name = ui.item.fullName;
+        $.post('SelectCustomer', {
+          realEstateId: self.whereToFindTranslationId.val(),
+          customerId: customerId,
+          chosenLanguage: self.whereToFindChosenLanguageId.val()
+        }, function (response) {
+          self.refreshSelectedCustomers();
+        }, 'json');
+      }
+    }).autocomplete("instance")._renderItem = function (ul, item) {
+      return $("<li>")
+        .append("<a>" + item.salutation + " " + item.fullName + "(" + item.email + ")" + "</a>")
+        .appendTo(ul);
+    };
+  },
+
+  refreshSelectedCustomers: function () {
+    $.getJSON("SelectedCustomers", {
+      id: $('#item_Id').val(),
+      chosenLanguage: $('#translation_Language_Id').val()
+    }, function (response) {
+      $('.select-customers-tbody').html('');
+      for (var i = 0; i < response.length; i++) {
+        var customer = response[i];
+        $('.select-customers-tbody').append('\
+                    <tr class="table-row">\
+                    <td>' + customer.id + '</td>\
+                    <td>' + customer.salutation + '</td>\
+                    <td class="selected-customer-name">' + customer.fullName + '</td>\
+                    <td>' + customer.email + '</td>\
+                    <td><div data-selected-customer-id="'+ customer.id + '" class="tiny alert button remove-selected-customer">X</div></td>\
+                  </tr>');
+      }
+    });
+  }
+}
+
+function SelectedBiddingCustomers() { }
+SelectedBiddingCustomers.prototype = {
+  whereToFindChosenLanguageId: null,
+  whereToFindTranslationId: null,
+
+  init: function (whereToFindTranslationId, whereToFindChosenLanguageId) {
+    var self = this;
+    self.whereToFindChosenLanguageId = whereToFindChosenLanguageId;
+    self.whereToFindTranslationId = whereToFindTranslationId;
+
+    self.initRemoveItemListener();
+    self.initAutocomplete();
+    self.refreshSelectedBiddingCustomers();
+  },
+
+  initRemoveItemListener: function () {
+    var self = this;
+    $('.select-biddingcustomers-tbody').on('click', '.remove-selected-customer', function () {
+      var row = $(this).parents('.table-row');
+      if (confirm('Weet u het zeker dat u ' + row.find('.selected-customer-name').html() + ' wilt verwijderen uit "Geselecteerde gebruikers"?')) {
+        $.post('SelectBiddingCustomer', {
+          realEstateId: self.whereToFindTranslationId.val(),
+          customerId: $(this).data('selected-customer-id'),
+          chosenLanguage: self.whereToFindChosenLanguageId.val(),
+          remove: true
+        }, function (response) {
+          self.refreshSelectedBiddingCustomers();
+        }, 'json');
+      }
+    });
+  },
+
+  initAutocomplete: function () {
+    var self = this;
+    $("#select-biddingcustomers").bind("keydown", function (event) {
+      if (event.keyCode === $.ui.keyCode.TAB &&
+        $(this).autocomplete("instance").menu.active) {
+        event.preventDefault();
+      }
+    }).autocomplete({
+      source: function (request, response) {
+        $.getJSON("SelectedBiddingCustomersAutocomplete", {
+          q: request.term,
+          id: self.whereToFindTranslationId.val(),
+          chosenLanguage: self.whereToFindChosenLanguageId.val()
+        }, response);
+      },
+      select: function (event, ui) {
+        var customerId = ui.item.id;
+        var name = ui.item.fullName;
+        $.post('SelectBiddingCustomer', {
+          realEstateId: self.whereToFindTranslationId.val(),
+          customerId: customerId,
+          chosenLanguage: self.whereToFindChosenLanguageId.val()
+        }, function (response) {
+          self.refreshSelectedBiddingCustomers();
+        }, 'json');
+      }
+    }).autocomplete("instance")._renderItem = function (ul, item) {
+      return $("<li>")
+        .append("<a>" + item.salutation + " " + item.fullName + "(" + item.email + ")" + "</a>")
+        .appendTo(ul);
+    };
+  },
+
+  refreshSelectedBiddingCustomers: function () {
+    $.getJSON("SelectedBiddingCustomers", {
+      id: $('#item_Id').val(),
+      chosenLanguage: $('#translation_Language_Id').val()
+    }, function (response) {
+      $('.select-biddingcustomers-tbody').html('');
+      for (var i = 0; i < response.length; i++) {
+        var customer = response[i];
+        $('.select-biddingcustomers-tbody').append('\
+                    <tr class="table-row">\
+                    <td>' + customer.id + '</td>\
+                    <td>' + customer.salutation + '</td>\
+                    <td class="selected-customer-name">' + customer.fullName + '</td>\
+                    <td>' + customer.email + '</td>\
+                    <td><div data-selected-customer-id="'+ customer.id + '" class="tiny alert button remove-selected-customer">X</div></td>\
+                  </tr>');
+      }
+    });
+  }
+}
+// end of admin - realestate - edit
+
+
+function InitJQGridSearch(searchselector, gridselector, additionalSelectors) {
+  var sendRequest = function () {
+    if ($(this).data("timeoutHnd") !== null)
+      clearTimeout($(this).data("timeoutHnd"));
+
+    $(this).data("timeoutHnd", setTimeout(function () {
+      var $elm = $(searchselector);
+      var search = $elm.val();
+
+      if (typeof $elm.data("orig_url") === 'undefined') {
+        $elm.data("orig_url", $(gridselector).jqGrid('getGridParam', "url"));
+      }
+
+      var searchUrl = $elm.data("orig_url");
+
+      if (typeof searchUrl === 'undefined' || searchUrl.indexOf("?") === -1)
+        search = searchUrl + "?q=" + search;
+      else
+        search = searchUrl + "&q=" + search;
+      
+      if (typeof additionalSelectors === 'object') {
+        $.each(additionalSelectors,
+          function (key, val) {
+            var $el = $(val);
+
+            $el.on('change', function() { sendRequest(); });
+            search += '&' + $el.attr('name') + '=' + $el.val();
+          });
+      }
+
+      $(gridselector).jqGrid('setGridParam', { url: search, page: 1, datatype: 'json' }).trigger("reloadGrid");
+    }, 500));
+  };
+
+  $(searchselector).on('keyup', function (e) {
+    sendRequest();
+  });
+
+  sendRequest();
+}
+
+function ValidatedAjaxForm() { }
+ValidatedAjaxForm.prototype = {
+  init: function () {
+    var self = this;
+    $("form.validate").on('submit', function (e) {
+      $(this).find('small.error').remove();
+      $(this).find('.error').removeClass("error");
+      e.preventDefault();
+      var url = $(this).attr("action");
+      self.ajax(url, $(this).serialize());
+    });
+
+    $("form").on("focus", "input.error", function () {
+      $(this).removeClass("error");
+      $(this).siblings(".error").remove();
+    });
+    self.initActions();
+  },
+
+  initActions: function () {
+    var self = this;
+    $('a.ajax').on('click', function (e) {
+      e.preventDefault();
+      var url = $(this).prop('href');
+      self.ajax(url, null);
+      return false;
+    });
+  },
+
+  ajax: function (url, data) {
+    var self = this;
+
+    $.ajax({
+      method: "POST",
+      url: url,
+      data: data,
+      success: function (returnData) {
+        if (returnData.Success) {
+          self.growl("success", Messages.Succesfull_save);
+          var redirect = "index";
+          if (returnData.Redirect != "")
+            redirect = returnData.Redirect;
+          if (returnData.Redirect != "false") {
+            setTimeout(function () {
+              window.location = redirect;
+            },
+              1000);
+          }
+        } else {
+          for (Error in returnData.Errors) {
+            var customSpotForErrorMessage = $("[data-show-error-message-for='" + Error + "']").length > 0;
+
+            if (customSpotForErrorMessage) {
+              $("[data-show-error-message-for='" + Error + "']").addClass("error").after("<small class='error'>" + returnData.Errors[Error] + "</small>");
+            } else {
+              $("input[name='" + Error + "']").first().addClass("error").after("<small class='error'>" + returnData.Errors[Error] + "</small>");
+              //$("select[name='" + Error + "']").next(".custom.dropdown").addClass("error").after("<small class='error'>" + data.Errors[Error] + "</small>");
+              $("select[name='" + Error + "']").addClass("error").after("<small class='error'>" + returnData.Errors[Error] + "</small>"); // voor niet custom select boxes
+            }
+            $('.wizard-step').hide();
+            $('.error:first').closest('.wizard-step').show();
+            self.growl("alert", Messages.Correct_errors);
+          }
+        }
+      },
+      error: function () {
+        self.growl("alert", "Er is iets misgegaan");
+      }
+    });
+  },
+
+  growl: function (type, text) {
+    var top = undefined;
+    //if ($('small.error').first().offset() != undefined) {
+    //  top = $('small.error').first().offset().top;
+    //  $('html,body').animate({ scrollTop: top - 10 }, 300);
+    //}
+
+    var typeClass;
+    if (type === "alert") typeClass = "error-message-new";
+    else if (type === "success") typeClass = "success-message-new";
+
+    var alert = $('<div>').attr('id', 'alert-box').attr('role', 'alert').addClass("alert-box growl");
+
+    if ($('#alert-box').length === 0) {
+      $("body").prepend(alert.addClass(typeClass).html(text));
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    alert.delay(8000).fadeOut(2000, function () {
+      $(this).remove();
+    });
+
+    //        $('html,body').animate({ scrollTop: 0 }, 300, function () {
+    //            $("body").prepend(alert.addClass(type).html(text));
+    //            alert.delay(2000).fadeOut(2000, function () {
+    //                $(this).remove();
+    //            });
+    //        });
+
+  }
+};
+
+
+function BidbookSummary() { }
+BidbookSummary.prototype = {
+  init: function () {
+    var self = this;
+    self.updateSummary();
+    $('.other-bidbooks-list').find('input[type=checkbox]').on('change', function () {
+      self.updateSummary();
+    });
+  },
+
+  updateSummary: function () {
+
+    var total = parseInt($('.bidbook-price').data('price'));
+    $('.other-bidbooks-list').find('input[type=checkbox]').each(function () {
+      if ($(this).is(':checked')) {
+        var price = parseInt($(this).parents('.bidbook-list-item').data('price'));
+        total += price;
+      }
+    });
+    $('.total-price .price').html(total);
+  }
+};
+
+function isValidSelector(selector) {
+  if (typeof (selector) !== 'string') {
+    return false;
+  }
+  try {
+    $(selector);
+  } catch (error) {
+    return false;
+  }
+  return true;
+}
+
+
+/***
+* ##APPLICATION
+*/
+function toggleParcelFields(toggle) {
+  if (toggle == 1) {
+    $('.columns #item_ParcelSize').hide();
+    $('.columns #item_ParcelSizeM2').show();
+  } else {
+    $('.columns #item_ParcelSize').show();
+    $('.columns #item_ParcelSizeM2').hide();
+  }
+}
+
+$(function () {
+  toggleParcelFields($('#item_ParcelMetric').val());
+});
+
+$('#item_ParcelMetric').on('change', function () {
+  toggleParcelFields($(this).val());
+});
+
+function Application() { }
+Application.prototype = {
+  lang: function () {
+    language = $('html').attr('lang');
+    if (language != undefined)
+      return language;
+    alert('lang == undefined');
+  },
+
+  init: function () {
+    // onReady actions
+    $(document.body).addClass('js-enabled');
+
+    if ($('#wcag-carousel').length) {
+      if (typeof wcagCarousel == 'function') {
+        var gallery = new wcagCarousel;
+        gallery.init({
+          id: 'wcag-carousel',
+          slidenav: true
+        });
+      }
+    }
+
+
+    $('.date').fdatepicker({
+      format: 'dd-mm-yyyy',
+      weekStart: 1
+    });
+
+    $('.daterow .postfix').on('click', function () {
+      $(this).parents('.daterow').find('.date').fdatepicker('show');
+    });
+
+    var validator = new ValidatedAjaxForm();
+    validator.init();
+
+    // OOK HIER
+    foundationHelper.registerSizeClassChangeListener(onSizeClassChange = function () {
+      if ($('.home-index').length || $('.profile-index').length) {
+        filters.showAll = false; // because button "Show all" is hidden on small & medium
+        $('form[name=filters]').submit();
+        $('.bidbook-view iframe#pdfIframe').attr('src', $('.bidbook-view iframe#pdfIframe').attr('src')); // = refresh
+      }
+    });
+
+    // HIER ZIT JE FOUT
+    if ($('.home-index').length || $('.profile-index:not(.reallocate)').length) {
+      var filters = new Filters();
+      filters.init();
+    }
+
+
+    if ($('.order-new').length) {
+      var summary = new BidbookSummary();
+      summary.init();
+    }
+
+    /* fix voor als er na de livegang van responsive design door oude filters geen aanbod getoond wordt */
+    var firstTimeAfterResponsiveLive = sessionStorage.getItem('firstTimeAfterResponsiveLive');
+    if (firstTimeAfterResponsiveLive == null) {
+      sessionStorage.removeItem('data');
+      sessionStorage.setItem('firstTimeAfterResponsiveLive', 'false');
+    }
+    /* einde fix voor als er na de livegang van responsive design door oude filters geen aanbod getoond wordt */
+
+    /* fix voor als er na de livegang van de dynamische status select box door oude filters geen aanbod getoond wordt */
+    var firstTimeAfterDynamicStatusLive = sessionStorage.getItem('firstTimeAfterDynamicStatusLive');
+    if (firstTimeAfterDynamicStatusLive == null) {
+      sessionStorage.removeItem('data');
+      sessionStorage.setItem('firstTimeAfterDynamicStatusLive', 'false');
+    }
+    /* einde fix voor als er na de livegang van responsive design door oude filters geen aanbod getoond wordt */
+
+    if (sessionStorage.getItem('data')) { // Als een gebruiker een object heeft bekeken, en via de terug knop 
+      // weer op de pagina komt, laat dan zijn laatste selectie zien. Maar alleen op de pagina's home-index en profile-index
+      // EN HIER OOK
+      if ($('.home-index').length || $('.profile-index:not(.reallocate)').length) {
+        var data = JSON.parse(sessionStorage.getItem('data'));
+        var targetTabId = sessionStorage.getItem('targetTabId');
+        filters.activateTab(targetTabId, data);
+      }
+    } else {
+      // Laad dan maar alles, maar alleen als we op home / index zijn (bijv. niet op realestate / view)
+      // HIER OOK
+      if ($('.home-index').length || $('.profile-index:not(.reallocate)').length) {
+        filters.activateTab();
+        //filters.loadObjects();
+      }
+    }
+
+    //        $('.slidertoggle').on('change', function () {
+    //            $(this).siblings('.slider, .sliderinfo').toggleClass('disabled');
+    //        });
+
+    this.initPostalCodeService();
+
+    this.initMasked();
+
+    this.initMarkdownEditor();
+
+    this.initNotifications();
+
+    this.initTooltips();
+    //if ($('.use-chosen').length) {
+    //    setTimeout(function() {
+    //        $('.use-chosen').chosen({ no_results_text: Messages.No_Results });
+    //    },0); 
+    //    //<% /* waarom werkt het nu wel (met timeOut)?? */ %>
+    //}
+
+    this.initModals();
+
+    this.initDocumentField();
+  },
+
+  initDocumentField: function () {
+    $.ajaxUploadSettings.name = 'uploads';
+
+    $('[data-upload]').filter(':not(.data-upload-initialized)').each(function () {
+      var button = $(this);
+
+      var url = '/upload/document';
+      var data = { definedExtensions: $(this).data('upload-extensions') !== undefined ? $(this).data('upload-extensions') : '' };
+
+      if (button.is('[data-upload-bidding-document]')) {
+        url = '/upload/biddingdocument';
+        data.documentType = $(this).data('bidding-document-type');
+      }
+      
+      var progressbar = $("<div class=\"progress\">").append($("<span class=\"meter\">")).insertAfter(button).hide();
+
+      var uploadOptions = {
+        url: url,
+        contentType: false,
+        data: data,
+        beforeSend: function (e, a) {
+          button.next('.form-error').remove();
+          progressbar.show();
+        },
+        onprogress: function (e) {
+          if (e.lengthComputable) {
+            console.log("Progress " + e.loaded + " of " + e.total);
+            var percent = e.loaded / e.total * 100;
+            progressbar.find(".meter").css("width", percent + "%");
+          }
+        },
+        error: function (data) {
+          for (var i in data) {
+            var item = data[i];
+            if (i === "statusText") {
+              button.after('<span class="form-error is-visible">Error: ' + item + '</span>');
+            }
+          }
+          button.removeClass('data-upload-initialized');
+        },
+        success: function (data) {
+          var createInputAvailable = button.is('[data-create-hidden-input-with-name]');
+          var showErrorMessageFor = button.is('[data-show-error-message-for]');
+
+          if (showErrorMessageFor) {
+            button.next().remove('small');
+          }
+
+          $('div.error-msg').remove();
+
+          if (data[0].Errors.length === 0) {
+            var lang = $("#rvoblang").val();
+            var newBtnText;
+
+            if (lang === "nl") {
+              newBtnText = "<span class='underline'>Volgende KVK uittreksel</span>";
+              buttonAbfText = "<span class='underline'>Upload formulier</span>";
+            } else {
+              newBtnText = "<span class='underline'>Next certified chamber of commerce excerpt</span>";
+              buttonAbfText = "<span class='underline'>Upload form</span>";
+            }
+
+            if (button.is('[data-button-coc]')) {
+              button.html('<img class="svg-smaller-white" src="/content/Images/icons_new/upload.svg" />&nbsp;&nbsp; ' + newBtnText);
+              $('#filesUploadedCoc ul li.no-data').hide();
+              $('#filesUploadedCoc ul').append('<li data-file-id="' + data[0].Document.Id + '"><img src="/content/images/icons_new/check_mark.svg" />' + data[0].Document.Name + '<a href="#" title= "Document verwijderen" class="remove-file" data-file-id="' + data[0].Document.Id + '"><img src="/content/images/icons_new/trash.svg" /></a></li>');
+              $('#placebid-modal #sectionCocUpload #filesUploadedCocError').hide();
+            }
+
+            if (createInputAvailable) {
+              var hiddenInput = '<input type="hidden" name="' + button.data('create-hidden-input-with-name') + '" value="' + data[0].Document.Id + '" />';
+              button.parents('form').append(hiddenInput);
+            }
+
+            if (button.is('[data-button-abf]')) {
+              button.addClass('disabled');
+              $('#filesUploadedDeclaration ul li.no-data').hide();
+              $('#filesUploadedDeclaration ul').append('<li data-file-id="' + data[0].Document.Id + '"><img src="/content/images/icons_new/check_mark.svg" />&nbsp;&nbsp' + data[0].Document.Name + '<a href="#" title= "Document verwijderen" class="remove-file" data-file-id="' + data[0].Document.Id + '"><img src="/content/images/icons_new/trash.svg" /></a></li>');
+              $('#placebid-modal #sectionDeclarationUpload #filesUploadedDeclarationError').hide();
+
+            }
+          } else {
+            for (var errorX in data[0].Errors) {
+              $('<div class="small-12 columns"><div class="error-message-new is-visible">' + data[0].Errors[errorX] + '</div></div>').insertAfter(button.parent()); 
+            }
+          }
+
+          progressbar.hide();
+
+          if (typeof window.onUpload === 'function') {
+            window.onUpload(data);
+          } // callback
+        }
+      };
+
+      button.ajaxUploadDrop(uploadOptions);
+      button.ajaxUploadPrompt(uploadOptions).on('click', function (e) { e.preventDefault(); });
+
+      var iOS = !!navigator.platform && /iPad|iPhone|iPod/.test(navigator.platform);
+
+      if (iOS) {
+        button.on("touchend", function (e) {
+          $.ajaxUploadPrompt(uploadOptions);
+        });
+      }
+      
+      button.addClass('data-upload-initialized');
+    });
+  },
+
+  initModals: function () {
+    // Generieke modal tonen welke wel gedefinieerd is in de brail file zelf
+    $(".website").on("click", '.confirm-modal', function (e) {
+      e.preventDefault();
+      var formActionUrl = $(this).data('href');
+      var modalId = "#" + $(this).data('modalid');
+      var hasClassAjaxModal = $(this).hasClass('ajax-modal');
+
+      //this.initPostalCodeService();
+
+      if (hasClassAjaxModal) {
+        $(modalId).find('form').attr('action', formActionUrl).off("submit").on('submit', function (e) {
+          e.preventDefault();
+          $.ajax({
+            url: $(this).attr('action'),
+            method: 'post',
+            success: function (data) {
+              console.log(data);
+              if (data["Success"]) {
+                if (data["Redirect"].length > 0) { window.location = data["Redirect"]; } else { location.reload(); }
+              } else {
+                $(modalId).find('.lead').html(data["Errors"]);
+              }
+            },
+            error: function (data) {
+              admingrowl("alert", "Er is iets misgegaan.");
+            }
+          });
+        });
+      } else {
+        $(modalId).find('form').attr('action', formActionUrl);
+      }
+
+      //this.initMasked();
+      if (!$(this).data('disabled')) {
+        $(modalId).foundation('reveal', 'open');
+      }
+    });
+
+    //this.initMarkdownEditor();
+    // Actie voor het sluiten van de generieke modal
+    $(".reveal-modal").on("click", '.close-modal', function (e) {
+      e.preventDefault();
+      var modalId = "#" + $(this).data('modalid');
+      $(modalId).foundation('reveal', 'close');
+    });
+
+    //this.initNotifications();
+
+    //this.initTooltips();
+  },
+
+  initTooltips: function () {
+    $('.show-tooltip')
+        .on('mousemove', function (e) {
+        $($(this).data('tooltip-element')).css({
+          top: e.pageY + 10 + 'px',
+          left: e.pageX + 10 + 'px'
+        });
+      })
+      .on('mouseenter mouseleave', function () {
+        $($(this).data('tooltip-element')).show().html($($(this).data('tooltip-title')));
+      }, function () {
+        $($(this).data('tooltip-element')).hide();
+      });
+  },
+
+  initNotifications: function () {
+    if (typeof Cookies !== 'undefined') {
+      var notificationCookie = Cookies.get('homepage-notification');
+      var notificationDiv = $('.homepage-notification');
+      var notificationLastChanged = notificationDiv.data('lastchanged');
+      if (notificationCookie != notificationLastChanged) {
+        notificationDiv.show();
+      }
+      $(document).on('close.fndtn.alert', function (event) {
+        var target = $(event.target);
+        if (target.hasClass('homepage-notification')) {
+          var lastChanged = target.data('lastchanged');
+          Cookies.set('homepage-notification', lastChanged);
+        }
+      });
+    }
+  },
+
+  initPostalCodeService: function () {
+    var postalCodeService = new PostalCodeService();
+    var spinnerElement = $('.spinner');
+    var postalCodeElement = $('#item_Profile_Postalcode');
+    var houseNumberElement = $('#item_Profile_HouseNumber');
+    var cityElement = $('#item_Profile_City');
+    var streetElement = $('#item_Profile_Address');
+    postalCodeService.init(spinnerElement, postalCodeElement, cityElement, houseNumberElement, streetElement);
+
+    var poBoxPostalCodeService = new PostalCodeService();
+    var poBoxSpinnerElement = $('.spinner-po-box');
+    var poBoxPostalCodeElement = $('#item_Profile_PoBoxPostalcode');
+    var poBoxCityElement = $('#item_Profile_PoBoxCity');
+    poBoxPostalCodeService.init(poBoxSpinnerElement, poBoxPostalCodeElement, poBoxCityElement);
+  },
+
+  initMasked: function () {
+    $('.capfirst').on('blur', function () {
+      var val = $(this).val();
+      $(this).val(val.charAt(0).toUpperCase() + val.slice(1));
+    });
+    $(".postalcode").on('blur', function () {
+      var val = $(this).val();
+      $(this).val(val.toUpperCase());
+    });
+    $(".pobox").mask("9?9999");
+    //$(".phonenumber").mask("?9999999999"); tijdelijk uit
+
+  },
+
+  windowResize: function () {
+  },
+
+  initMarkdownEditor: function () {
+    $('.wmd-input:not(.processed)').each(function () {
+      var id = $(this).attr('id');
+      var textarea = $(this);
+      var editor = new WMDEditor({
+        preview: id + '-preview',
+        output: id + '-output',
+        input: id,
+        button_bar: id + '-button-bar',
+        helpLink: '/Content/markdownhelp.html',
+        buttons: 'heading  bold italic  link image hr  ol ul  undo redo help',
+        modifierKeys: false,
+        autoFormatting: false
+      });
+
+      var buttonBar = $(editor.getPanels().buttonBar).find('.wmd-button-row');
+
+      if ($(this).hasClass('video-addable')) {
+        var addVideo = $('<li class="wmd-button wmd-video-button" title="Video <video>"><i class="fa fa-video-camera"></i></li>');
+
+        addVideo.on('click', function () {
+          var makeLinkMarkdown = function (link) {
+            var regex = /(.[^"]*)(?: )?(?:"(.*)")?/g;
+            var matches = regex.exec(link);
+            if (link !== null) {
+              textarea.insertAtCursor(
+                '<rvobvideo url="' + matches[1] + '" subtitle="' + matches[2] + '"></rvobvideo>');
+            }
+          };
+
+          WMDEditor.util.prompt("", "http://", makeLinkMarkdown, "Video");
+
+          window.setTimeout(function () {
+            var label = $('.wmd-prompt-dialog').find('form label:nth-child(2)');
+            var input = label.find('input');
+            label.text('Subtitle URL').append(input);
+          }, 100);
+        }),
+
+        buttonBar.append(addVideo);
+      }
+
+      if ($(this).hasClass('filebrowser-image')) {
+        let addFileBrowser = $('<li class="wmd-button wmd-image-button" title="Image <img>"><i class="fa fa-image"></i></li>');
+        addFileBrowser.on('click', function () {
+          let textArea = $(this).parents('.wmd-button-row').parent().parent().find('textarea.wmd-input');
+          let cursor = textArea[0].selectionStart;
+
+          textArea.addClass('filebrowser-target-input');
+
+          window.open("/admin/filemanager/index?cursor=" + cursor, "adfs", 'width=800, height=600, resizable=yes, menubar=no, scrollbars=no, status=no, toolbar=no');
+        });
+
+        buttonBar.append(addFileBrowser);
+      }
+
+    }).addClass('processed');
+  },
+
+  initOnLoad: function () {
+    // onload actions
+  },
+
+  windowResize: function () {
+  }
+};
+
+var foundationHelper = new FoundationHelper();
+var app = new Application();
+
+$(function () {
+  $(document).foundation();
+}); // fix voor iets met sticky_class
+
+$(function () {
+  app.init();
+});
+
+$(window).on('load', function () {
+  app.initOnLoad();
+});
+
+$(window).on('resize', function () {
+  app.windowResize();
+});
+
+(function (a) {
+  a.jgrid = a.jgrid || {};
+  a.extend(a.jgrid, {
+    defaults:
+    {
+      url: 'list',
+      datatype: 'local',
+      mtype: 'GET',
+      viewrecords: true,
+      rowNum: 25,
+      rowList: [10, 25, 50, 100],
+      pager: '#pager',
+      jsonReader: {
+        root: 'Rows',
+        page: 'Page',
+        total: 'Total',
+        records: 'Records',
+        repeatitems: false,
+        cell: '',
+        id: 'Id',
+        userdata: 'userdata',
+        subgrid: {
+          root: 'Rows',
+          repeatitems: false,
+          cell: '',
+          id: 'Id'
+        }
+      },
+      width: 906,
+      height: 'auto',
+      onSelectRow: function (rowid, status, e) {
+        $(this).jqGrid('resetSelection');
+      },
+      recordtext: 'regels {0} - {1} van {2}',
+      emptyrecords: 'Geen data gevonden.',
+      loadtext: 'laden...',
+      pgtext: 'pagina  {0}  van {1}'
+    }
+  });
+
+  $.fn.treeview = function (parent, options) {
+    var defaults = {
+      treeUrl: '/tree/tree',
+      rowHtml: '<div class="row"><div class="small-12 medium-8 columns name"></div><div class="hidden-for-small-down medium-2 columns info"></div><div class="hidden-for-small-down medium-1 columns action"></div><div class="hidden-for-small-down medium-1 column"></div></div>',
+      rootHtml: '<img src="/content/images/folder-large-test.png">',
+      light: false,
+      can_edit: false,
+      language: 1,
+      languageCode: 'nl',
+      bidBookPhase: 'NotSpecified'
+    };
+
+    var el = this;
+    var plugin = { parent: parent };
+
+    var GOOD = 0;
+    var BAD = 1;
+    var NEUTRAL = 2;
+    var BUSY = 3;
+
+    var truncateMiddle = function (str, maxLength) {
+      if (maxLength === 0)
+        maxLength = 50;
+      if (str.length > maxLength) {
+        var third = Math.floor(maxLength / 3);
+        return str.substr(0, third * 2) + '...' + str.substr(str.length - third, str.length);
+      }
+      return str;
+    };
+
+    var init = function () {
+      if (typeof jQuery == 'undefined') {
+        $.getScript("/Content/Javascript/jquery-1.12.4.min.js", function () {
+        });
+      }
+      $.getScript("/Content/Javascript/vendor/jquery.ui.widget.js", function () {
+
+      });
+
+      $.getScript("/Content/Javascript/jquery.iframe-transport.js", function () {
+
+      });
+
+      $.getScript("/Content/Javascript/jquery.fileupload.js", function () {
+
+      });
+
+
+      plugin.settings = $.extend(true, {}, defaults, options);
+      plugin.updateStatus('');
+      plugin.loadTree('');
+      var folderbar = el.find('.folderaddbar').html('');
+
+      if (plugin.settings.can_edit) {
+        folderbar.append('<hr/><div class="large-3 columns">Map toevoegen</div><div class="large-6 columns"><input class="foldername" type="text" placeholder="mapnaam"></input></div><div class="large-3 columns"><input class="button folderadd" type="submit" value="Toevoegen"></div>');
+        folderbar.find('.folderadd').on('click', function (e) {
+          e.preventDefault();
+          var folderInput = $(this).closest(".folderaddbar").find('.foldername');
+          var folderName = folderInput.val();
+          var that = $(this);
+          var hUrl = "/" + plugin.settings.languageCode + "/bidbook/folderadd";
+          plugin.updateStatus('Bezig met het aanmaken van  map \'' + folderName + '\'.', BUSY);
+
+          $.get(hUrl, { isLight: plugin.settings.light, id: plugin.parent, path: plugin.currentPath, folder: folderName, chosenLanguage: plugin.settings.language, bidBookPhase: plugin.settings.bidBookPhase }, function (data) {
+            if (!data.Success)
+              plugin.updateStatus(data.Message, BAD);
+            else {
+              plugin.updateStatus(data.Message, GOOD);
+              plugin.loadTree(plugin.currentPath);
+              folderInput.val('');
+            }
+          }).fail(function () {
+            plugin.updateStatus('Er is iets misgegaan.', BAD);
+          });
+        });
+
+        var filebar = el.find('.fileaddbar').html('');
+        filebar.append('<div class="large-3 columns">Bestand toevoegen</div><div class="large-6 columns"><input class="fileupload" type="file" name="file" data-url="/' + plugin.settings.languageCode + '/bidbook/fileadd"></div><div class="large-3 columns"><input class="button fileadd" type="submit" value="Upload"></div>');
+        var fileuploadEmt = filebar.find('.fileupload');
+        if (fileuploadEmt.length) {
+          fileuploadEmt.fileupload({
+            dataType: 'json',
+            singleFileUploads: true,
+            replaceFileInput: false,
+            add: function (e, data) {
+              var fa = $(this).closest('.fileaddbar').find('.fileadd');
+              fa.off("click");
+              data.context = fa.on('click', function () {
+                plugin.updateStatus('Bezig met uploaden van \'' + $(this).closest('.fileaddbar').find('.fileupload').val().replace("C:\\fakepath\\", "") + '\'.', BUSY);
+                data.formData = {
+                  path: plugin.currentPath,
+                  isLight: plugin.settings.light,
+                  id: plugin.parent,
+                  chosenLanguage: plugin.settings.language,
+                  bidBookPhase: plugin.settings.bidBookPhase
+                };
+                data.submit();
+              });
+
+            },
+            done: function (e, data) {
+              $(this).closest('.fileaddbar').find('.fileadd').off('click');
+              $(this).val('');
+
+              if (!data.result.Success)
+                plugin.updateStatus(data.result.Message, BAD);
+              else {
+                plugin.updateStatus(data.result.Message, GOOD);
+                plugin.loadTree(plugin.currentPath);
+              }
+            },
+            fail: function (e, data) {
+              plugin.updateStatus('Er is iets misgegaan.', BAD);
+            }
+          });
+        }
+      }
+    };
+
+    plugin.updateStatus = function (status, type) {
+
+      var icon;
+      switch (type) {
+        case GOOD:
+          icon = '<i class="fa fa-check-circle-o" />';
+          break;
+        case BAD:
+          icon = '<i class="fa fa-minus-circle" />';
+          break;
+        case BUSY:
+          icon = '<i class="fa fa-cog" />';
+          break;
+        default:
+          icon = "";
+      }
+
+      el.find('.status').html(icon + " " + status);
+    };
+
+    plugin.loadTree = function (path) {
+      var filelist = el.find('.filelist').html('');
+      var breadcrumb = el.find('.breadcrumb').html('');
+      var language = el.data('language');
+
+      plugin.currentPath = path;
+      $.ajax({
+        method: 'GET',
+        url: plugin.settings.treeUrl,
+        data: {
+          id: plugin.parent,
+          path: path,
+          light: plugin.settings.light,
+          language: language != undefined ? language : plugin.settings.language,
+          bidBookPhase: plugin.settings.bidBookPhase
+        },
+        success: function (data) {
+          if (data.Dirs) {
+            for (var dirId = 0; dirId < data.Dirs.length; dirId++) {
+              var dirRow = plugin.createDirRow(data.Dirs[dirId]);
+              filelist.append(dirRow);
+            }
+          }
+
+          if (data.Files) {
+            for (var fileId = 0; fileId < data.Files.length; fileId++) {
+              var fileRow = plugin.createFileRow(data.Files[fileId], language);
+              filelist.append(fileRow);
+            }
+            breadcrumb.append(plugin.breadcrumb(data.Parents));
+          }
+        }
+      });
+    };
+
+    plugin.breadcrumb = function (parents) {
+      var breadcrumb = $('<ul></ul>');
+      for (var parentId = 0; parentId < parents.length; parentId++) {
+        var className = parentId == 0 ? 'last' : '';
+        var parent = parents[parentId];
+        var dirLink = plugin.dirLink(parent, className);
+        var crumb = $('<li></li>');
+        crumb.append(dirLink);
+        breadcrumb.prepend(crumb);
+      }
+      var rootLink = plugin.dirLink({ DirPath: '', DirName: plugin.settings.rootHtml }, 'root');
+      var rootCrumb = $('<li></li>');
+      rootCrumb.append(rootLink);
+      if (parents.length > 0) breadcrumb.prepend(rootCrumb);
+      return breadcrumb;
+    };
+
+    plugin.createDirRow = function (dir, className) {
+      var isLight = 0;
+
+      if (plugin.settings.light) {
+        isLight = 1;
+      }
+
+      var dirLink = plugin.dirLink(dir, className);
+      var dirRow = $(plugin.settings.rowHtml);
+      dirRow.find('.name').append(dirLink);
+      dirRow.find('.info').html('Map');
+
+      if (plugin.settings.can_edit) {
+        dirRow.find('.action').html('<a href="/' + app.lang() + '/bidbook/folderdelete?isLight=' + isLight + '&chosenlanguage=' + plugin.settings.language + '&id=' + plugin.parent + '&path=' + escape(plugin.currentPath) + '&folder=' + escape(dir.DirName) + '&bidBookPhase=' + plugin.settings.bidBookPhase + '"><i class="fa fa-trash-o"></i></a>');
+        dirRow.find('.fa-trash-o').on('click', function (e) {
+          e.preventDefault();
+
+          var hUrl = $(this).parent().attr("href");
+          plugin.updateStatus('Bezig met het verwijderen van de map \'' + dir.DirName + '\'.', BUSY);
+          $.get(hUrl, function (data) {
+            if (!data.Success)
+              plugin.updateStatus(data.Message, BAD);
+            else {
+              plugin.updateStatus(data.Message, GOOD);
+              plugin.loadTree(plugin.currentPath);
+            }
+          }).fail(function () {
+            plugin.updateStatus('Er is iets misgegaan.', BAD);
+          });
+        });
+      }
+      if (dir.DirName == undefined)
+        return "";
+      return dirRow;
+    };
+
+    plugin.dirLink = function (dir, className) {
+      className += ' dir';
+      var dirLink = $('<a class="' + className + '" href="#" data-path="' + dir.DirPath + '"><span>' + dir.DirName + '<span></a>');
+      dirLink.on('click', function (e) {
+        e.preventDefault();
+        var path = $(this).data('path');
+        plugin.loadTree(path);
+      });
+      return dirLink;
+    };
+
+    plugin.createFileRow = function (file, language) {
+      var isLight = 0;
+      var lang = language != undefined ? language : plugin.settings.language;
+      if (plugin.settings.light) {
+        isLight = 1;
+      }
+      var fileLink = $('<a title="' + file.FileName + '" class="file ' + file.FileType + '" href="/' + app.lang() + '/bidbook/file?isLight=' + isLight + '&chosenlanguage=' + lang + '&id=' + plugin.parent + '&path=' + escape(plugin.currentPath) + '&file=' + escape(file.FileName) + '&bidBookPhase=' + plugin.settings.bidBookPhase + '">' + truncateMiddle(file.FileName, $(el).first().width() / parseInt($(el).first().css('font-size')) * 1.5/* whatever works */) + '</a>');
+      var fileRow = $(plugin.settings.rowHtml);
+      fileRow.find('.name').append(fileLink);
+      fileRow.find('.info').html(file.FileType + ', ' + file.FileSizeString);
+      if (plugin.settings.can_edit) {
+        fileRow.find('.action').html('<a  href="/' + app.lang() + '/bidbook/filedelete?isLight=' + isLight + '&chosenlanguage=' + plugin.settings.language + '&id=' + plugin.parent + '&path=' + escape(plugin.currentPath) + '&file=' + escape(file.FileName) + '&bidBookPhase=' + plugin.settings.bidBookPhase + '"><i class="fa fa-trash-o"></i></a>');
+        fileRow.find('.fa-trash-o').on('click', function (e) {
+          e.preventDefault();
+
+          var hUrl = $(this).parent().attr("href");
+          plugin.updateStatus('Bezig met het verwijderen van bestand \'' + file.FileName + '\'.', BUSY);
+          $.get(hUrl, function (data) {
+            if (!data.Success)
+              plugin.updateStatus(data.Message, BAD);
+            else {
+              plugin.updateStatus(data.Message, GOOD);
+              plugin.loadTree(plugin.currentPath);
+            }
+          }).fail(function () {
+            plugin.updateStatus('Er is iets misgegaan.', BAD);
+          });
+        });
+      }
+      if (file.FileName == undefined)
+        return "";
+      return fileRow;
+    };
+
+    init();
+  };
+
+})(jQuery);
+
+// CSRF
+var csrf = $('body').data('csrf');
+$('body').on('submit', 'form', function () {
+  appendCsrfToForm($(this));
+  return true;
+});
+
+$('body').on('click', 'form[enctype="multipart/form-data"] input[type="submit"]', function () {
+  var form = $(this).parents('form');
+  appendCsrfToForm(form);
+});
+
+var appendCsrfToForm = function (form) {
+  if (form.find('input[name="_csrfToken"]').length === 0) {
+    $('<input>').attr('type', 'hidden').attr('name', '_csrfToken').attr('value', csrf).prependTo(form);
+  }
+};
+
+var appendCsrfToHref = function (href) {
+  var csrfQueryString = (href.indexOf('?') >= 0 ? '&_csrfToken=' : '?_csrfToken=') + csrf;
+  var newHref = href.indexOf('#') >= 0 ? href.replace('#', csrfQueryString + '#') : href + csrfQueryString;
+  return newHref;
+};
+
+$.ajaxPrefilter(function (options, originalOptions) {
+  if (originalOptions.data == undefined) {
+    originalOptions.data = {};
+  }
+  if (typeof originalOptions.data === 'string') {
+    if (originalOptions.data.indexOf('_csrfToken') < 0)
+      options.data = options.data + '&_csrfToken=' + csrf;
+  } else {
+    var newData = $.extend(originalOptions.data, { '_csrfToken': csrf });
+    if (!(newData instanceof FormData)) {
+      options.data = $.param(newData);
+    }
+  }
+});
+
+$('body').on('click', 'a[data-csrf]', function () {
+  $(this).prop('href', appendCsrfToHref($(this).prop('href')));
+});
+
+$('.confirm-delete').on('click', function (e) {
+  e.preventDefault();
+  if (confirm("Weet u het zeker?")) {
+    window.location = appendCsrfToHref($(this).data('href'));
+  }
+});
+
+$(function() {
+  $('input[type=checkbox] + label').prepend('<span />');
+  $('input[type=checkbox] + input[type=hidden] + label').prepend('<span />');
+  $.each($('input[type=radio]'),
+    function (index, el) {
+      $(el).attr('data-prev-val', $(el).is(':checked'));
+    });
+
+  $('input[type=radio]').on('click', function () {
+    var previousValue = $(this).attr('data-prev-val');
+    var name = $(this).attr('name');
+
+    if (previousValue === 'true') {
+      $(this).removeAttr('checked');
+      $(this).attr('data-prev-val', false);
+    } else {
+      $("input[name='" + name + "']").attr('data-prev-val', 'false');
+      $(this).attr('data-prev-val', true);
+    }
+  });
+});

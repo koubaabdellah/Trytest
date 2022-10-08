@@ -1,0 +1,3 @@
+//>>built
+define("esri/tasks/ImageServiceIdentifyResult","dojo/_base/declare dojo/_base/lang dojo/has ../kernel ../geometry/jsonUtils ./FeatureSet".split(" "),function(b,c,g,d,e,f){b=b(null,{declaredClass:"esri.tasks.ImageServiceIdentifyResult",constructor:function(a){a.catalogItems&&(this.catalogItems=new f(a.catalogItems));a.location&&(this.location=e.fromJson(a.location));this.catalogItemVisibilities=a.catalogItemVisibilities;this.name=a.name;this.objectId=a.objectId;this.value=a.value;this.processedValues=
+a.processedValues;this.properties=a.properties}});c.setObject("tasks.ImageServiceIdentifyResult",b,d);return b});

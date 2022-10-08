@@ -1,0 +1,699 @@
+define(["require", "exports", "tslib", "esri/core/accessorSupport/decorators", "./LevelAware"], function (require, exports, tslib_1, decorators_1, LevelAware_1) {
+    "use strict";
+    LevelAware_1 = tslib_1.__importDefault(LevelAware_1);
+    var Role = (function (_super) {
+        tslib_1.__extends(Role, _super);
+        function Role(params) {
+            var _this = _super.call(this) || this;
+            _this.id = null;
+            _this.baseRole = null;
+            _this.name = null;
+            _this.description = null;
+            _this.privileges = [];
+            _this.privilegeObj = {
+                portal: {
+                    admin: {
+                        inviteUsers: false,
+                        disableUsers: false,
+                        viewUsers: false,
+                        updateUsers: false,
+                        deleteUsers: false,
+                        changeUserRoles: false,
+                        viewGroups: false,
+                        updateGroups: false,
+                        deleteGroups: false,
+                        reassignGroups: false,
+                        assignToGroups: false,
+                        manageEnterpriseGroups: false,
+                        viewItems: false,
+                        updateItems: false,
+                        deleteItems: false,
+                        reassignItems: false,
+                        manageLicenses: false,
+                        shareToGroup: false,
+                        shareToOrg: false,
+                        shareToPublic: false,
+                        createUpdateCapableGroup: false,
+                        updateItemCategorySchema: false,
+                        manageCollaborations: false,
+                        manageSecurity: false,
+                        manageWebsite: false,
+                        manageRoles: false,
+                        manageServers: false,
+                        manageUtilityServices: false,
+                        manageCredits: false
+                    },
+                    publisher: {
+                        publishFeatures: false,
+                        publishTiles: false,
+                        publishScenes: false,
+                        publishServerServices: false,
+                        publishServerGPServices: false,
+                        registerDataStores: false,
+                        bulkPublishFromDataStores: false,
+                        enumerateDataStores: false
+                    },
+                    user: {
+                        createGroup: false,
+                        joinGroup: false,
+                        joinNonOrgGroup: false,
+                        createItem: false,
+                        shareToGroup: false,
+                        shareToOrg: false,
+                        shareToPublic: false,
+                        shareGroupToOrg: false,
+                        shareGroupToPublic: false,
+                        viewOrgUsers: false,
+                        viewOrgItems: false,
+                        viewOrgGroups: false,
+                        viewTracks: false
+                    }
+                },
+                features: {
+                    user: {
+                        edit: false,
+                        fullEdit: false
+                    }
+                },
+                opendata: {
+                    user: {
+                        openDataAdmin: false,
+                        designateGroup: false
+                    }
+                },
+                premium: {
+                    user: {
+                        geocode: false,
+                        networkanalysis: false,
+                        spatialanalysis: false,
+                        geoenrichment: false,
+                        demographics: false,
+                        featurereport: false
+                    },
+                    publisher: {
+                        geoanalytics: false,
+                        rasteranalysis: false,
+                        createNotebooks: false,
+                        scheduleNotebooks: false,
+                        publishNotebooks: false,
+                        createAdvancedNotebooks: false
+                    }
+                },
+                marketplace: {
+                    admin: {
+                        manage: false,
+                        purchase: false,
+                        startTrial: false
+                    }
+                }
+            };
+            params = params || {};
+            var portalUser = params.portalUser;
+            if (!portalUser) {
+                _this.id = params.id;
+                _this.baseRole = params.role;
+                _this.name = params.name;
+                _this.description = params.description;
+                if (params.privileges) {
+                    _this.setPrivileges(params.privileges);
+                }
+            }
+            else {
+                _this.id = portalUser.roleId ? portalUser.roleId : portalUser.role;
+                _this.baseRole = portalUser.role;
+                _this.setPrivileges(portalUser.privileges);
+            }
+            return _this;
+        }
+        Role.prototype.isViewer = function () {
+            return this.id && this.id === this.SYSTEM_ROLES.VIEWER;
+        };
+        Role.prototype.isUser = function () {
+            return this.id && (this.id === "org_user" || this.id === "account_user");
+        };
+        Role.prototype.isPublisher = function () {
+            return (this.id &&
+                (this.id === "org_publisher" || this.id === "account_publisher"));
+        };
+        Role.prototype.isAdmin = function () {
+            return this.id && (this.id === "org_admin" || this.id === "account_admin");
+        };
+        Role.prototype.isBasedOnUser = function () {
+            return (this.isUser() ||
+                (this.baseRole &&
+                    (this.baseRole === "org_user" || this.baseRole === "account_user")));
+        };
+        Role.prototype.isBasedOnPublisher = function () {
+            return (this.isPublisher() ||
+                (this.baseRole &&
+                    (this.baseRole === "org_publisher" ||
+                        this.baseRole === "account_publisher")));
+        };
+        Role.prototype.isBasedOnAdmin = function () {
+            return (this.isAdmin() ||
+                (this.baseRole &&
+                    (this.baseRole === "org_admin" || this.baseRole === "account_admin")));
+        };
+        Role.prototype.isCustom = function () {
+            return (!this.isUser() &&
+                !this.isPublisher() &&
+                !this.isAdmin() &&
+                this.id &&
+                this.id.length > 0);
+        };
+        Role.prototype.canInviteUsers = function () {
+            return this.privilegeObj && this.privilegeObj.portal.admin.inviteUsers;
+        };
+        Role.prototype.canDisableUsers = function () {
+            return this.privilegeObj && this.privilegeObj.portal.admin.disableUsers;
+        };
+        Role.prototype.canViewUsers = function () {
+            return this.privilegeObj && this.privilegeObj.portal.admin.viewUsers;
+        };
+        Role.prototype.canUpdateUsers = function () {
+            return this.privilegeObj && this.privilegeObj.portal.admin.updateUsers;
+        };
+        Role.prototype.canDeleteUsers = function () {
+            return this.privilegeObj && this.privilegeObj.portal.admin.deleteUsers;
+        };
+        Role.prototype.canChangeUserRoles = function () {
+            return this.privilegeObj && this.privilegeObj.portal.admin.changeUserRoles;
+        };
+        Role.prototype.canViewOrgGroups = function () {
+            return this.privilegeObj && this.privilegeObj.portal.admin.viewGroups;
+        };
+        Role.prototype.canUpdateOrgGroups = function () {
+            return this.privilegeObj && this.privilegeObj.portal.admin.updateGroups;
+        };
+        Role.prototype.canDeleteOrgGroups = function () {
+            return this.privilegeObj && this.privilegeObj.portal.admin.deleteGroups;
+        };
+        Role.prototype.canReassignOrgGroups = function () {
+            return this.privilegeObj && this.privilegeObj.portal.admin.reassignGroups;
+        };
+        Role.prototype.canAssignUsersToOrgGroups = function () {
+            return this.privilegeObj && this.privilegeObj.portal.admin.assignToGroups;
+        };
+        Role.prototype.canManageEnterpriseGroups = function () {
+            return (this.privilegeObj && this.privilegeObj.portal.admin.manageEnterpriseGroups);
+        };
+        Role.prototype.canViewOrgItems = function () {
+            return this.privilegeObj && this.privilegeObj.portal.admin.viewItems;
+        };
+        Role.prototype.canUpdateOrgItems = function () {
+            return this.privilegeObj && this.privilegeObj.portal.admin.updateItems;
+        };
+        Role.prototype.canDeleteOrgItems = function () {
+            return this.privilegeObj && this.privilegeObj.portal.admin.deleteItems;
+        };
+        Role.prototype.canReassignOrgItems = function () {
+            return this.privilegeObj && this.privilegeObj.portal.admin.reassignItems;
+        };
+        Role.prototype.canManageItems = function () {
+            return (this.isAdmin() ||
+                (this.canViewUsers() &&
+                    this.canViewOrgItems() &&
+                    (this.canUpdateOrgItems() ||
+                        this.canDeleteOrgItems() ||
+                        this.canReassignOrgItems())));
+        };
+        Role.prototype.canManageLicenses = function () {
+            return this.privilegeObj && this.privilegeObj.portal.admin.manageLicenses;
+        };
+        Role.prototype.canShareOthersItemsToGroup = function () {
+            return this.privilegeObj && this.privilegeObj.portal.admin.shareToGroup;
+        };
+        Role.prototype.canShareOthersItemsToOrg = function () {
+            return this.privilegeObj && this.privilegeObj.portal.admin.shareToOrg;
+        };
+        Role.prototype.canShareOthersItemsToPublic = function () {
+            return this.privilegeObj && this.privilegeObj.portal.admin.shareToPublic;
+        };
+        Role.prototype.canCreateUpdateCapableGroup = function () {
+            return (this.privilegeObj &&
+                this.privilegeObj.portal.admin.createUpdateCapableGroup);
+        };
+        Role.prototype.canUpdateItemCategories = function () {
+            return (this.privilegeObj &&
+                this.privilegeObj.portal.admin.updateItemCategorySchema);
+        };
+        Role.prototype.canManageCollaborations = function () {
+            return (this.privilegeObj && this.privilegeObj.portal.admin.manageCollaborations);
+        };
+        Role.prototype.canManageSecurity = function () {
+            return this.privilegeObj && this.privilegeObj.portal.admin.manageSecurity;
+        };
+        Role.prototype.canManageWebsite = function () {
+            return this.privilegeObj && this.privilegeObj.portal.admin.manageWebsite;
+        };
+        Role.prototype.canManageRoles = function () {
+            return this.privilegeObj && this.privilegeObj.portal.admin.manageRoles;
+        };
+        Role.prototype.canManageServers = function () {
+            return this.privilegeObj && this.privilegeObj.portal.admin.manageServers;
+        };
+        Role.prototype.canManageUtilityServices = function () {
+            return (this.privilegeObj && this.privilegeObj.portal.admin.manageUtilityServices);
+        };
+        Role.prototype.canManageCredits = function () {
+            return this.privilegeObj && this.privilegeObj.portal.admin.manageCredits;
+        };
+        Role.prototype.canCreateGroup = function () {
+            return this.privilegeObj && this.privilegeObj.portal.user.createGroup;
+        };
+        Role.prototype.canJoinOrgGroup = function () {
+            return this.privilegeObj && this.privilegeObj.portal.user.joinGroup;
+        };
+        Role.prototype.canJoinNonOrgGroup = function () {
+            return this.privilegeObj && this.privilegeObj.portal.user.joinNonOrgGroup;
+        };
+        Role.prototype.canPublishFeatures = function () {
+            return (this.privilegeObj && this.privilegeObj.portal.publisher.publishFeatures);
+        };
+        Role.prototype.canPublishTiles = function () {
+            return this.privilegeObj && this.privilegeObj.portal.publisher.publishTiles;
+        };
+        Role.prototype.canPublishScenes = function () {
+            return (this.privilegeObj && this.privilegeObj.portal.publisher.publishScenes);
+        };
+        Role.prototype.canPublishServerServices = function () {
+            return (this.privilegeObj &&
+                this.privilegeObj.portal.publisher.publishServerServices);
+        };
+        Role.prototype.canPublishServerGPServices = function () {
+            return (this.privilegeObj &&
+                this.privilegeObj.portal.publisher.publishServerGPServices);
+        };
+        Role.prototype.canPublishVectorTiles = function () {
+            return true;
+        };
+        Role.prototype.canPublishImageCollection = function () {
+            return this.canPublishServerServices();
+        };
+        Role.prototype.canCreateItem = function () {
+            return this.privilegeObj && this.privilegeObj.portal.user.createItem;
+        };
+        Role.prototype.canShareItemToGroup = function () {
+            return this.privilegeObj && this.privilegeObj.portal.user.shareToGroup;
+        };
+        Role.prototype.canShareItemToOrg = function () {
+            return this.privilegeObj && this.privilegeObj.portal.user.shareToOrg;
+        };
+        Role.prototype.canShareItemToPublic = function () {
+            return this.privilegeObj && this.privilegeObj.portal.user.shareToPublic;
+        };
+        Role.prototype.canShareGroupToOrg = function () {
+            return this.privilegeObj && this.privilegeObj.portal.user.shareGroupToOrg;
+        };
+        Role.prototype.canShareGroupToPublic = function () {
+            return (this.privilegeObj && this.privilegeObj.portal.user.shareGroupToPublic);
+        };
+        Role.prototype.canViewOrgUsers = function () {
+            return this.privilegeObj && this.privilegeObj.portal.user.viewOrgUsers;
+        };
+        Role.prototype.canViewOrgUserContent = function () {
+            return this.privilegeObj && this.privilegeObj.portal.user.viewOrgItems;
+        };
+        Role.prototype.canViewOrgUserGroups = function () {
+            return this.privilegeObj && this.privilegeObj.portal.user.viewOrgGroups;
+        };
+        Role.prototype.canViewTracks = function () {
+            return this.privilegeObj && this.privilegeObj.portal.user.viewTracks;
+        };
+        Role.prototype.canEditFeatures = function () {
+            return this.privilegeObj && this.privilegeObj.features.user.edit;
+        };
+        Role.prototype.canEditFeaturesFullControl = function () {
+            return this.privilegeObj && this.privilegeObj.features.user.fullEdit;
+        };
+        Role.prototype.canManageOpenData = function () {
+            return this.privilegeObj && this.privilegeObj.opendata.user.openDataAdmin;
+        };
+        Role.prototype.canDesignateOpenDataGroups = function () {
+            return this.privilegeObj && this.privilegeObj.opendata.user.designateGroup;
+        };
+        Role.prototype.canUseGeocode = function () {
+            return this.privilegeObj && this.privilegeObj.premium.user.geocode;
+        };
+        Role.prototype.canUseNetworkAnalysis = function () {
+            return this.privilegeObj && this.privilegeObj.premium.user.networkanalysis;
+        };
+        Role.prototype.canUseSpatialAnalysis = function () {
+            return this.privilegeObj && this.privilegeObj.premium.user.spatialanalysis;
+        };
+        Role.prototype.canUseGeoenrichment = function () {
+            return this.privilegeObj && this.privilegeObj.premium.user.geoenrichment;
+        };
+        Role.prototype.canUseDemographics = function () {
+            return this.privilegeObj && this.privilegeObj.premium.user.demographics;
+        };
+        Role.prototype.canUseFeatureReport = function () {
+            return this.privilegeObj && this.privilegeObj.premium.user.featurereport;
+        };
+        Role.prototype.canUseGeoanalytics = function () {
+            return (this.privilegeObj && this.privilegeObj.premium.publisher.geoanalytics);
+        };
+        Role.prototype.canUseRasterAnalysis = function () {
+            return (this.privilegeObj && this.privilegeObj.premium.publisher.rasteranalysis);
+        };
+        Role.prototype.canPurchaseMarketplace = function () {
+            return this.privilegeObj && this.privilegeObj.marketplace.admin.purchase;
+        };
+        Role.prototype.canManageMarketplace = function () {
+            return this.privilegeObj && this.privilegeObj.marketplace.admin.manage;
+        };
+        Role.prototype.canTrialMarketplace = function () {
+            return this.privilegeObj && this.privilegeObj.marketplace.admin.startTrial;
+        };
+        Role.prototype.canCreateNotebooks = function () {
+            return (this.privilegeObj && this.privilegeObj.premium.publisher.createNotebooks);
+        };
+        Role.prototype.canScheduleNotebooks = function () {
+            return (this.privilegeObj && this.privilegeObj.premium.publisher.scheduleNotebooks);
+        };
+        Role.prototype.canPublishNotebooks = function () {
+            return (this.privilegeObj && this.privilegeObj.premium.publisher.publishNotebooks);
+        };
+        Role.prototype.canCreateAdvancedNotebooks = function () {
+            return (this.privilegeObj &&
+                this.privilegeObj.premium.publisher.createAdvancedNotebooks);
+        };
+        Role.prototype.canBulkPublishFromDataStores = function () {
+            return (this.privilegeObj &&
+                this.privilegeObj.portal.publisher.bulkPublishFromDataStores);
+        };
+        Role.prototype.canEnumerateDataStores = function () {
+            return (this.privilegeObj &&
+                this.privilegeObj.portal.publisher.enumerateDataStores);
+        };
+        Role.prototype.canRegisterDataStores = function () {
+            return (this.privilegeObj && this.privilegeObj.portal.publisher.registerDataStores);
+        };
+        Role.prototype.setPrivileges = function (privileges) {
+            this.privileges = privileges;
+            this._initPrivilegesObject();
+            if (privileges) {
+                this._readPrivileges(privileges);
+            }
+        };
+        Role.prototype._initPrivilegesObject = function () {
+            this._applyToAll(false);
+        };
+        Role.prototype._readPrivileges = function (privileges) {
+            var _this = this;
+            if (privileges && privileges instanceof Array) {
+                privileges.forEach(function (privilege) {
+                    _this._readPrivilege(privilege);
+                });
+            }
+        };
+        Role.prototype._readPrivilege = function (privilege) {
+            this._applyEffectToAction(true, privilege);
+        };
+        Role.prototype._applyEffectToAction = function (allow, action) {
+            switch (action) {
+                case "portal:admin:inviteUsers":
+                    this.privilegeObj.portal.admin.inviteUsers = allow;
+                    break;
+                case "portal:admin:disableUsers":
+                    this.privilegeObj.portal.admin.disableUsers = allow;
+                    break;
+                case "portal:admin:viewUsers":
+                    this.privilegeObj.portal.admin.viewUsers = allow;
+                    break;
+                case "portal:admin:updateUsers":
+                    this.privilegeObj.portal.admin.updateUsers = allow;
+                    break;
+                case "portal:admin:deleteUsers":
+                    this.privilegeObj.portal.admin.deleteUsers = allow;
+                    break;
+                case "portal:admin:changeUserRoles":
+                    this.privilegeObj.portal.admin.changeUserRoles = allow;
+                    break;
+                case "portal:admin:viewGroups":
+                    this.privilegeObj.portal.admin.viewGroups = allow;
+                    break;
+                case "portal:admin:updateGroups":
+                    this.privilegeObj.portal.admin.updateGroups = allow;
+                    break;
+                case "portal:admin:deleteGroups":
+                    this.privilegeObj.portal.admin.deleteGroups = allow;
+                    break;
+                case "portal:admin:reassignGroups":
+                    this.privilegeObj.portal.admin.reassignGroups = allow;
+                    break;
+                case "portal:admin:assignToGroups":
+                    this.privilegeObj.portal.admin.assignToGroups = allow;
+                    break;
+                case "portal:admin:manageEnterpriseGroups":
+                    this.privilegeObj.portal.admin.manageEnterpriseGroups = allow;
+                    break;
+                case "portal:admin:viewItems":
+                    this.privilegeObj.portal.admin.viewItems = allow;
+                    break;
+                case "portal:admin:updateItems":
+                    this.privilegeObj.portal.admin.updateItems = allow;
+                    break;
+                case "portal:admin:deleteItems":
+                    this.privilegeObj.portal.admin.deleteItems = allow;
+                    break;
+                case "portal:admin:reassignItems":
+                    this.privilegeObj.portal.admin.reassignItems = allow;
+                    break;
+                case "portal:admin:manageLicenses":
+                    this.privilegeObj.portal.admin.manageLicenses = allow;
+                    break;
+                case "portal:admin:shareToGroup":
+                    this.privilegeObj.portal.admin.shareToGroup = allow;
+                    break;
+                case "portal:admin:shareToOrg":
+                    this.privilegeObj.portal.admin.shareToOrg = allow;
+                    break;
+                case "portal:admin:shareToPublic":
+                    this.privilegeObj.portal.admin.shareToPublic = allow;
+                    break;
+                case "portal:admin:createUpdateCapableGroup":
+                    this.privilegeObj.portal.admin.createUpdateCapableGroup = allow;
+                    break;
+                case "portal:admin:updateItemCategorySchema":
+                    this.privilegeObj.portal.admin.updateItemCategorySchema = allow;
+                    break;
+                case "portal:admin:manageCollaborations":
+                    this.privilegeObj.portal.admin.manageCollaborations = allow;
+                    break;
+                case "portal:admin:manageSecurity":
+                    this.privilegeObj.portal.admin.manageSecurity = allow;
+                    break;
+                case "portal:admin:manageWebsite":
+                    this.privilegeObj.portal.admin.manageWebsite = allow;
+                    break;
+                case "portal:admin:manageRoles":
+                    this.privilegeObj.portal.admin.manageRoles = allow;
+                    break;
+                case "portal:admin:manageServers":
+                    this.privilegeObj.portal.admin.manageServers = allow;
+                    break;
+                case "portal:admin:manageUtilityServices":
+                    this.privilegeObj.portal.admin.manageUtilityServices = allow;
+                    break;
+                case "portal:admin:manageCredits":
+                    this.privilegeObj.portal.admin.manageCredits = allow;
+                    break;
+                case "portal:publisher:publishFeatures":
+                    this.privilegeObj.portal.publisher.publishFeatures = allow;
+                    break;
+                case "portal:publisher:publishTiles":
+                    this.privilegeObj.portal.publisher.publishTiles = allow;
+                    break;
+                case "portal:publisher:publishScenes":
+                    this.privilegeObj.portal.publisher.publishScenes = allow;
+                    break;
+                case "portal:publisher:publishServerServices":
+                    this.privilegeObj.portal.publisher.publishServerServices = allow;
+                    break;
+                case "portal:publisher:publishServerGPServices":
+                    this.privilegeObj.portal.publisher.publishServerGPServices = allow;
+                    break;
+                case "portal:publisher:bulkPublishFromDataStores":
+                    this.privilegeObj.portal.publisher.bulkPublishFromDataStores = allow;
+                    break;
+                case "portal:publisher:enumerateDataStores":
+                    this.privilegeObj.portal.publisher.enumerateDataStores = allow;
+                    break;
+                case "portal:publisher:registerDataStores":
+                    this.privilegeObj.portal.publisher.registerDataStores = allow;
+                    break;
+                case "portal:user:createGroup":
+                    this.privilegeObj.portal.user.createGroup = allow;
+                    break;
+                case "portal:user:joinGroup":
+                    this.privilegeObj.portal.user.joinGroup = allow;
+                    break;
+                case "portal:user:joinNonOrgGroup":
+                    this.privilegeObj.portal.user.joinNonOrgGroup = allow;
+                    break;
+                case "portal:user:createItem":
+                    this.privilegeObj.portal.user.createItem = allow;
+                    break;
+                case "portal:user:shareToGroup":
+                    this.privilegeObj.portal.user.shareToGroup = allow;
+                    break;
+                case "portal:user:shareToOrg":
+                    this.privilegeObj.portal.user.shareToOrg = allow;
+                    break;
+                case "portal:user:shareToPublic":
+                    this.privilegeObj.portal.user.shareToPublic = allow;
+                    break;
+                case "portal:user:shareGroupToOrg":
+                    this.privilegeObj.portal.user.shareGroupToOrg = allow;
+                    break;
+                case "portal:user:shareGroupToPublic":
+                    this.privilegeObj.portal.user.shareGroupToPublic = allow;
+                    break;
+                case "portal:user:viewOrgUsers":
+                    this.privilegeObj.portal.user.viewOrgUsers = allow;
+                    break;
+                case "portal:user:viewOrgItems":
+                    this.privilegeObj.portal.user.viewOrgItems = allow;
+                    break;
+                case "portal:user:viewOrgGroups":
+                    this.privilegeObj.portal.user.viewOrgGroups = allow;
+                    break;
+                case "portal:user:viewTracks":
+                    this.privilegeObj.portal.user.viewTracks = allow;
+                    break;
+                case "features:user:edit":
+                    this.privilegeObj.features.user.edit = allow;
+                    break;
+                case "features:user:fullEdit":
+                    this.privilegeObj.features.user.fullEdit = allow;
+                    break;
+                case "opendata:user:openDataAdmin":
+                    this.privilegeObj.opendata.user.openDataAdmin = allow;
+                    break;
+                case "opendata:user:designateGroup":
+                    this.privilegeObj.opendata.user.designateGroup = allow;
+                    break;
+                case "premium:user:geocode":
+                    this.privilegeObj.premium.user.geocode = allow;
+                    break;
+                case "premium:user:networkanalysis":
+                    this.privilegeObj.premium.user.networkanalysis = allow;
+                    break;
+                case "premium:user:spatialanalysis":
+                    this.privilegeObj.premium.user.spatialanalysis = allow;
+                    break;
+                case "premium:user:geoenrichment":
+                    this.privilegeObj.premium.user.geoenrichment = allow;
+                    break;
+                case "premium:user:demographics":
+                    this.privilegeObj.premium.user.demographics = allow;
+                    break;
+                case "premium:user:featurereport":
+                    this.privilegeObj.premium.user.featurereport = allow;
+                    break;
+                case "premium:publisher:geoanalytics":
+                    this.privilegeObj.premium.publisher.geoanalytics = allow;
+                    break;
+                case "premium:publisher:rasteranalysis":
+                    this.privilegeObj.premium.publisher.rasteranalysis = allow;
+                    break;
+                case "marketplace:admin:purchase":
+                    this.privilegeObj.marketplace.admin.purchase = allow;
+                    break;
+                case "marketplace:admin:manage":
+                    this.privilegeObj.marketplace.admin.manage = allow;
+                    break;
+                case "marketplace:admin:startTrial":
+                    this.privilegeObj.marketplace.admin.startTrial = allow;
+                    break;
+                case "premium:publisher:createNotebooks":
+                    this.privilegeObj.premium.publisher.createNotebooks = allow;
+                    break;
+                case "premium:publisher:scheduleNotebooks":
+                    this.privilegeObj.premium.publisher.scheduleNotebooks = allow;
+                    break;
+                case "premium:publisher:publishNotebooks":
+                    this.privilegeObj.premium.publisher.publishNotebooks = allow;
+                    break;
+                case "premium:publisher:createAdvancedNotebooks":
+                    this.privilegeObj.premium.publisher.createAdvancedNotebooks = allow;
+                    break;
+                default:
+                    break;
+            }
+        };
+        Role.prototype._applyToAll = function (allow) {
+            this.privilegeObj.portal.admin.inviteUsers = allow;
+            this.privilegeObj.portal.admin.disableUsers = allow;
+            this.privilegeObj.portal.admin.viewUsers = allow;
+            this.privilegeObj.portal.admin.updateUsers = allow;
+            this.privilegeObj.portal.admin.deleteUsers = allow;
+            this.privilegeObj.portal.admin.changeUserRoles = allow;
+            this.privilegeObj.portal.admin.viewGroups = allow;
+            this.privilegeObj.portal.admin.updateGroups = allow;
+            this.privilegeObj.portal.admin.deleteGroups = allow;
+            this.privilegeObj.portal.admin.reassignGroups = allow;
+            this.privilegeObj.portal.admin.assignToGroups = allow;
+            this.privilegeObj.portal.admin.manageEnterpriseGroups = allow;
+            this.privilegeObj.portal.admin.viewItems = allow;
+            this.privilegeObj.portal.admin.updateItems = allow;
+            this.privilegeObj.portal.admin.deleteItems = allow;
+            this.privilegeObj.portal.admin.reassignItems = allow;
+            this.privilegeObj.portal.admin.manageLicenses = allow;
+            this.privilegeObj.portal.admin.shareToGroup = allow;
+            this.privilegeObj.portal.admin.shareToOrg = allow;
+            this.privilegeObj.portal.admin.shareToPublic = allow;
+            this.privilegeObj.portal.admin.createUpdateCapableGroup = allow;
+            this.privilegeObj.portal.admin.updateItemCategorySchema = allow;
+            this.privilegeObj.portal.admin.manageCollaborations = allow;
+            this.privilegeObj.portal.admin.manageSecurity = allow;
+            this.privilegeObj.portal.admin.manageWebsite = allow;
+            this.privilegeObj.portal.admin.manageRoles = allow;
+            this.privilegeObj.portal.admin.manageServers = allow;
+            this.privilegeObj.portal.admin.manageUtilityServices = allow;
+            this.privilegeObj.portal.admin.manageCredits = allow;
+            this.privilegeObj.portal.publisher.publishFeatures = allow;
+            this.privilegeObj.portal.publisher.publishTiles = allow;
+            this.privilegeObj.portal.publisher.publishScenes = allow;
+            this.privilegeObj.portal.publisher.publishServerServices = allow;
+            this.privilegeObj.portal.publisher.publishServerGPServices = allow;
+            this.privilegeObj.portal.user.createGroup = allow;
+            this.privilegeObj.portal.user.joinGroup = allow;
+            this.privilegeObj.portal.user.joinNonOrgGroup = allow;
+            this.privilegeObj.portal.user.createItem = allow;
+            this.privilegeObj.portal.user.shareToGroup = allow;
+            this.privilegeObj.portal.user.shareToOrg = allow;
+            this.privilegeObj.portal.user.shareToPublic = allow;
+            this.privilegeObj.portal.user.shareGroupToOrg = allow;
+            this.privilegeObj.portal.user.shareGroupToPublic = allow;
+            this.privilegeObj.portal.user.viewOrgUsers = allow;
+            this.privilegeObj.portal.user.viewOrgItems = allow;
+            this.privilegeObj.portal.user.viewOrgGroups = allow;
+            this.privilegeObj.portal.user.viewTracks = allow;
+            this.privilegeObj.features.user.edit = allow;
+            this.privilegeObj.opendata.user.openDataAdmin = allow;
+            this.privilegeObj.opendata.user.designateGroup = allow;
+            this.privilegeObj.premium.user.geocode = allow;
+            this.privilegeObj.premium.user.networkanalysis = allow;
+            this.privilegeObj.premium.user.spatialanalysis = allow;
+            this.privilegeObj.premium.user.geoenrichment = allow;
+            this.privilegeObj.premium.user.demographics = allow;
+            this.privilegeObj.premium.user.featurereport = allow;
+            this.privilegeObj.premium.publisher.geoanalytics = allow;
+            this.privilegeObj.premium.publisher.rasteranalysis = allow;
+            this.privilegeObj.marketplace.admin.purchase = allow;
+            this.privilegeObj.marketplace.admin.manage = allow;
+            this.privilegeObj.marketplace.admin.startTrial = allow;
+            this.privilegeObj.premium.publisher.createNotebooks = allow;
+            this.privilegeObj.premium.publisher.scheduleNotebooks = allow;
+            this.privilegeObj.premium.publisher.publishNotebooks = allow;
+            this.privilegeObj.premium.publisher.createAdvancedNotebooks = allow;
+        };
+        Role = tslib_1.__decorate([
+            decorators_1.subclass()
+        ], Role);
+        return Role;
+    }(LevelAware_1.default));
+    return Role;
+});

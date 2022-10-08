@@ -1,0 +1,254 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML+RDFa 1.0//EN" "http://www.w3.org/MarkUp/DTD/xhtml-rdfa-1.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" version="XHTML+RDFa 1.0" dir="ltr" 
+  xmlns:content="http://purl.org/rss/1.0/modules/content/"
+  xmlns:dc="http://purl.org/dc/terms/"
+  xmlns:foaf="http://xmlns.com/foaf/0.1/"
+  xmlns:og="http://ogp.me/ns#"
+  xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+  xmlns:sioc="http://rdfs.org/sioc/ns#"
+  xmlns:sioct="http://rdfs.org/sioc/types#"
+  xmlns:skos="http://www.w3.org/2004/02/skos/core#"
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+>
+<head profile="http://www.w3.org/1999/xhtml/vocab">
+  <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta http-equiv="cleartype" content="on" />
+
+  
+  
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="shortcut icon" href="https://www.clo.nl/sites/all/libraries/starterskit/favicon.ico" type="image/x-icon" />
+<link rel="apple-touch-icon-precomposed" href="https://www.clo.nl/profiles/clo/themes/rijkshuisstijl/images/apple-touch-icon-precomposed.png" />
+<link rel="shortcut icon" href="https://www.clo.nl/profiles/clo/themes/rijkshuisstijl/images/apple-touch-icon.png" />
+<meta name="generator" content="Drupal 7 (http://drupal.org)" />
+  <title>
+      Search | Environmental Data Compendium  </title>
+  <link type="text/css" rel="stylesheet" href="https://www.clo.nl/sites/default/files/css/css_gi-tjeM_scb4kj8MqoWjMsCDd7lEmMM0wnZtacAAddQ.css" media="all" />
+<link type="text/css" rel="stylesheet" href="https://www.clo.nl/sites/default/files/css/css_O9Md5-sR5o8ZB-RdaYWNHM2yWGL9Vwbxb0vIUu9svZs.css" media="all" />
+<link type="text/css" rel="stylesheet" href="https://www.clo.nl/sites/default/files/css/css_CnQz_UU-fAqdVvk0CCrrVfu1YxMX2cjYf6-4p5ny7gY.css" media="all" />
+<link type="text/css" rel="stylesheet" href="https://www.clo.nl/sites/default/files/css/css_kIDhuT0YNyiKbSmCnpVnOwokrFdfA7KbtyBg0SjZXug.css" media="screen" />
+
+<!--[if IE]>
+<link type="text/css" rel="stylesheet" href="https://www.clo.nl/sites/all/libraries/starterskit/css/ie/ie6.css?ri8vuv" media="screen" />
+<![endif]-->
+
+<!--[if IE 7]>
+<link type="text/css" rel="stylesheet" href="https://www.clo.nl/sites/all/libraries/starterskit/css/ie/ie7.css?ri8vuv" media="screen" />
+<![endif]-->
+
+<!--[if IE 8]>
+<link type="text/css" rel="stylesheet" href="https://www.clo.nl/sites/all/libraries/starterskit/css/ie/ie8.css?ri8vuv" media="screen" />
+<![endif]-->
+<link type="text/css" rel="stylesheet" href="https://www.clo.nl/sites/default/files/css/css_rzZi3T1fXUya9o32VHY3GBhJEe8TruL9jwllgJGYbQE.css" media="screen" />
+<link type="text/css" rel="stylesheet" href="https://www.clo.nl/sites/default/files/css/css_xtoFwQCiqDdY6FSYuwsLiksHParOWup9h_HaXIEtgZs.css" media="all" />
+
+<!--[if IE]>
+<link type="text/css" rel="stylesheet" href="https://www.clo.nl/profiles/clo/themes/rijkshuisstijl/styles/ie/ie.css?ri8vuv" media="screen" />
+<![endif]-->
+
+<!--[if IE 7]>
+<link type="text/css" rel="stylesheet" href="https://www.clo.nl/profiles/clo/themes/rijkshuisstijl/styles/ie/ie-7.css?ri8vuv" media="screen" />
+<![endif]-->
+
+<!--[if IE 8]>
+<link type="text/css" rel="stylesheet" href="https://www.clo.nl/profiles/clo/themes/rijkshuisstijl/styles/ie/ie-8.css?ri8vuv" media="screen" />
+<![endif]-->
+<link type="text/css" rel="stylesheet" href="https://www.clo.nl/sites/default/files/css/css_RIzwBRWObdMbutR26daq3OL0fOwYLYJBH4529nLDwIE.css" media="print" />
+  <script type="text/javascript" src="https://www.clo.nl/sites/default/files/js/js_YD9ro0PAqY25gGWrTki6TjRUG8TdokmmxjfqpNNfzVU.js"></script>
+<script type="text/javascript" src="https://www.clo.nl/sites/default/files/js/js_t-hLv8Is38iwDHXmuXR6fTxVbHdFRmwL4gpfrzlZHzs.js"></script>
+<script type="text/javascript" src="https://www.clo.nl/sites/default/files/js/js_8uOOAPTcsxha5KWCprM5o2vmOLI0DQamWvCg6dLma4w.js"></script>
+<script type="text/javascript">
+<!--//--><![CDATA[//><!--
+jQuery(document).ready(function() {jQuery("#accordion").accordion({autoHeight: false});});
+//--><!]]>
+</script>
+<script type="text/javascript" src="https://www.clo.nl/sites/default/files/js/js_EXEPK6RQaWrzaQUyOju0ZhggDXipVePKzL6VQrA1wi0.js"></script>
+<script type="text/javascript">
+<!--//--><![CDATA[//><!--
+jQuery.extend(Drupal.settings, {"basePath":"\/","pathPrefix":"en\/","setHasJsCookie":0,"ajaxPageState":{"theme":"compendium","theme_token":"_z_C8ofaz0YKrbIM7elXkknSVm6hsl4_CkqSIB9El94","js":{"0":1,"misc\/jquery.js":1,"misc\/jquery-extend-3.4.0.js":1,"misc\/jquery-html-prefilter-3.5.0-backport.js":1,"misc\/jquery.once.js":1,"misc\/drupal.js":1,"misc\/ui\/jquery.ui.core.min.js":1,"misc\/ui\/jquery.ui.widget.min.js":1,"misc\/ui\/jquery.ui.position.min.js":1,"misc\/ui\/jquery.ui.position-1.13.0-backport.js":1,"misc\/ui\/jquery.ui.autocomplete.min.js":1,"misc\/ui\/jquery.ui.accordion.min.js":1,"misc\/ui\/jquery.ui.tabs.min.js":1,"profiles\/clo\/modules\/contrib\/apachesolr_autocomplete\/apachesolr_autocomplete_jqueryui.js":1,"sites\/all\/libraries\/colorbox\/jquery.colorbox-min.js":1,"profiles\/clo\/modules\/contrib\/colorbox\/js\/colorbox.js":1,"profiles\/clo\/modules\/contrib\/colorbox\/styles\/default\/colorbox_style.js":1,"1":1,"profiles\/clo\/themes\/compendium\/scripts\/clo.js":1,"profiles\/clo\/themes\/compendium\/scripts\/jquery.cycle.all.js":1},"css":{"misc\/ui\/jquery.ui.core.css":1,"misc\/ui\/jquery.ui.theme.css":1,"misc\/ui\/jquery.ui.autocomplete.css":1,"misc\/ui\/jquery.ui.accordion.css":1,"misc\/ui\/jquery.ui.tabs.css":1,"profiles\/clo\/modules\/contrib\/date\/date_api\/date.css":1,"profiles\/clo\/modules\/contrib\/date\/date_popup\/themes\/datepicker.1.7.css":1,"modules\/field\/theme\/field.css":1,"modules\/node\/node.css":1,"profiles\/clo\/modules\/contrib\/relation_add\/relation_add.css":1,"modules\/user\/user.css":1,"profiles\/clo\/modules\/contrib\/views\/css\/views.css":1,"profiles\/clo\/modules\/contrib\/ckeditor\/css\/ckeditor.css":1,"profiles\/clo\/modules\/contrib\/apachesolr_autocomplete\/apachesolr_autocomplete.css":1,"profiles\/clo\/modules\/contrib\/colorbox\/styles\/default\/colorbox_style.css":1,"profiles\/clo\/modules\/contrib\/ctools\/css\/ctools.css":1,"modules\/search\/search.css":1,"profiles\/clo\/modules\/contrib\/node_embed\/plugins\/node_embed\/node_embed.css":1,"sites\/all\/libraries\/starterskit\/css\/screen.css":1,"sites\/all\/libraries\/starterskit\/css\/ie\/ie6.css":1,"sites\/all\/libraries\/starterskit\/css\/ie\/ie7.css":1,"sites\/all\/libraries\/starterskit\/css\/ie\/ie8.css":1,"profiles\/clo\/themes\/rijkshuisstijl\/styles\/starterskit.css":1,"profiles\/clo\/themes\/rijkshuisstijl\/styles\/drupal.css":1,"profiles\/clo\/themes\/rijkshuisstijl\/styles\/sogeti.css":1,"profiles\/clo\/themes\/rijkshuisstijl\/styles\/forms.css":1,"profiles\/clo\/themes\/rijkshuisstijl\/styles\/colors_application.css":1,"profiles\/clo\/themes\/rijkshuisstijl\/styles\/application.css":1,"profiles\/clo\/themes\/compendium\/styles\/clo.css":1,"profiles\/clo\/themes\/compendium\/styles\/indicator.css":1,"profiles\/clo\/themes\/compendium\/styles\/tabs.css":1,"profiles\/clo\/themes\/compendium\/styles\/jquery-ui\/compendium-ui\/jquery-ui-1.10.3.custom.min.css":1,"profiles\/clo\/themes\/rijkshuisstijl\/styles\/ie\/ie.css":1,"profiles\/clo\/themes\/rijkshuisstijl\/styles\/ie\/ie-7.css":1,"profiles\/clo\/themes\/rijkshuisstijl\/styles\/ie\/ie-8.css":1,"sites\/all\/libraries\/starterskit\/css\/print.css":1,"profiles\/clo\/themes\/compendium\/styles\/print.css":1}},"colorbox":{"opacity":"0.85","current":"{current} of {total}","previous":"\u00ab Prev","next":"Next \u00bb","close":"Close","maxWidth":"98%","maxHeight":"98%","fixed":true,"mobiledetect":true,"mobiledevicewidth":"480px","file_public_path":"\/sites\/default\/files","specificPagesDefaultValue":"admin*\nimagebrowser*\nimg_assist*\nimce*\nnode\/add\/*\nnode\/*\/edit\nprint\/*\nprintpdf\/*\nsystem\/ajax\nsystem\/ajax\/*"},"apachesolr_autocomplete":{"forms":{"search-form":{"id":"search-form","path":"\/en\/apachesolr_autocomplete_callback\/apachesolr_search_page%3Acore_search"},"search-block-form":{"id":"search-block-form","path":"\/en\/apachesolr_autocomplete_callback\/apachesolr_search_page%3Acore_search"},"search-block-form--2":{"id":"search-block-form--2","path":"\/en\/apachesolr_autocomplete_callback\/apachesolr_search_page%3Acore_search"}}},"urlIsAjaxTrusted":{"\/en\/search\/site\/piwik.js":true}});
+//--><!]]>
+</script>
+</head>
+
+<body class="html not-front not-logged-in no-sidebars page-search page-search-site page-search-site-piwikjs i18n-en internet"  id="content">
+<ul class="skiplink">
+  <li><a href="#hoofd_content" title="Skip to content">Skip to content</a></li>
+  <li><a href="#service_menu" title="Skip to service menu">Skip to service menu</a></li>
+  <li><a href="#zoeken" title="Skip to search">Skip to search</a></li>
+</ul>
+<div class="container equalize page orange default">
+    <div class="region region-topnav">
+    <ul class="menu"><li><a href="http://www.clo.nl" class="external" title="External site">Nederlands</a></li>
+<li><a href="https://twitter.com/compendium_clo" class="twitter external" title="External site">Twitter</a></li>
+<li><a href="/en/rss" class="rss">RSS</a></li>
+</ul>  </div>
+  <div class="header">
+        <div class="branding">
+              <a href="/en">
+              <img typeof="foaf:Image" src="/profiles/clo/themes/compendium/logo_en.png" alt="Logo of Environmental Data Compendium" title="Environmental Data Compendium" />              </a>
+          </div>
+  <div class="title_bar">
+      <div>
+                  <a href="/en">
+                Environmental Data Compendium                          </a>
+              </div>
+        <div class="right">
+            <a href="https://www.clo.nl/en/search/site/%2A?limit=10&sfilters%5B%5D=ind">
+        <span class="orange">
+          35        </span>
+        factsheets about the environment      </a>
+    </div>
+      </div>
+  <div class="nav_bar">
+          <ul id="main-navigation" class="nav_main"><li class="menu-608 first-item"><a href="/en">Home</a></li>
+<li class="menu-600"><a href="/en/topics">Topics</a></li>
+<li class="menu-1111 last-item"><a href="/en/renewed">Renewed</a></li>
+</ul>                <div class="region region-header">
+    <div id="zoeken" class="search block block-search block-first block-last">
+    <form action="/en/search/site/piwik.js" method="post" id="search-block-form" accept-charset="UTF-8"><div>
+<div class="search-element-wrapper clearfix">
+  <div class="form-item form-type-textfield form-item-search-block-form">
+  <label class="element-invisible" for="edit-search-block-form--2">Search </label>
+ <input title="Enter the terms you wish to search for." class="apachesolr-autocomplete form-text" data-apachesolr-autocomplete-id="search-block-form" type="text" id="edit-search-block-form--2" name="search_block_form" value="" size="15" maxlength="128" />
+</div>
+<div class="form-actions form-wrapper" id="edit-actions"><input type="submit" id="edit-submit--2" name="op" value="search" class="form-submit" /></div><input type="hidden" name="form_build_id" value="form-utZZIHJVrp0AgawUtik3qgRmEomgB6JO9OZaRdbQmqQ" />
+<input type="hidden" name="form_id" value="search_block_form" />
+</div>
+
+
+</div></form></div>
+  </div>
+      </div>
+</div>
+  <div class="content_wrapper1">
+    <div class="content_wrapper2">
+      <div class="content_header">
+                  <div class="breadcrumb"><p><em>You are here: </em><a href="/en">Home</a><span class="imgreplacement"> &#8250; </span>Search</p></div>        
+                          <h1>Search</h1>
+                      </div>
+      <div class="content">
+
+        <div class="content_main" id="hoofd_content">
+          
+          
+                      <div class="region region-content">
+    <div id="block-system-main" class="block block-system block-first block-last">
+
+    
+  <div >
+    <form class="search-form" action="/en/search/site/piwik.js" method="post" id="search-form" accept-charset="UTF-8"><div><div class="container-inline form-wrapper" id="edit-basic"><div class="form-item form-type-textfield form-item-keys">
+  <label for="edit-keys">Enter terms </label>
+ <input class="apachesolr-autocomplete form-text" data-apachesolr-autocomplete-id="search-form" type="text" id="edit-keys" name="keys" value="piwik.js" size="20" maxlength="255" />
+</div>
+<input type="submit" id="edit-submit" name="op" value="Search" class="form-submit" /><input type="hidden" name="get" value="[]" />
+</div><input type="hidden" name="form_build_id" value="form-WEp5qL3Wuod7rmoBh1Iha1DDUroLm_xfOn1GNCYULBI" />
+<input type="hidden" name="form_id" value="apachesolr_search_custom_page_search_form" />
+</div></form><ul>
+<li>Check if your spelling is correct, or try removing filters.</li>
+<li>Remove quotes around phrases to match each word individually: <em>"blue drop"</em> will match less than <em>blue drop</em>.</li>
+<li>You can require or exclude terms using + and -: <em>big +blue drop</em> will require a match on <em>blue</em> while <em>big blue -drop</em> will exclude results that contain <em>drop</em>.</li>
+</ul>  </div>
+</div>
+  </div>
+
+          <div class="nav_page nav_limit">
+            <span class="current">10</span> | <a href="/en/search/site/piwik.js?limit=25&page=0">25</a> | <a href="/en/search/site/piwik.js?limit=100&page=0">100</a>          </div>
+
+                  </div>
+
+        <div class="content_add">
+                    <form method="GET">
+            <input type="hidden" name="limit" value="10"/>
+
+            <h3>Filters</h3>
+
+            <ul class="sfilters">
+                            <li>
+                <label for="sfilter1">
+                  <input type="checkbox" id="sfilter1" name="sfilters[]" value="ind"
+                         >
+                  Indicators                </label>
+              </li>
+                            <li>
+                <label for="sfilter3">
+                  <input type="checkbox" id="sfilter3" name="sfilters[]" value="closed"
+                         >
+                  Also show closed figures                </label>
+              </li>
+            </ul>
+
+            
+                      </form>
+
+                  </div>
+
+              </div>
+    </div>
+    <div class="notice">
+    <span></span>
+    The Environmental Data Compendium is a partnership of CBS, PBL, RIVM and WUR.</div>  </div>
+  <div class="footer clearfix en">
+        
+        <div class="region region-footer-1">
+    <div id="block-menu-menu-organisations" class="block block-menu block-first block-last">
+
+    <h2>Organisations</h2>
+  
+  <div >
+    <ul class="menu"><li><a href="https://www.cbs.nl/en-gb" class="external" title="External site">www.cbs.nl</a></li>
+<li><a href="http://www.pbl.nl" class="external" title="External site">www.pbl.nl</a></li>
+<li><a href="http://www.rivm.nl/en" class="external" title="External site">www.rivm.nl</a></li>
+<li><a href="https://www.wur.nl/en.htm" class="external" title="External site">www.wur.nl</a></li>
+</ul>  </div>
+</div>
+  </div>
+  
+        <div class="region region-footer-2">
+    <div id="block-menu-menu-clone-about-en" class="block block-menu block-first block-last">
+
+    <h2>Help</h2>
+  
+  <div >
+    <ul class="menu"><li><a href="/en/node/2">Contact</a></li>
+<li><a href="/en/help">Help</a></li>
+<li><a href="/en/node/4">Over het CLO</a></li>
+<li><a href="/en/node/25875">Toegankelijkheid</a></li>
+</ul>  </div>
+</div>
+  </div>
+  
+        <div class="region region-footer-3">
+    <div id="block-menu-menu-service-menu-footer-engels" class="block block-menu block-first block-last">
+
+    <h2>Service</h2>
+  
+  <div >
+    <ul class="menu"><li><a href="/en/rss">RSS</a></li>
+<li><a href="https://twitter.com/compendium_clo" class="external" title="External site">Twitter</a></li>
+</ul>  </div>
+</div>
+  </div>
+  
+        <div class="region region-footer-4">
+    <div id="block-menu-menu-language-en" class="block block-menu block-first block-last">
+
+    <h2>Languages</h2>
+  
+  <div >
+    <ul class="menu"><li><a href="http://www.clo.nl" class="external" title="External site">Nederlands</a></li>
+</ul>  </div>
+</div>
+  </div>
+  </div>
+</div>
+  <div class="region region-page-bottom">
+    <noscript><iframe src="https://statistiek.rijksoverheid.nl/containers/f33a7506-2b26-4d6c-88be-7d6836dba5de/noscript.html" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>  </div>
+<script type="text/javascript">
+<!--//--><![CDATA[//><!--
+(function(window, document, dataLayerName, id) {window[dataLayerName]=window[dataLayerName]||[],window[dataLayerName].push({start:(new Date).getTime(),event:"stg.start"});var scripts=document.getElementsByTagName("script")[0],tags=document.createElement("script");function stgCreateCookie(a,b,c){var d="";if(c){var e=new Date;e.setTime(e.getTime()+24*c*60*60*1e3),d="; expires="+e.toUTCString()}document.cookie=a+"="+b+d+"; path=/"}var isStgDebug=(window.location.href.match("stg_debug")||document.cookie.match("stg_debug"))&&!window.location.href.match("stg_disable_debug");stgCreateCookie("stg_debug",isStgDebug?1:"",isStgDebug?14:-1);var qP=[];dataLayerName!=="dataLayer"&&qP.push("data_layer_name="+dataLayerName),isStgDebug&&qP.push("stg_debug");var qPString=qP.length>0?("?"+qP.join("&")):"";tags.async=!0,tags.src="https://statistiek.rijksoverheid.nl/containers/"+id+".js"+qPString,scripts.parentNode.insertBefore(tags,scripts);!function(a,n,i){a[n]=a[n]||{};for(var c=0;c<i.length;c++)!function(i){a[n][i]=a[n][i]||{},a[n][i].api=a[n][i].api||function(){var a=[].slice.call(arguments,0);"string"==typeof a[0]&&window[dataLayerName].push({event:n+"."+i+":"+a[0],parameters:[].slice.call(arguments,1)})}}(i[c])}(window,"ppms",["tm","cm"]);})(window, document, "dataLayer", "f33a7506-2b26-4d6c-88be-7d6836dba5de");
+//--><!]]>
+</script>
+</body>
+</html>

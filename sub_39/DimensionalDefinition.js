@@ -1,0 +1,3 @@
+//>>built
+define("esri/layers/DimensionalDefinition",["dojo/_base/declare","dojo/_base/lang","dojo/has","../kernel","../lang"],function(a,b,g,d,e){a=a(null,{declaredClass:"esri.layers.DimensionalDefinition",variableName:null,dimensionName:null,values:[],isSlice:!1,constructor:function(c){b.isObject(c)&&b.mixin(this,c)},toJson:function(){var c={variableName:this.variableName,dimensionName:this.dimensionName,values:b.clone(this.values),isSlice:this.isSlice};return e.filter(c,function(f){return null!==f})}});
+b.setObject("layers.DimensionalDefinition",a,d);return a});

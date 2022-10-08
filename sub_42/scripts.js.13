@@ -1,0 +1,312 @@
+$(document).ready(function(){
+
+
+    if (location.protocol != 'https:')
+    {
+        location.href = 'https:' + window.location.href.substring(window.location.protocol.length);
+    }
+
+    // Variables
+    var $body = $("body"),
+        $html = $("html"),
+        $toggle = $('.toggle'),
+        $switch = $('.switch a'),
+        $overlay = $('.overlay'),
+        $votes = $('*[data-vote]'),
+        $thanks = $('.feedback .thanks'),
+        $links = $('.links ul > li > a'),
+        $header = $('.header'),
+        $cookieBar = $('.cookiebar'),
+        $cookieAccept = $('#cookieAccept'),
+        $cookieDeny = $('#cookieDeny'),
+        $videoContainer = $("figure.video-container"),
+        $socialShare = $("section.social-share"),
+        $customMailShare = $(".custom-mail-share"),
+        $sendMail = $("[data-send]");
+
+    // Global variables
+    $main = $('main');
+
+    $body.addClass('load'); // Fade in the page
+
+    // Menu toggle
+    $toggle.on("click touch",function(){
+        $(this).toggleClass('active');
+        $overlay.toggleClass('active');
+        $body.toggleClass('fixed');
+        $html.toggleClass('fixed');
+    });
+
+    // Navigate to other pages with swipe effect
+    $switch.on("click touch",function(e){
+        e.preventDefault();
+        var url = $(this).attr('href');
+        var direction = $(this).data('direction');
+        $main.addClass('animate-'+direction);
+
+       setTimeout(function(){
+           window.location.href = url;
+       }, 200);
+    });
+
+    $header.on('swipeleft',function(){
+        swipeFunction('left');
+    });
+
+    $header.on('swiperight',function(){
+        swipeFunction('right');
+    });
+
+    // Vote block
+    $votes.on("click touch",function(){
+        var $vote = $(this).attr('data-vote');
+        var feedbacktip = $('body').attr('data-feedbacktip');
+
+        dataLayer.push({
+            'event': 'feedback',
+            'vote': $vote
+        });
+
+        $('.down, .up').hide();
+        $thanks.fadeIn();
+
+        $.cookie('feedbackTip' + feedbacktip , 'voted', { expires: 365, path:'/' }); // Set voted cookie
+    });
+
+    // Scroll to anchor
+    $links.on("click touch", function(e){
+        e.preventDefault();
+        var target = $(this).attr('href');
+        $('html, body').stop().animate({ scrollTop: $(target).offset().top - 26}, 400);
+    });
+
+    // Cookie accept button
+    $cookieAccept.on("click touch",function(e){
+        e.preventDefault();
+        $.cookie('CookiePrefs', 'allow', { expires: 365, path:'/' }); // Set cookie
+        $cookieBar.fadeOut();
+    });
+
+    // Cookie deny button
+    $cookieDeny.on("click touch",function(e){
+        e.preventDefault();
+        $.cookie('CookiePrefs', 'rijbewijstipsDeny', { expires: 365, path:'/' }); // Set cookie
+        $cookieBar.fadeOut();
+    });
+
+    // Custom mail share
+    $customMailShare.on("click touch", function(e){
+        e.preventDefault();
+        var target = $(this).attr('data-mail');
+        $('['+target+']').fadeIn();
+    });
+
+    // Send mail
+    $sendMail.on("click touch", function(e){
+        e.preventDefault();
+        var mail = document.getElementById($(this).attr('data-send')).value;
+
+        sendMail(mail);
+    });
+
+    // Custom click handelers
+    $("#customLink").on("click touch", function(e){
+        e.preventDefault();
+        $("#customParagraph").fadeIn();
+    });
+
+    // Cookie check
+    cookieCheck($cookieBar);
+
+    // Check if user voted current tip
+    if($(".feedback").length){
+        var $tip = $("body").attr('data-feedbacktip');
+        feedbackCheck('feedbackTip'+$tip, $thanks);
+    }
+
+    if($(".parallax").length){
+        //parallaxEffect();
+    }
+
+    // Play video from overlay
+    $videoContainer.bind("click touch", function(){
+        var $container = $(this), videoSrc = $container.data("video-url");
+        videoSrc = videoSrc + '?rel=0&autoplay=1';
+
+        $container.find("iframe").attr("src", videoSrc.replace("watch?v=", "embed/"));
+        $container.addClass("playing")
+    });
+
+    var didScroll;
+    var lastScrollTop = 0;
+    var delta = 5;
+    var shareBlockTop = $('section.quote-social').offset().top;
+    var windowHeight = $(window).height();
+
+    shareHideAndShow(didScroll, lastScrollTop, delta, shareBlockTop, windowHeight);
+
+
+/*    window.onscroll = function(ev) {
+        if ((window.innerHeight + window.pageYOffset) >= document.body.offsetHeight - 75) {
+            $socialShare.fadeOut();
+        } else {
+            $socialShare.fadeIn();
+        }
+    };*/
+
+});
+
+
+/**
+ * Show cookiebar
+ *
+ * @param $cookieBar
+ */
+function cookieCheck($cookieBar){
+    var cookie = $.cookie('CookiePrefs');
+
+    if(cookie === 'allow'){
+        dataLayer.push({
+            'event': 'opt_in'
+        });
+    } else if (cookie === 'deny'){
+        $cookieBar.fadeIn();
+        dataLayer.push({
+            'event': 'opt_out'
+        });
+    } else if (cookie === 'rijbewijstipsDeny'){
+        dataLayer.push({
+            'event': 'opt_out'
+        });
+    } else {
+        $cookieBar.fadeIn();
+        dataLayer.push({
+            'event': 'opt_out'
+        });
+    }
+}
+
+/**
+ * Show feedback yes / no
+ *
+ * @param $cookie (feedback cookie)
+ * @param $thanks (thanks message)
+ */
+function feedbackCheck($cookie, $thanks){
+    var cookie = $.cookie($cookie);
+
+    if(cookie === 'voted'){
+        $('.down, .up').hide();
+        $thanks.fadeIn();
+    }
+}
+
+/**
+ * swipeFunction function
+ *
+ *
+ */
+function swipeFunction(direction){
+    var url = $('.switch a[data-direction='+direction+']').attr('href');
+    $main.addClass('animate-'+direction);
+    setTimeout(function(){
+        window.location.href = url;
+    }, 200);
+}
+
+/**
+ * Parallax function
+ *
+ *
+ */
+function parallaxEffect() {
+    var parallax = document.querySelector(".parallax");
+    window.addEventListener("scroll", function() {
+
+        var scrolledHeight = window.pageYOffset,
+            limit = parallax.offsetTop + parallax.offsetHeight;
+        if(scrolledHeight > parallax.offsetTop && scrolledHeight <= limit) {
+            parallax.style.backgroundPositionY = (scrolledHeight - parallax.offsetTop) / 2.5+ "px";
+        }
+        else {
+            parallax.style.backgroundPositionY = "0";
+        }
+    });
+
+}
+
+/**
+ * Share block animation function
+ *
+ */
+function shareHideAndShow(didScroll, lastScrollTop, delta, shareBlockTop, windowHeight){
+    $(window).scroll(function(event){
+        didScroll = true;
+    });
+
+    setInterval(function() {
+        if (didScroll) {
+            hasScrolled();
+            didScroll = false;
+        }
+    }, 250);
+
+    function hasScrolled() {
+        var scrollTop = $(this).scrollTop();
+
+        // Make sure they scroll more than delta
+        if(Math.abs(lastScrollTop - scrollTop) <= delta)
+            return;
+        // Show share on scroll down
+        if(lastScrollTop < scrollTop){
+            if((scrollTop + windowHeight) < shareBlockTop){
+                $('.social-follow').addClass('show');
+            }else {
+                $('.social-follow').removeClass('show');
+            }
+        }else {
+            if((lastScrollTop - scrollTop) > 200){
+                $('.social-follow').removeClass('show');
+            }
+        }
+
+        lastScrollTop = scrollTop;
+
+    }
+}
+
+/**
+ * Create mailto function to share current page
+ *
+ */
+function sendMail(mail){
+
+    dataLayer.push({
+        'event': 'share',
+        'channel': 'mail'
+    });
+
+    var currentPage = document.location.href;
+
+    if (/rijbewijstips\/$/.test(currentPage)){
+        // Homepage
+        var message = "Ik heb interessante tips gevonden voor het halen van je rijbewijs. Misschien ook handig voor jou? Bekijk ze hier: "+currentPage+"";
+        var subject = "Goed en snel je rijbewijs halen met deze tips!";
+    } else {
+        // Subpages
+        var message = "Ik heb een interessante tip gevonden voor het halen van je rijbewijs. Misschien ook handig voor jou? Bekijk 'm hier: "+currentPage+"";
+        var subject = "Goed en snel je rijbewijs halen met deze tip!";
+    }
+
+    document.location.href = "mailto:"+mail+"?subject="
+        + encodeURIComponent(subject)
+        + "&body=" + encodeURIComponent(message);
+
+    $('.send-mail').css("display", "none");
+
+    function hasQueryParams(url) {
+        return url.includes('?ouders');
+    }
+
+}
+

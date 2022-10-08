@@ -1,0 +1,172 @@
+define(["require", "exports", "tslib", "resize-observer-polyfill", "../ui/sections/Common", "../ui/express/Express/ExpressSectionItem", "esri/core/Collection"], function (require, exports, tslib_1, resize_observer_polyfill_1, Common, ExpressSectionItem, Collection) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.getUISections = exports.isNumber = exports.areMembers = exports.strHasSpecialCharsOrNum = exports.hasSharedTheme = exports.setUILocation = exports.applyTextFade = exports.logInvalidProperty = exports.getDefault = exports.getDefaultValue = exports.getBaseUrl = exports.getTheme = void 0;
+    resize_observer_polyfill_1 = tslib_1.__importDefault(resize_observer_polyfill_1);
+    function getTheme(darkModeEnabled) {
+        return darkModeEnabled ? "dark" : "light";
+    }
+    exports.getTheme = getTheme;
+    function getBaseUrl(portal) {
+        if (!portal) {
+            return;
+        }
+        var customBaseUrl = portal.customBaseUrl, portalHostname = portal.portalHostname, urlKey = portal.urlKey;
+        var protocol = location.protocol;
+        var url = urlKey ? urlKey + "." + customBaseUrl : portalHostname;
+        return protocol + "//" + url;
+    }
+    exports.getBaseUrl = getBaseUrl;
+    function getDefaultValue(configSettingJSON, configSettingFromParams, templateAppDataValues) {
+        var fieldName = configSettingJSON.fieldName;
+        var defaultValue = (templateAppDataValues === null || templateAppDataValues === void 0 ? void 0 : templateAppDataValues.draft) && (templateAppDataValues === null || templateAppDataValues === void 0 ? void 0 : templateAppDataValues.draft.hasOwnProperty(fieldName))
+            ? templateAppDataValues === null || templateAppDataValues === void 0 ? void 0 : templateAppDataValues.draft[fieldName] : (templateAppDataValues === null || templateAppDataValues === void 0 ? void 0 : templateAppDataValues.hasOwnProperty(fieldName)) ? templateAppDataValues[fieldName]
+            : (configSettingFromParams === null || configSettingFromParams === void 0 ? void 0 : configSettingFromParams.hasOwnProperty("defaultValue")) ? configSettingFromParams.defaultValue
+                : configSettingJSON.defaultValue;
+        return defaultValue;
+    }
+    exports.getDefaultValue = getDefaultValue;
+    function getDefault(configSettingJSON, defaultoverrideValue, templateAppDataValues) {
+        if (!configSettingJSON) {
+            return null;
+        }
+        var fieldName = configSettingJSON.fieldName;
+        var defaultValue = (templateAppDataValues === null || templateAppDataValues === void 0 ? void 0 : templateAppDataValues.draft) && (templateAppDataValues === null || templateAppDataValues === void 0 ? void 0 : templateAppDataValues.draft.hasOwnProperty(fieldName))
+            ? templateAppDataValues === null || templateAppDataValues === void 0 ? void 0 : templateAppDataValues.draft[fieldName] : (templateAppDataValues === null || templateAppDataValues === void 0 ? void 0 : templateAppDataValues.hasOwnProperty(fieldName)) ? templateAppDataValues[fieldName]
+            : defaultoverrideValue !== null
+                ? defaultoverrideValue
+                : configSettingJSON.defaultValue;
+        return defaultValue;
+    }
+    exports.getDefault = getDefault;
+    function logInvalidProperty(props) {
+        console.error("Invalid property name - please check Configuration Parameters JSON: " + props.join(" > "));
+    }
+    exports.logInvalidProperty = logInvalidProperty;
+    function applyTextFade(domNode) {
+        if (false ||
+            document.documentMode ||
+            !!window.StyleMedia) {
+            return;
+        }
+        var parentElem = domNode.parentElement;
+        parentElem.style.position = "relative";
+        parentElem.style.overflowX = "hidden";
+        parentElem.style.whiteSpace = "nowrap";
+        parentElem.style.width = "100%";
+        setTimeout(function () {
+            resizeObserver.observe(parentElem);
+        });
+    }
+    exports.applyTextFade = applyTextFade;
+    var resizeObserver = false ||
+        !!document.documentMode ||
+        !!window.StyleMedia
+        ? null
+        : new resize_observer_polyfill_1.default(function (entries) {
+            entries.forEach(function (entry) {
+                var childToApplyBlur = entry.target.children[entry.target.children.length - 1];
+                var childRightCoord = childToApplyBlur.getBoundingClientRect()
+                    .right;
+                var parentRightCoord = entry.contentRect.right;
+                if (parentRightCoord < childRightCoord) {
+                    childToApplyBlur.classList.add("esri-config-panel__text-fade");
+                }
+                else {
+                    childToApplyBlur.classList.remove("esri-config-panel__text-fade");
+                }
+            });
+        });
+    function setUILocation(configSetting, section, subsection) {
+        if (!configSetting) {
+            return [];
+        }
+        var locations = [];
+        if (section) {
+            locations.push(section);
+        }
+        if (subsection) {
+            locations.push(subsection);
+        }
+        configSetting.uiLocation = locations;
+        return locations;
+    }
+    exports.setUILocation = setUILocation;
+    function hasSharedTheme(portal) {
+        var _a;
+        var sharedTheme = (_a = portal === null || portal === void 0 ? void 0 : portal.portalProperties) === null || _a === void 0 ? void 0 : _a.sharedTheme;
+        if (!sharedTheme) {
+            return false;
+        }
+        var noColor = "no-color";
+        var body = sharedTheme === null || sharedTheme === void 0 ? void 0 : sharedTheme.body;
+        var button = sharedTheme === null || sharedTheme === void 0 ? void 0 : sharedTheme.button;
+        var header = sharedTheme === null || sharedTheme === void 0 ? void 0 : sharedTheme.header;
+        var logo = sharedTheme === null || sharedTheme === void 0 ? void 0 : sharedTheme.logo;
+        var bodyKeys = body && Object.keys(body);
+        var buttonKeys = button && Object.keys(button);
+        var headerKeys = header && Object.keys(header);
+        var bodyNoColor = bodyKeys && bodyKeys.every(function (bodyKey) { return body[bodyKey] === noColor; });
+        var headerNoColor = headerKeys && headerKeys.every(function (headerKey) { return header[headerKey] === noColor; });
+        var buttonNoColor = buttonKeys && buttonKeys.every(function (buttonKey) { return button[buttonKey] === noColor; });
+        if (bodyNoColor && headerNoColor && buttonNoColor && !(logo === null || logo === void 0 ? void 0 : logo.small)) {
+            return false;
+        }
+        return true;
+    }
+    exports.hasSharedTheme = hasSharedTheme;
+    function strHasSpecialCharsOrNum(val) {
+        if (val === undefined || val === null) {
+            return false;
+        }
+        var noSpecialChars = /^[^`~!@#$%^&*()_+={}\[\]|\\:;“’<,>.?๐฿]*$/.test(val);
+        var hasNum = /^.*[0-9].*/.test(val);
+        if (!noSpecialChars || hasNum) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+    exports.strHasSpecialCharsOrNum = strHasSpecialCharsOrNum;
+    function areMembers(str, testStrs) {
+        if (str == null || testStrs == null) {
+            return false;
+        }
+        return testStrs
+            .map(function (testStr) { return str.indexOf(testStr) !== -1; })
+            .reduce(function (curr, acc) { return curr || acc; }, false);
+    }
+    exports.areMembers = areMembers;
+    function isNumber(value) {
+        return (typeof value === "string" &&
+            value.trim() &&
+            value !== "\n" &&
+            !isNaN(+value)) ||
+            (typeof value === "number" && !isNaN(value))
+            ? true
+            : false;
+    }
+    exports.isNumber = isNumber;
+    function getUISections(configParamsKeys, sections, configPanelViewModel, isExpress) {
+        return configParamsKeys.map(function (key) {
+            switch (key) {
+                case "map":
+                    return sections.find(function (section) { return section.type === "map"; });
+                case "about":
+                    return sections.find(function (section) { return section.type === "about"; });
+                case "themeLayout":
+                    return sections.find(function (section) { return section.type === "themeLayout"; });
+                case "interactivity":
+                    return sections.find(function (section) { return section.type === "interactivity"; });
+                default:
+                    var data = configPanelViewModel.custom.customSectionData[key];
+                    var full = data.full, express = data.express;
+                    return isExpress
+                        ? new ExpressSectionItem(tslib_1.__assign(tslib_1.__assign({}, express), { settings: new Collection() }))
+                        : new Common(tslib_1.__assign(tslib_1.__assign({}, full), { configPanelViewModel: configPanelViewModel }));
+            }
+        });
+    }
+    exports.getUISections = getUISections;
+});

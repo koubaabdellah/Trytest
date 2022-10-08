@@ -1,0 +1,399 @@
+if (document.querySelector('#question-container')) {
+
+    // question app
+    (function () {
+
+        var storage = {
+            selectedYes: [], // collection of earlier positive selections
+            selectedNo: [], // collection of earlier neg choices
+            choicesPos: [],
+            choicesNeg: [],
+        };
+
+        var app = {
+            init: function () {
+                questions.init();
+                questions.hideSubs();
+                questions.hideLevels();
+            }
+        };
+
+        var questions = {
+            motherdiv: document.querySelector('#question-app'),
+            container: document.querySelector('#question-container'),
+            init: function () {
+                var self = this;
+
+                // handle year
+                this.motherdiv.addEventListener('keyup', function (e) {
+                    if (e.target.className.includes('q-year')) {
+                        e.preventDefault();
+                        let year = document.getElementById('search-year').value;
+                        if (year.length == 4) {
+                            self.selectYear(year);
+                        }
+                    }
+                });
+
+                // click yes
+                this.container.addEventListener('click', function (e) {
+                    if (e.target.className.includes('q-yes')) {
+                        const parent = e.target.parentElement;
+                        self.setActiveState(parent.dataset.qid, 'q-yes');
+                        self.selectYes(
+                            JSON.parse(parent.dataset.positives),
+                            JSON.parse(parent.dataset.negatives)
+                        );
+                    }
+                });
+
+                // clicked no
+                this.container.addEventListener('click', function (e) {
+                    if (e.target.className.includes('q-no')) {
+                        const parent = e.target.parentElement;
+                        self.setActiveState(parent.dataset.qid, 'q-no');
+                        self.hideSub('sub-' + parent.dataset.qid)
+                        self.selectNo(
+                            JSON.parse(parent.dataset.positives),
+                            JSON.parse(parent.dataset.negatives)
+                        );
+                    }
+                });
+
+                // reset question
+                this.container.addEventListener('click', function (e) {
+                    if (e.target.className.includes('q-reset')) {
+                        const parent = e.target.parentElement;
+                        self.setActiveState(parent.dataset.qid, 'q-reset');
+                        self.selectReset(
+                            JSON.parse(parent.dataset.positives),
+                            JSON.parse(parent.dataset.negatives)
+                        );
+                    }
+                });
+
+                // reset all
+                this.motherdiv.addEventListener('click', function (e) {
+                    if (e.target.className.includes('reset-all')) {
+                        // reset scores
+                        let pls = document.querySelectorAll('#plastic-container li');
+                        pls.forEach(function (pl) {
+                            pl.querySelector('div div .pl-score').innerHTML = 0;
+                        });
+                        storage.selectedYes = [];
+                        storage.selectedNo = [];
+
+                        // reset all active states
+                        let btns = document.querySelectorAll('.question-selector button');
+                        btns.forEach(function (btn) {
+                            btn.classList.remove('active');
+                        });
+                        // also for questions
+                        let qqs = document.querySelectorAll('.qwrapper label');
+                        qqs.forEach(function (btn) {
+                            btn.classList.remove('active');
+                        });
+                        // close all opened subs
+                        self.hideSubs();
+
+                    }
+                });
+
+                // open subs
+                this.container.addEventListener('click', function (e) {
+                    if (e.target.className.includes('has-sub')) {
+                        let subid = e.target.dataset.subid;
+                        document.querySelector(subid).classList.remove('invisible');
+                    }
+                });
+
+                // init level-controls
+                this.container.addEventListener('click', function (e) {
+                    if (e.target.className.includes('show-level-2')) {
+                        self.showLevel(2);
+                    }
+                    if (e.target.className.includes('show-level-3')) {
+                        self.showLevel(3);
+                    }
+                });
+
+            },
+
+            setActiveState: function (qid, choice) {
+                if (choice === 'q-yes') {
+                    document.querySelector('#ch-' + qid + '-yes').classList.add('active');
+                    document.querySelector('#ch-' + qid + '-reset').classList.remove('active');
+                    document.querySelector('#ch-' + qid + '-no').classList.remove('active');
+                } else if (choice === 'q-no') {
+                    document.querySelector('#ch-' + qid + '-no').classList.add('active');
+                    document.querySelector('#ch-' + qid + '-reset').classList.remove('active');
+                    document.querySelector('#ch-' + qid + '-yes').classList.remove('active');
+                } else if (choice === 'q-reset') {
+                    document.querySelector('#ch-' + qid + '-reset').classList.add('active');
+                    document.querySelector('#ch-' + qid + '-yes').classList.remove('active');
+                    document.querySelector('#ch-' + qid + '-no').classList.remove('active');
+                }
+                // also color question
+                document.querySelector('#qq-' + qid).classList.add('active');
+            },
+
+            selectYes: function (positives, negatives) {
+                var self = this;
+
+                if (!positives[0]) {
+                    self.log('no positives');
+                    return;
+                }
+
+                let questionId = positives[0].qid;
+
+                // find out if this was selected before, if so skip
+                if (storage.selectedYes.indexOf(questionId) > -1) {
+                    self.log(`question ${questionId} already selected`);
+                    return;
+                }
+                storage.selectedYes.push(questionId);
+
+                // find out if an earlier selectNo needs to be undone
+                let index = storage.selectedNo.indexOf(questionId);
+                if (index > -1) {
+                    self.log('undo selectNo');
+                    negatives.forEach(function (row) {
+                        // todo remove this particular item from the score
+                        self.updateScore(row.pid, row.neg, 'subtract')
+                    });
+                    storage.selectedNo.splice(index, 1);
+                }
+
+                // raise score, re-shuffle
+                positives.forEach(function (row, i) {
+                    storage.choicesPos.push(row);
+                    self.updateScore(row.pid, row.pos, 'add')
+                });
+                self.sortPlastics();
+            },
+
+            selectNo: function (positives, negatives) {
+                var self = this;
+
+                if (!negatives[0]) {
+                    self.log('no negatives');
+                    return;
+                }
+
+                let questionId = negatives[0].qid;
+
+                // find out if this was selected before, if so skip
+                if (storage.selectedNo.indexOf(questionId) > -1) {
+                    self.log(`no was selected earlier`);
+                    return;
+                }
+
+                storage.selectedNo.push(questionId);
+
+                // find out if an earlier selectNo needs to be undone
+                let index = storage.selectedYes.indexOf(questionId);
+                if (index > -1) {
+                    self.log('undo selectYes');
+
+                    // use the positive values and subtract them
+                    positives.forEach(function (row, i) {
+                        self.updateScore(row.pid, row.pos, 'subtract')
+                    });
+                    storage.selectedYes.splice(index, 1);
+                }
+
+                // update score, re-shuffle
+                negatives.forEach(function (row, i) {
+                    self.updateScore(row.pid, row.neg, 'add')
+                });
+                self.sortPlastics();
+            },
+
+            selectReset: function (positives, negatives) {
+                var self = this;
+
+                // find out if a positive selection was made before, if so undo
+                if (positives[0]) {
+                    let questionId = positives[0].qid;
+                    let index = storage.selectedYes.indexOf(questionId);
+                    if (index > -1) {
+                        positives.forEach(function (row) {
+                            self.updateScore(row.pid, row.pos, 'subtract')
+                        });
+                        storage.selectedYes.splice(index, 1);
+                    }
+                }
+
+                // find out if a negative selection was made before, if so undo
+                if (negatives[0]) {
+                    let questionId = negatives[0].qid;
+                    let index = storage.selectedNo.indexOf(questionId);
+                    if (index > -1) {
+                        negatives.forEach(function (row) {
+                            self.updateScore(row.pid, row.neg, 'subtract')
+                        });
+                        storage.selectedNo.splice(index, 1);
+                    }
+                }
+
+                self.sortPlastics();
+            },
+
+            // hides plastics that are younger than the artwork
+            selectYear: function (year) {
+                const els = document.querySelectorAll('#plastic-container li');
+
+                // reset previous
+                els.forEach(function (el) {
+                    el.classList.remove('lighter');
+                });
+
+                els.forEach(function (el) {
+                    if (el.dataset.year && el.dataset.year > year) {
+                        el.classList.add('lighter');
+                    }
+                });
+                var self = this;
+            },
+
+            updateScore: function (pid, score, method) {
+                let pl = document.querySelector('#pl-' + pid);
+                if (pl) {
+                    let oldScore = parseInt(pl.querySelector('div div .pl-score').innerHTML);
+                    if (method === 'add') {
+                        pl.querySelector('div div .pl-score').innerHTML = (oldScore + score);
+                    } else {
+                        pl.querySelector('div div .pl-score').innerHTML = (oldScore - score);
+                    }
+                }
+            },
+
+            log: function (msg) {
+                //console.log(msg);
+            },
+
+            sortPlastics: function () {
+                var list, i, switching, b, shouldSwitch, dir, switchcount = 0;
+                list = document.getElementById("plastic-container");
+                switching = true;
+
+                // Make a loop that will continue until no switching has been done:
+                while (switching) {
+                    // Start by saying: no switching is done:
+                    switching = false;
+                    b = list.getElementsByTagName("li");
+
+                    for (i = 0; i < (b.length - 1); i++) {
+                        // Start by saying there should be no switching:
+                        shouldSwitch = false;
+
+                        let itemScore = parseInt(b[i].querySelector('div div .pl-score').innerHTML);
+                        let nextScore = parseInt(b[i + 1].querySelector('div div .pl-score').innerHTML);
+
+                        /* Check if the next item should switch place with the current item  */
+                        //if (b[i].innerHTML.toLowerCase() > b[i + 1].innerHTML.toLowerCase()) {
+                        if (itemScore < nextScore) {
+                            /* If condition true mark as a switch and break the loop: */
+                            shouldSwitch = true;
+                            break;
+                        }
+
+                    }
+                    if (shouldSwitch) {
+                        /* If a switch has been marked, make the switch
+                        and mark that a switch has been done: */
+                        b[i].parentNode.insertBefore(b[i + 1], b[i]);
+                        switching = true;
+                        // Each time a switch is done, increase switchcount by 1:
+                        switchcount++;
+                    }
+                }
+
+                // color the first three
+                // list.querySelectorAll('li').forEach(function (el) {
+                //     el.classList.remove('bg-success');
+                // });
+
+            },
+
+            // todo pass an array of levels
+            hideLevels: function () {
+                const els = document.querySelectorAll('#question-container .level2, #question-container .level3');
+                els.forEach(function (el) {
+                    el.style.display = 'none';
+                });
+            },
+
+            showLevel: function (level) {
+                const els = document.querySelectorAll('#question-container .level' + level);
+                els.forEach(function (el) {
+                    el.style.display = 'block';
+                });
+            },
+
+            hideLevel: function (level) {
+                const els = document.querySelectorAll('#question-container .level' + level);
+                els.forEach(function (el) {
+                    el.style.display = 'block';
+                });
+            },
+
+            hideSubs: function () {
+                const els = document.querySelectorAll('#question-container .hidden-sub');
+                els.forEach(function (el) {
+                    el.classList.add('invisible');
+                    //el.style.display = 'none';
+                });
+            },
+
+            hideSub: function (subid) {
+                document.querySelector('#' + subid).classList.add('invisible');
+            }
+
+        };
+
+        app.init();
+
+    })();
+
+    // to infinity and beyond
+}
+
+tippy(document.querySelectorAll('.btn-tip'), {
+    delay: 100,
+    arrow: true,
+    arrowType: 'round',
+    duration: 200,
+    animation: 'scale'
+});
+
+tippy(document.querySelectorAll('.btn-img'), {
+    //trigger: 'click',
+    delay: 100,
+    arrow: true,
+    arrowType: 'round',
+    duration: 100,
+    animation: 'scale',
+    html: el => el.querySelector('.popup')
+});
+
+var show = function (id) {
+    var elem = document.getElementById(id);
+    elem.style.display = 'block';
+};
+
+var hide = function (id) {
+    var elem = document.getElementById(id);
+    elem.style.display = 'none';
+};
+
+var toggle = function (elem) {
+   if (window.getComputedStyle(elem).display === 'block') {
+        hide(elem);
+        return;
+    }
+    show(elem);
+};
+
+halkaBox.run("gallery");

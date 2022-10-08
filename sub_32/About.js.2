@@ -1,0 +1,59 @@
+define(["require", "exports", "tslib", "esri/widgets/support/widget", "esri/core/accessorSupport/decorators", "./Common", "../../icons/icons", "esri/core/watchUtils"], function (require, exports, tslib_1, widget_1, decorators_1, Common_1, icons_1, watchUtils_1) {
+    "use strict";
+    Common_1 = tslib_1.__importDefault(Common_1);
+    icons_1 = tslib_1.__importDefault(icons_1);
+    var About = (function (_super) {
+        tslib_1.__extends(About, _super);
+        function About(params) {
+            var _this = _super.call(this, params) || this;
+            _this.actionIcon = icons_1.default.information;
+            _this.actionLabel = null;
+            _this.sectionHeaderLabel = null;
+            _this.sectionHeaderSubtitle = null;
+            _this.sectionTip = null;
+            _this.hasSubsections = false;
+            _this.messages = null;
+            _this.type = "about";
+            return _this;
+        }
+        About.prototype.postInitialize = function () {
+            var _this = this;
+            watchUtils_1.whenOnce(this, "messages", function () {
+                _this.actionLabel = _this.actionLabel ? _this.actionLabel : _this.messages.about;
+                _this.sectionHeaderLabel = _this.sectionHeaderLabel ? _this.sectionHeaderLabel : _this.messages.about;
+                _this.sectionHeaderSubtitle = _this.sectionHeaderSubtitle ? _this.sectionHeaderSubtitle : _this.messages.aboutSubsection;
+                _this.sectionTip = _this.sectionTip ? _this.sectionTip : _this.messages.tip;
+            });
+        };
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], About.prototype, "actionIcon", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], About.prototype, "actionLabel", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], About.prototype, "sectionHeaderLabel", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], About.prototype, "sectionHeaderSubtitle", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], About.prototype, "sectionTip", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], About.prototype, "hasSubsections", void 0);
+        tslib_1.__decorate([
+            decorators_1.property(),
+            widget_1.messageBundle("dist/assets/t9n/ui/sections/About/resources")
+        ], About.prototype, "messages", void 0);
+        tslib_1.__decorate([
+            decorators_1.property({ readOnly: true })
+        ], About.prototype, "type", void 0);
+        About = tslib_1.__decorate([
+            decorators_1.subclass("About")
+        ], About);
+        return About;
+    }(Common_1.default));
+    return About;
+});

@@ -1,0 +1,3 @@
+//>>built
+define(["require","exports","tslib","esri/core/accessorSupport/decorators","./Action"],function(e,f,b,h,c){Object.defineProperty(f,"__esModule",{value:!0});c=b.__importDefault(c);e=function(g){function d(a){a=g.call(this,a)||this;a.actions=[];a.name="maptools";a.label=a.messages.mapTools;a.text=a.messages.mapTools;a.textEnabled=!0;a.iconName="wrench";a.isActionMenu=!0;a.actions=["search","directions","measurement","coordconversion"];return a}b.__extends(d,g);return d=b.__decorate([h.subclass("")],
+d)}(c.default);f.default=e});

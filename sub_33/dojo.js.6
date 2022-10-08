@@ -1,0 +1,2 @@
+//>>built
+var dojoConfig={baseUrl:".",async:!0,locale:"en-us",packages:[{name:"login",location:"login"},{name:"dijit",location:"jsapi/dijit"},{name:"dojo",location:"jsapi/dojo"},{name:"esri",location:"jsapi/esri"}]};

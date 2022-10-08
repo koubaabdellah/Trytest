@@ -1,0 +1,280 @@
+define(["require", "exports", "tslib", "esri/core/accessorSupport/decorators", "esri/widgets/Widget", "esri/widgets/support/widget", "esri/core/watchUtils", "esri/rest/support/Query", "esri/rest/query", "esri/request"], function (require, exports, tslib_1, decorators_1, Widget_1, widget_1, watchUtils, Query, query_1, request_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    Widget_1 = tslib_1.__importDefault(Widget_1);
+    request_1 = tslib_1.__importDefault(request_1);
+    var CSS = {
+        base: "embed-app__layout-imagedate",
+        datecolor: "date-color"
+    };
+    var ImageDate = /** @class */ (function (_super) {
+        tslib_1.__extends(ImageDate, _super);
+        function ImageDate(props) {
+            var _this = _super.call(this, props) || this;
+            _this.worldImagery = "https://services.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer";
+            _this.primaryDateField = "";
+            _this.secondaryDateField = "";
+            return _this;
+        }
+        ImageDate.prototype.postInitialize = function () {
+            if (this.view.map.layers.length) {
+                //watchUtils.whenTrue(this.view, 'updating', this.clearDateRange.bind(this));
+                watchUtils.whenFalse(this.view, 'updating', this.changeDateRange.bind(this));
+            }
+            this.prefix = "Image Date"; //i18n.tools.dateLabel;
+        };
+        ImageDate.prototype._setPrimaryLayer = function () {
+            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
+            this.primaryLayer = this.primarylayerName && ((_a = this.view.map.findLayerById(this.primarylayerName)) === null || _a === void 0 ? void 0 : _a.visible) && (((_b = this.view.map.findLayerById(this.primarylayerName)) === null || _b === void 0 ? void 0 : _b.type) === "imagery" || ((_d = (_c = this.view.map.findLayerById(this.primarylayerName)) === null || _c === void 0 ? void 0 : _c.url) === null || _d === void 0 ? void 0 : _d.indexOf(this.worldImagery)) !== -1) ? this.view.map.findLayerById(this.primarylayerName) : null;
+            this.secondaryLayer = this.applicationConfig.swipe && this.secondarylayerName && ((_e = this.view.map.findLayerById(this.secondarylayerName)) === null || _e === void 0 ? void 0 : _e.visible) && (((_f = this.view.map.findLayerById(this.secondarylayerName)) === null || _f === void 0 ? void 0 : _f.type) === "imagery" || ((_h = (_g = this.view.map.findLayerById(this.secondarylayerName)) === null || _g === void 0 ? void 0 : _g.url) === null || _h === void 0 ? void 0 : _h.indexOf(this.worldImagery)) !== -1) ? this.view.map.findLayerById(this.secondarylayerName) : null;
+            if (!this.primaryLayer) {
+                for (var i = this.view.map.layers.length - 1; i >= 0; i--) {
+                    if (this.view.map.layers.getItemAt(i).visible && (this.view.map.layers.getItemAt(i).type === "imagery" || ((_j = this.view.map.layers.getItemAt(i).url) === null || _j === void 0 ? void 0 : _j.indexOf(this.worldImagery)) !== -1)) {
+                        this.primaryLayer = this.view.map.layers.getItemAt(i);
+                        break;
+                    }
+                }
+            }
+            if (!this.secondaryLayer) {
+                for (var i = this.view.map.layers.length - 1; i >= 0; i--) {
+                    if (this.view.map.layers.getItemAt(i).visible && (this.view.map.layers.getItemAt(i).type === "imagery" || ((_k = this.view.map.layers.getItemAt(i).url) === null || _k === void 0 ? void 0 : _k.indexOf(this.worldImagery)) !== -1)) {
+                        this.secondaryLayer = this.view.map.layers.getItemAt(i);
+                        break;
+                    }
+                }
+            }
+        };
+        ImageDate.prototype.clearDateRange = function () {
+            if (document.getElementsByClassName('primary-date')[0]) {
+                document.getElementsByClassName('primary-date')[0].innerHTML = '';
+            }
+            // if (document.getElementsByClassName('secondary-date')[0]) {
+            //     document.getElementsByClassName('secondary-date')[0].innerHTML = '';
+            // }
+        };
+        ImageDate.prototype.changeDateRange = function () {
+            var _a, _b, _c, _d, _e, _f;
+            this._setPrimaryLayer();
+            if ((_a = this.primaryLayer) === null || _a === void 0 ? void 0 : _a.visible) {
+                for (var i = 0; i < ((_c = (_b = this.applicationConfig.imageDate) === null || _b === void 0 ? void 0 : _b.layers) === null || _c === void 0 ? void 0 : _c.length); i++) {
+                    if (this.applicationConfig.imageDate.layers[i].id === this.primaryLayer.id) {
+                        this.primaryDateField = this.applicationConfig.imageDate.layers[i].fields[0];
+                        break;
+                    }
+                    else {
+                        this.primaryDateField = null;
+                    }
+                }
+                this._primaryDate();
+            }
+            if ((_d = this.secondaryLayer) === null || _d === void 0 ? void 0 : _d.visible) {
+                for (var i = 0; i < ((_f = (_e = this.applicationConfig.imageDate) === null || _e === void 0 ? void 0 : _e.layers) === null || _f === void 0 ? void 0 : _f.length); i++) {
+                    if (this.applicationConfig.imageDate.layers[i].id + "_secondaryLayer" === this.secondaryLayer.id) {
+                        this.secondaryDateField = this.applicationConfig.imageDate.layers[i].fields[0];
+                        break;
+                    }
+                    else {
+                        this.secondaryDateField = null;
+                    }
+                }
+                this._secondaryDate();
+            }
+        };
+        ImageDate.prototype._primaryDate = function () {
+            if (this.primaryDateField) {
+                var layer = this.primaryLayer;
+                var point = this.view.extent.center;
+                var mosaicRule = layer.mosaicRule ? layer.mosaicRule : layer.defaultMosaicRule ? layer.defaultMosaicRule : "";
+                if (layer.url.indexOf(this.worldImagery) !== -1) {
+                    var url = layer.url.indexOf("MapServer") === -1 && layer.url.indexOf("ImageServer") === -1 ? layer.url + "/0" : layer.url;
+                    var query = new Query();
+                    query.returnGeometry = false;
+                    query.geometry = point;
+                    query.outFields = [this.primaryDateField];
+                    query_1.executeQueryJSON(url, query).then(function (result) {
+                        if (result.features && result.features.length > 0) {
+                            this.primaryDate = result.features[0].attributes[this.dateField];
+                        }
+                        else {
+                            this.primaryDate = null;
+                        }
+                        //this.displayDate(this.primaryDate, this.secondaryDate);
+                    }.bind(this)).catch(function (error) {
+                        this.primaryDate = null;
+                        //this.displayDate(this.primaryDate, this.secondaryDate);
+                    }.bind(this));
+                }
+                else {
+                    request_1.default(layer.url + "/getSamples", {
+                        query: {
+                            f: "json",
+                            geometry: JSON.stringify(this.view.extent),
+                            geometryType: "esriGeometryEnvelope",
+                            returnGeometry: false,
+                            mosaicRule: mosaicRule ? JSON.stringify(mosaicRule.toJSON()) : mosaicRule,
+                            returnFirstValueOnly: true,
+                            outFields: this.primaryDateField
+                        },
+                        responseType: "json"
+                    }).then(function (result) {
+                        if (result.data.samples && result.data.samples.length > 0) {
+                            this.primaryDate = result.data.samples[0].attributes[this.primaryDateField];
+                        }
+                        else {
+                            this.primaryDate = null;
+                        }
+                        //this.displayDate(this.primaryDate, this.secondaryDate);
+                    }.bind(this)).catch(function (error) {
+                        this.primaryDate = null;
+                        //this.displayDate(this.primaryDate, this.secondaryDate);
+                    }.bind(this));
+                }
+            }
+            else {
+                this.primaryDate = null;
+                //this.displayDate(this.primaryDate, this.secondaryDate);
+            }
+        };
+        ImageDate.prototype._secondaryDate = function () {
+            if (this.secondaryDateField) {
+                var point = this.view.extent.center;
+                var mosaicRule = this.secondaryLayer.mosaicRule ? this.secondaryLayer.mosaicRule : this.secondaryLayer.defaultMosaicRule ? this.secondaryLayer.defaultMosaicRule : "";
+                if (this.secondaryLayer.url.indexOf(this.worldImagery) !== -1) {
+                    var url = this.secondaryLayer.url.indexOf("MapServer") === -1 && this.secondaryLayer.url.indexOf("ImageServer") === -1 ? this.secondaryLayer.url + "/0" : this.secondaryLayer.url;
+                    var query = new Query();
+                    query.returnGeometry = false;
+                    query.geometry = point;
+                    query.outFields = [this.secondaryDateField];
+                    query_1.executeQueryJSON(url, query).then(function (result) {
+                        if (result.features && result.features.length > 0) {
+                            this.secondaryDate = result.features[0].attributes[this.secondaryDateField];
+                        }
+                        else {
+                            this.secondaryDate = null;
+                        }
+                        //this.displayDate(this.primaryDate, this.secondaryDate);
+                    }.bind(this)).catch(function (error) {
+                        this.secondaryDate = null;
+                        //this.displayDate(this.primaryDate, this.secondaryDate);
+                    }.bind(this));
+                }
+                else {
+                    request_1.default(this.secondaryLayer.url + "/getSamples", {
+                        query: {
+                            f: "json",
+                            geometry: JSON.stringify(this.view.extent),
+                            geometryType: "esriGeometryEnvelope",
+                            returnGeometry: false,
+                            mosaicRule: mosaicRule ? JSON.stringify(mosaicRule.toJSON()) : mosaicRule,
+                            returnFirstValueOnly: true,
+                            outFields: this.secondaryDateField
+                        },
+                        responseType: "json"
+                    }).then(function (data) {
+                        if (data.data.samples && data.data.samples.length > 0) {
+                            this.secondaryDate = data.data.samples[0].attributes[this.secondaryDateField];
+                        }
+                        else {
+                            this.secondaryDate = null;
+                        }
+                        //this.displayDate(this.primaryDate, this.secondaryDate);
+                    }.bind(this)).catch(function () {
+                        this.secondaryDate = null;
+                        //this.displayDate(this.primaryDate, this.secondaryDate);
+                    }.bind(this));
+                }
+            }
+            else {
+                this.secondaryDate = null;
+                //this.displayDate(this.primaryDate, this.secondaryDate);
+            }
+        };
+        ImageDate.prototype._getDate = function (date) {
+            return new Date(date).toLocaleDateString();
+        };
+        ImageDate.prototype._displayPrimaryDate = function (primary) {
+            if (primary) {
+                if (this.applicationConfig.swipe) {
+                    return this.applicationConfig.swipeDirection === "horizontal" ? "Left Image: " + this._getDate(primary) : "Top Image: " + this._getDate(primary);
+                }
+                else {
+                    return "Image Date: " + this._getDate(primary);
+                }
+            }
+            // else if (this.applicationConfig.swipe) {
+            //     return this.prefix + ": leading layer";
+            // }
+            else {
+                return "";
+            }
+        };
+        ImageDate.prototype._displaySecondaryDate = function (secondary) {
+            if (secondary && this.applicationConfig.swipe) {
+                return this.applicationConfig.swipeDirection === "horizontal" ? "   Right Image: " + this._getDate(secondary) : "   Bottom Image: " + this._getDate(secondary);
+            }
+            // else if (document.getElementById("swipewidget")) {
+            //     return " vs " + "trailing layer";
+            // }
+            else {
+                return "";
+            }
+        };
+        ImageDate.prototype.render = function () {
+            // if (!this.applicationConfig.swipe) {
+            //     this.primarylayerName = this.applicationConfig.primaryLayer;
+            // } else {
+            //     this.primarylayerName = this.applicationConfig.swipeSingleLeadingLayer.layers[0].id;
+            //     this.secondarylayerName = this.applicationConfig.swipeSingleTrailingLayer.layers[0].id;
+            // }
+            this.primarylayerName = this.applicationConfig.primaryLayer;
+            this.secondarylayerName = this.applicationConfig.secondaryLayer;
+            this._setPrimaryLayer();
+            var primaryDate = this._displayPrimaryDate(this.primaryDate);
+            var secondaryDate = this._displaySecondaryDate(this.secondaryDate);
+            return (widget_1.tsx("div", { class: CSS.datecolor },
+                widget_1.tsx("span", { class: "primary-date" }, primaryDate + secondaryDate)));
+        };
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], ImageDate.prototype, "view", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], ImageDate.prototype, "applicationConfig", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], ImageDate.prototype, "worldImagery", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], ImageDate.prototype, "primarylayerName", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], ImageDate.prototype, "secondarylayerName", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], ImageDate.prototype, "prefix", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], ImageDate.prototype, "primaryLayer", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], ImageDate.prototype, "secondaryLayer", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], ImageDate.prototype, "primaryDateField", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], ImageDate.prototype, "secondaryDateField", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], ImageDate.prototype, "primaryDate", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], ImageDate.prototype, "secondaryDate", void 0);
+        ImageDate = tslib_1.__decorate([
+            decorators_1.subclass("ImageDate")
+        ], ImageDate);
+        return ImageDate;
+    }((Widget_1.default)));
+    exports.default = ImageDate;
+});
+//# sourceMappingURL=ImageDate.js.map

@@ -1,0 +1,291 @@
+define(["require", "exports", "tslib", "esri/widgets/Widget", "esri/widgets/support/widget", "esri/core/accessorSupport/decorators", "../../icons/icons", "../../utils/focusUtils", "../../utils/labelSettingMargin"], function (require, exports, tslib_1, Widget_1, widget_1, decorators_1, icons_1, focusUtils_1, labelSettingMargin_1) {
+    "use strict";
+    Widget_1 = tslib_1.__importDefault(Widget_1);
+    icons_1 = tslib_1.__importDefault(icons_1);
+    var CSS = {
+        shellPanelHeader: "esri-config-panel__shell-panel-header",
+        shellPanelHeaderText: "esri-config-panel__shell-panel-header-text",
+        subHeaderContainer: "esri-config-panel__shell-panel-subheader-container",
+        shellPanelSubHeaderText: "esri-config-panel__shell-panel-subheader-text",
+        subsection: "esri-config-panel__subsection",
+        subsectionContentContainer: "esri-config-panel__subsection-content-container",
+        subsectionTextContainer: "esri-config-panel__subsection-text-container",
+        subsectionTitle: "esri-config-panel__subsection-title",
+        subsectionSummary: "esri-config-panel__subsection-summary",
+        group: "esri-config-panel__group",
+        groupHeader: "esri-config-panel__group-header",
+        primaryPanelComponentsContainer: "esri-config-panel__primary-panel-components-container",
+        back: "esri-config-panel__back",
+        backButton: "esri-config-panel__back-button",
+        subsectionsMenu: "esri-config-panel__subsections-menu",
+        darkModeHeader: "esri-config-panel__shell-panel-header--dark",
+        darkModeTitle: "esri-config-panel__shell-panel-header-text--dark",
+        subsectionTitleDark: "esri-config-panel__subsection-title--dark",
+        groupHeaderDark: "esri-config-panel__group-header--dark",
+        subsectionSummaryDark: "esri-config-panel__subsection-summary--dark",
+        iconDark: "esri-config-panel__icon--dark",
+        primaryPanelComponentsContainerDark: "esri-config-panel__primary-panel-components-container--dark",
+        backButtonDark: "esri-config-panel__back-button--dark",
+        theme: {
+            dark: "calcite-theme-dark"
+        }
+    };
+    var Common = (function (_super) {
+        tslib_1.__extends(Common, _super);
+        function Common(params) {
+            var _this = _super.call(this, params) || this;
+            _this.actionIcon = null;
+            _this.actionLabel = null;
+            _this.sectionHeaderLabel = null;
+            _this.sectionHeaderSubtitle = null;
+            _this.subsectionHeaderLabel = null;
+            _this.subsectionHeaderSubtitle = null;
+            _this.sectionTip = null;
+            _this.configPanelViewModel = null;
+            _this.hasSubsections = false;
+            _this.type = null;
+            _this.tooltip = null;
+            return _this;
+        }
+        Common.prototype.renderCalciteAction = function (active, sectionIndex) {
+            return (widget_1.tsx("calcite-action", { key: this.type + "-tooltip", bind: this, onclick: this._updateCurrentSectionIndex, onkeydown: this._handleTab, id: this.type + "Tab", class: "esri-config-panel__calcite-action-node", text: this.actionLabel, active: active, "data-section-index": "" + sectionIndex, textEnabled: true, icon: this.actionIcon, afterUpdate: this._addCalciteToolTip, role: "tab", "aria-expanded": "" + active }));
+        };
+        Common.prototype._addCalciteToolTip = function (calciteAction) {
+            if (window.matchMedia("(max-width: 767px)").matches) {
+                return;
+            }
+            var id = calciteAction.getAttribute("id");
+            var textLabel = calciteAction.getAttribute("text");
+            if (this.tooltip) {
+                this.tooltip.remove();
+                this.tooltip = null;
+            }
+            var tooltip = document.createElement("calcite-tooltip");
+            tooltip.setAttribute("key", id + "-tooltip");
+            tooltip.referenceElement = calciteAction;
+            tooltip.classList.add("calcite-action-" + id);
+            tooltip.classList.add(CSS.theme.dark);
+            tooltip.innerText = textLabel;
+            document.body.appendChild(tooltip);
+            this.tooltip = tooltip;
+        };
+        Common.prototype.renderSectionHeader = function () {
+            var _a, _b;
+            var _c;
+            var darkModeEnabled = this.configPanelViewModel.darkModeEnabled;
+            var darkHeader = (_a = {},
+                _a[CSS.darkModeHeader] = darkModeEnabled,
+                _a);
+            var darkTitle = (_b = {},
+                _b[CSS.darkModeTitle] = darkModeEnabled,
+                _b);
+            var subsectionId = (_c = this.configPanelViewModel) === null || _c === void 0 ? void 0 : _c.subsectionId;
+            return (widget_1.tsx("div", { class: this.classes(CSS.shellPanelHeader, darkHeader), slot: "header-content" },
+                widget_1.tsx("h2", { class: this.classes(CSS.shellPanelHeaderText, darkTitle) }, this.subsectionHeaderLabel && subsectionId
+                    ? this.subsectionHeaderLabel
+                    : this.sectionHeaderLabel),
+                widget_1.tsx("div", { class: CSS.subHeaderContainer },
+                    widget_1.tsx("p", { class: this.classes(CSS.shellPanelSubHeaderText, darkTitle) }, this.subsectionHeaderSubtitle && subsectionId
+                        ? this.subsectionHeaderSubtitle
+                        : this.sectionHeaderSubtitle),
+                    this._renderHeaderPopoverButton())));
+        };
+        Common.prototype._renderHeaderPopoverButton = function () {
+            if (!this.configPanelViewModel.headerPopoverButton) {
+                this.configPanelViewModel.headerPopoverButton = (widget_1.tsx("button", { key: "header-popover", id: "headerPopover", "auto-close": "true" },
+                    widget_1.tsx("calcite-icon", { icon: icons_1.default.lightbulb, scale: "m" })));
+            }
+            return this.configPanelViewModel.headerPopoverButton;
+        };
+        Common.prototype.renderSectionComponents = function () {
+            var _a;
+            var _b = this, configPanelViewModel = _b.configPanelViewModel, type = _b.type;
+            var configParams = configPanelViewModel.configParams, darkModeEnabled = configPanelViewModel.darkModeEnabled;
+            var section = configParams.config.find(function (section) { return section.id === type; });
+            var content = this._renderContent(section);
+            var componentsContainerDark = (_a = {},
+                _a[CSS.primaryPanelComponentsContainerDark] = darkModeEnabled,
+                _a);
+            return (widget_1.tsx("div", { class: this.classes(CSS.primaryPanelComponentsContainer, componentsContainerDark), key: "about-components" }, content));
+        };
+        Common.prototype._renderContent = function (section) {
+            var _this = this;
+            var _a;
+            var hasSubsections = (_a = section === null || section === void 0 ? void 0 : section.content) === null || _a === void 0 ? void 0 : _a.some(function (contentItem) { var _a; return ((_a = contentItem === null || contentItem === void 0 ? void 0 : contentItem.type) === null || _a === void 0 ? void 0 : _a.indexOf("subsection")) !== -1; });
+            if (hasSubsections) {
+                var subsectionContent = section.content.find(function (contentItem) { return contentItem.id === _this.configPanelViewModel.subsectionId; });
+                return this._renderSettingsContent(subsectionContent);
+            }
+            else {
+                return this._renderSettingsContent(section);
+            }
+        };
+        Common.prototype._renderSettingsContent = function (section) {
+            var _this = this;
+            var _a;
+            return (_a = section === null || section === void 0 ? void 0 : section.content) === null || _a === void 0 ? void 0 : _a.map(function (contentItem) {
+                var _a;
+                if (((_a = contentItem === null || contentItem === void 0 ? void 0 : contentItem.type) === null || _a === void 0 ? void 0 : _a.indexOf("group")) !== -1) {
+                    return _this._renderGroup(contentItem);
+                }
+                else if (contentItem.type.indexOf("subsection") !== -1) {
+                    return contentItem.content.map(function (subsectionContentItem) {
+                        return _this._renderSettingsContent(subsectionContentItem);
+                    });
+                }
+                else {
+                    var setting = _this.configPanelViewModel.presetConfigSettings
+                        .configSettings[contentItem.id];
+                    return _this.configPanelViewModel.configSettings.processComponent(setting);
+                }
+            });
+        };
+        Common.prototype._renderGroup = function (group) {
+            var _a;
+            var _b;
+            var _c = this.configPanelViewModel, darkModeEnabled = _c.darkModeEnabled, presetConfigSettings = _c.presetConfigSettings, configSettings = _c.configSettings;
+            var sectionHeaders = presetConfigSettings.configSettingsMessages.sectionHeaders;
+            var id = group.id;
+            var subsectionHeader = sectionHeaders[id];
+            var sectionHeader = sectionHeaders[id]
+                ? sectionHeaders[id]
+                : subsectionHeader;
+            var sectionHeaderDarkMode = (_a = {},
+                _a[CSS.groupHeaderDark] = darkModeEnabled,
+                _a);
+            var groupSettings = (_b = group === null || group === void 0 ? void 0 : group.content) === null || _b === void 0 ? void 0 : _b.map(function (groupContentItem) {
+                return configSettings.processComponent(presetConfigSettings.configSettings[groupContentItem.id]);
+            });
+            return (widget_1.tsx("fieldset", { key: "group-" + id, class: this.classes(CSS.group, labelSettingMargin_1.marginClassNames.labelContainer) },
+                widget_1.tsx("legend", { class: this.classes(CSS.groupHeader, sectionHeaderDarkMode, labelSettingMargin_1.marginClassNames.labelText) }, sectionHeader),
+                groupSettings));
+        };
+        Common.prototype.renderSubsections = function () {
+            var currentSectionType = this.configPanelViewModel.sections.getItemAt(this.configPanelViewModel.currentSectionIndex).type;
+            var section = this.configPanelViewModel.configParams.config.find(function (section) { return section.id === currentSectionType; });
+            var subsectionIds = section.content.map(function (subsectionContentItem) { return subsectionContentItem.id; });
+            var subsections = this._renderSubsections(subsectionIds);
+            return (widget_1.tsx("ul", { key: this.type + "-subsections", id: "subsectionsContainer", role: "menu", class: CSS.subsectionsMenu }, subsections));
+        };
+        Common.prototype._renderSubsections = function (subsectionIds) {
+            var _this = this;
+            return subsectionIds.map(function (subsectionId) {
+                var configSettingsMap = _this.configPanelViewModel.configSettings.configSettingsMap;
+                var subsectionJSON = configSettingsMap.getSubsection(subsectionId);
+                return _this.renderSubsection(subsectionJSON, subsectionId);
+            });
+        };
+        Common.prototype.renderSubsection = function (subsectionJSON, subsectionId) {
+            var _a, _b;
+            var _this = this;
+            if (!subsectionJSON) {
+                return;
+            }
+            var label = subsectionJSON.label, summary = subsectionJSON.summary;
+            var darkModeEnabled = this.configPanelViewModel.darkModeEnabled;
+            var darkModeTitle = (_a = {},
+                _a[CSS.subsectionTitleDark] = darkModeEnabled,
+                _a);
+            var darkModeSummary = (_b = {},
+                _b[CSS.subsectionSummaryDark] = darkModeEnabled,
+                _b);
+            return (widget_1.tsx("li", { bind: this, onclick: this._openSubsection, onkeydown: function (e) {
+                    if (e.code === "Tab") {
+                        focusUtils_1.handleFocusElFromSettingsPanel(e);
+                        return;
+                    }
+                    if (e.code === "ShiftLeft" || e.code === "ShiftRight") {
+                        return;
+                    }
+                    if (e.code === "Space") {
+                        _this._openSubsection(e);
+                    }
+                }, "data-subsection-key": subsectionId, "data-section-index": "" + this.configPanelViewModel.currentSectionIndex, class: CSS.subsection, tabindex: "0", role: "menuitem", id: subsectionId + "Subsection" },
+                widget_1.tsx("div", { class: CSS.subsectionContentContainer },
+                    widget_1.tsx("div", { class: CSS.subsectionTextContainer },
+                        widget_1.tsx("p", { class: this.classes(CSS.subsectionTitle, darkModeTitle) }, label),
+                        widget_1.tsx("p", { class: this.classes(CSS.subsectionSummary, darkModeSummary) }, summary)))));
+        };
+        Common.prototype.renderSubsectionConfigSettings = function () {
+            var _a;
+            var componentsContainerDark = (_a = {},
+                _a[CSS.primaryPanelComponentsContainerDark] = this.configPanelViewModel
+                    .darkModeEnabled,
+                _a);
+            var sectionSettings = this.renderSectionComponents();
+            return (widget_1.tsx("div", { key: "primary-panel-components-" + this.configPanelViewModel.currentSectionIndex, class: this.classes(CSS.primaryPanelComponentsContainer, componentsContainerDark) }, sectionSettings));
+        };
+        Common.prototype._updateCurrentSectionIndex = function (event) {
+            var node = event.currentTarget;
+            var sectionIndex = node.getAttribute("data-section-index");
+            this.set("configPanelViewModel.currentSectionIndex", parseInt(sectionIndex));
+            this.set("configPanelViewModel.subsectionId", null);
+            this.configPanelViewModel.closeCalciteActionTooltips();
+        };
+        Common.prototype._openSubsection = function (event) {
+            var node = event.currentTarget;
+            var subsectionId = node.getAttribute("data-subsection-key");
+            focusUtils_1.focusNode("fullSetupBackButton");
+            this.set("configPanelViewModel.subsectionId", subsectionId);
+            var subsectionHeaderLabel = this.configPanelViewModel.presetConfigSettings
+                .subsections[subsectionId].label;
+            var subsectionHeaderSubtitle = this.configPanelViewModel
+                .presetConfigSettings.subsections[subsectionId].summary;
+            this.subsectionHeaderLabel = subsectionHeaderLabel;
+            this.subsectionHeaderSubtitle = subsectionHeaderSubtitle;
+        };
+        Common.prototype._handleTab = function (e) {
+            var settingsContainerSel = "calcite-panel";
+            var settingsContainerNode = document.querySelector(settingsContainerSel);
+            var sectionNode = e.target;
+            var sectionNodeIndex = parseInt(sectionNode.getAttribute("data-section-index"));
+            var currentSectionIndex = this.configPanelViewModel.currentSectionIndex;
+            if (sectionNodeIndex === currentSectionIndex) {
+                if (e.code === "Tab" && e.shiftKey) {
+                    focusUtils_1.focusLastFocusableEl(settingsContainerNode);
+                }
+                else if (e.code === "Tab") {
+                    focusUtils_1.focusFirstFocusableEl(settingsContainerNode);
+                }
+            }
+        };
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], Common.prototype, "actionIcon", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], Common.prototype, "actionLabel", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], Common.prototype, "sectionHeaderLabel", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], Common.prototype, "sectionHeaderSubtitle", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], Common.prototype, "subsectionHeaderLabel", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], Common.prototype, "subsectionHeaderSubtitle", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], Common.prototype, "sectionTip", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], Common.prototype, "configPanelViewModel", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], Common.prototype, "hasSubsections", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], Common.prototype, "type", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], Common.prototype, "tooltip", void 0);
+        Common = tslib_1.__decorate([
+            decorators_1.subclass("Common")
+        ], Common);
+        return Common;
+    }(Widget_1.default));
+    return Common;
+});

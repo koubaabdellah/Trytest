@@ -1,0 +1,10 @@
+sSorteerSleutel ="belastingjaar";
+bToonSorteerKeuze = true;
+bSortOptieBelastingjaar = true;
+bSortOptieTitel = true;
+bSelOnderwerp = true;
+bSelBelastingjaar = true; aLi[1] = {a:'Belastingplicht: kent u de regels?',b:'Stichting en vereniging',c:'Personeel en loon|Sport|Btw|Uitbetaalde bedragen aan derden|Vrijwilligersregeling',d:'2021',e:'5716c061-2e8f-4efc-a195-cd754733392e',f:''};
+aLi[2] = {a:'Besluit vooroverleg rulings met een internationaal karakter - vragen en antwoorden',b:'Particulier,Douane voor bedrijven,Ondernemer,Stichting en vereniging,FIOD',c:'',d:'Jaaronafhankelijk',e:'ef3ba7aa-afdb-4893-9a43-f0f678a27e40',f:''};
+aLi[3] = {a:'Open data - Algemeen Nut Beogende Instellingen (ANBI)',b:'Stichting en vereniging',c:'Algemeen nut beogende instellingen',d:'Jaaronafhankelijk',e:'80c35c53-49c7-47d4-8175-f1762f9d83da',f:''};
+aLi[4] = {a:'Open data &ndash; Bezoekcijfers website Belastingdienst',b:'Stichting en vereniging',c:'',d:'Jaaronafhankelijk',e:'bf6f0880-8d42-42cf-bfc2-2e0d21307dbf',f:''};
+aLi[5] = {a:'Wwft: Prominente publieke functies in Nederland',b:'Douane voor bedrijven,Ondernemer,Stichting en vereniging,Intermediair',c:'',d:'Jaaronafhankelijk',e:'083293e4-9acd-469a-bebc-4f28f2d36449',f:''};

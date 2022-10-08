@@ -1,0 +1,155 @@
+define(["require", "exports", "tslib", "esri/core/accessorSupport/decorators", "esri/portal/Portal", "esri/request", "dojo/_base/kernel"], function (require, exports, tslib_1, decorators_1, PortalBase, esriRequest, kernel_1) {
+    "use strict";
+    kernel_1 = tslib_1.__importDefault(kernel_1);
+    var Portal = (function (_super) {
+        tslib_1.__extends(Portal, _super);
+        function Portal(params) {
+            var _this = _super.call(this, params) || this;
+            _this.credential = null;
+            _this.subscriptionInfo = null;
+            _this.allowedBetaFeatures = [];
+            return _this;
+        }
+        Portal.prototype.isUniqueItemTitle = function (title, folder, type) {
+            var user = this.user;
+            var queryParams = {
+                query: "owner:" +
+                    user.username +
+                    " ownerfolder:" +
+                    (folder || "root") +
+                    ' type:"' +
+                    type +
+                    "\" title:'" +
+                    title +
+                    "'",
+                num: 100
+            };
+            return this.queryItems(queryParams).then(function (results) {
+                var items = results.total ? results.results : [];
+                var matches = items.some(function (item) { return item.title === title; });
+                return !matches;
+            });
+        };
+        Portal.prototype.getUniqueItemTitle = function (suggestedTitle, folder, type) {
+            var user = this.user;
+            var queryParams = {
+                query: "owner:" +
+                    user.username +
+                    " orgid:" +
+                    this.id +
+                    " ownerfolder:" +
+                    (folder || "root") +
+                    ' type:"' +
+                    type +
+                    "\" title:'" +
+                    suggestedTitle +
+                    "'",
+                num: 100
+            };
+            return this.queryItems(queryParams).then(function (results) {
+                return results && results.total > 0
+                    ? suggestedTitle + "_" + (results.total + 1)
+                    : suggestedTitle;
+            });
+        };
+        Portal.prototype.getRegion = function () {
+            var portalRegion = this.region;
+            var user = this.user;
+            var userRegion = user && user.region;
+            var ipCntryCode = this.ipCntryCode;
+            var dojoLocale = kernel_1.default.locale || "US";
+            return userRegion || portalRegion || ipCntryCode || dojoLocale;
+        };
+        Portal.prototype.getUnits = function () {
+            var portalRegion = (this.region || "").toLowerCase();
+            var portalUnits = this.units;
+            var user = this.user;
+            var userUnits = user && user.units;
+            var userRegion = user && (user.region || "").toLowerCase();
+            var ipCntryCode = (this.ipCntryCode || "").toLowerCase();
+            var dojoLocale = (kernel_1.default.locale || "").toLowerCase();
+            var useEnglish = userRegion === "us" ||
+                portalRegion === "us" ||
+                ipCntryCode === "us" ||
+                dojoLocale.indexOf("us") > -1;
+            return userUnits || portalUnits || useEnglish ? "english" : "metric";
+        };
+        Portal.prototype.getWorldLocator = function () {
+            var user = this.user;
+            var locators = this.helperServices.geocode;
+            var worldGeocoderRegEx = /(arcgis.com\/arcgis\/rest\/services\/world\/geocodeserver).*/gi;
+            var worldLocators = locators.filter(function (locator) {
+                return locator.url.match(worldGeocoderRegEx);
+            });
+            return worldLocators && worldLocators.length ? worldLocators.shift() : null;
+        };
+        Portal.prototype.deleteItems = function (items) {
+            var user = this.user;
+            var contentUrl = this.user.userContentUrl + "/deleteItems";
+            var deleteItems = items && items.length
+                ? items.map(function (item) {
+                    return item.id;
+                })
+                : [];
+            if (deleteItems && deleteItems.length) {
+                return esriRequest(contentUrl, {
+                    query: { items: deleteItems.join(","), f: "json" },
+                    responseType: "json",
+                    method: "post"
+                });
+            }
+            else {
+                return Promise.resolve(true);
+            }
+        };
+        Portal.prototype.addItem = function (params) {
+            var folder = params && (params.item.folderId || params.item.ownerFolder);
+            var data = params && params.data;
+            var item = params && params.item;
+            var url = this.user.userContentUrl;
+            if (folder) {
+                url += "/" + folder;
+            }
+            return esriRequest(url + "/addItem", {
+                query: tslib_1.__assign(tslib_1.__assign({}, item), { text: data, async: true, overwrite: false, f: "json" }),
+                responseType: "json",
+                method: "post"
+            });
+        };
+        Portal.prototype.fetchNotifications = function () {
+            var _this = this;
+            var user = this.user;
+            if (user) {
+                var url = user.get("url") + "/notifications";
+                return esriRequest(url, {
+                    query: { f: "json" },
+                    responseType: "json",
+                    method: "post"
+                }).then(function (result) {
+                    var notifications = (result && result.data && result.data.notifications) || [];
+                    return notifications.map(_this.formatNotification.bind(_this));
+                });
+            }
+            else {
+                Promise.resolve([]);
+            }
+        };
+        Portal.prototype.formatNotification = function (notification) {
+            return notification;
+        };
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], Portal.prototype, "credential", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], Portal.prototype, "subscriptionInfo", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], Portal.prototype, "allowedBetaFeatures", void 0);
+        Portal = tslib_1.__decorate([
+            decorators_1.subclass("esri.portal.Portal")
+        ], Portal);
+        return Portal;
+    }(PortalBase));
+    return Portal;
+});

@@ -1,0 +1,1044 @@
+(function($) {
+
+	$.fn.extend({
+
+		widont: function(){
+			$(this).each(function(){
+				var txt = $(this).html();
+				var words = txt.split(' ');
+				// maak een &nbsp; van de laatste spatie als er meer dan 2 woorden zijn
+				if (words.length > 2) {
+					$(this).html(txt.replace(/([^\s])\s+([^\s]+)\s*$/, '$1&nbsp;$2'));
+				}
+			});
+		},
+
+    niceLabels: function() {
+      $(this).each(function(){
+        var $text_field = $(this).find('input[type="text"], textarea').eq(0);
+        var $label = $(this).find('label').eq(0).removeClass('element-invisible');
+        if ($text_field.length > 0) {
+          if ($text_field.attr('title').length > 0) {
+            $label.text($text_field.attr('title'));
+          }
+          $(this).addClass('label-on-top');
+          $text_field
+            .bind('focus', function(){
+              $label.addClass('element-invisible');
+            })
+            .bind('blur', function(){
+              if (this.value == '')
+                $label.removeClass('element-invisible');
+            });
+        }
+      });
+    },
+
+  	sameHeight: function(anim){
+  		var anim = anim || false; // animation default false
+  		var heights = Array();
+  		$(this).each(function(){
+  			heights[heights.length] = $(this).outerHeight();
+  		});
+  		var maxH = Math.max.apply(Math, heights);
+  		$(this).addClass('same-height').each(function(){
+  		  var pad = parseInt($(this).css('padding-top')) + parseInt($(this).css('padding-bottom'));
+    		if (anim) {
+    			$(this).animate({
+    				minHeight: maxH - pad
+    			}, 500);
+    		} else {
+    			$(this).css({
+    				minHeight: maxH - pad
+    			});
+    		}
+    	});
+  	},
+
+    imageCaptions: function(){
+      if ($('html').hasClass('video')) {
+        var figure = 'figure';
+        var figcaption = 'figcaption';
+      } else { /* IE8 etc :( */
+        var figure = 'div';
+        var figcaption = 'div';
+      }
+  		$(this).each(function(){
+        var title = $(this).attr('title');
+        if (this.parentNode.tagName.toLowerCase() == 'a') {
+          $(this).parent().addClass('figure-link');
+        }
+        if (title) {
+          var strong_start = title.indexOf('|');
+          if (strong_start > -1) {
+            var strong = title.substring(0, title.indexOf('|'));
+            title = title.replace(strong, '<strong>'+strong+'</strong> ').replace('|', ' ');
+          }
+          $(this)
+            .wrap(
+              $('<'+figure+'/>')
+                .addClass($(this).attr('class'))
+                .addClass('content-image')
+            )
+            .removeAttr('class')
+            .removeAttr('title')
+            .parent().append(
+              $('<'+figcaption+'/>')
+                .addClass('figcaption')
+                .html(title)
+            );
+        }
+		  });
+    },
+
+    blockLinks: function(){
+  		$(this).each(function(){
+  		  var $links = $(this).find('.content a');
+  		  $links.bind('click', function(event){
+  		    event.cancelBubble = true;
+  		  });
+  		  var $link = $links.eq(0)
+  		  var href = $link.attr('href');
+  		  var title = $link.text();
+  			$(this)
+  			  .attr('title', title)
+  			  .hover(
+  			    function(){
+  			      $(this).addClass('hover');
+  			    },
+  			    function(){
+  			      $(this).removeClass('hover');
+  			    }
+  			  )
+  			  .bind('click', function(){
+  			    document.location.href = href;
+  			  });
+  		});
+    },
+
+    input2select: function(opts){
+      var params = [];
+      var q = window.location.search.substring(1).split('&');
+      for (var i=0; i<q.length; i++) {
+        var param = q[i].split('=');
+        params[param[0]] = param[1];
+      }
+      $(this).find('input').each(function(){
+        var $select = $('<select/>')
+          .addClass('form-select')
+          .attr({
+            'id': $(this).attr('id'),
+            'name': $(this).attr('name')
+          })
+          .append($('<option/>').attr('value', '').text('- Alle jaartallen -'));
+        for (var i=0; i<opts.length; i++) {
+          var $option = $('<option/>').attr('value', opts[i]).text(opts[i]);
+          if (params[$(this).attr('name')] == opts[i]) {
+            $option.attr('selected', 'selected');
+          }
+          $select.append($option);
+        }
+        $(this).after($select);
+        $(this).remove();
+      });
+    }
+
+	});
+
+
+
+  var syncSelects = function($master, $slave){
+    if ($master.length > 0 && $slave.length > 0) {
+      $master.bind('change', function(){
+        var sel = this.selectedIndex;
+        $slave.each(function(){
+          this.selectedIndex = sel;
+          $(this).trigger('change');
+        });
+      });
+    }
+  }
+
+
+
+	var smoothAnchors = function(offset, beforeScroll, afterScroll) {
+		var offset = offset || 0;
+		var beforeScroll = beforeScroll || function() { void(0) }
+		var afterScroll = afterScroll || function() { void(0) }
+		var speed = 400;
+		$('a[href*=#]').not('.contextual-links-trigger').bind('click', function(event) {
+			if (location.pathname.replace(/^\//,'') == this.pathname.replace(/^\//,'') && location.hostname == this.hostname) {
+				(event.preventDefault) ? event.preventDefault() : event.returnValue = false;
+				var h = this.hash;
+				var $target = $(this.hash);
+				$target = $target.length && $target || $('[name=' + this.hash.slice(1) +']');
+				if ($target.length && this.hash.length) {
+					beforeScroll();
+					var targetOffset = $target.offset().top;
+					$('html,body').animate({scrollTop: targetOffset - offset}, speed, function(){
+						if (history && history.pushState) {
+							history.pushState(null, null, h);
+						} else {
+							location.hash = h;
+						}
+						$target.focus();
+						afterScroll();
+					});
+				}
+			}
+		});
+	}
+
+
+
+  var searcharea = function() {
+    var speed = 200;
+    var toggleSearch = function() {
+      if ($('#search').hasClass('hidden')) {
+        $('#toggle-search').addClass('active');
+        $('#search')
+          .removeClass('hidden')
+          .css({ 'margin-top': '-' + ($('#search').height()+1) + 'px' })
+          .animate({ 'margin-top': '0' }, speed, function(){
+            $('#edit-zoeken').focus();
+          });
+      } else {
+        $('#toggle-search').removeClass('active');
+        $('#search')
+          .animate({ 'margin-top': '-' + ($('#search').height()+1) + 'px' }, speed, function(){
+            $(this).addClass('hidden');
+            $('#edit-zoeken').blur();
+          });
+      }
+    }
+    if ($('#search').length > 0) {
+  		$('#search-block-form .form-type-textfield').niceLabels();
+      $('#search').addClass('hidden');
+      $('#nav > .wrapper').eq(0).append(
+        $('<p/>').attr('id', 'toggle-search').append(
+          $('<a/>')
+            .text('Zoeken')
+            .attr({
+              'taxindex': 1,
+              'href': '#'
+            })
+            .bind('click', function(event){
+              (event.preventDefault) ? event.preventDefault() : event.returnValue = false;
+              toggleSearch();
+            })
+        )
+      );
+    }
+  }
+
+
+
+	var toggleGrid = function() {
+		$(window).keypress(function(event) {
+			if (event.which == 169) { // alt-cmd-G
+				$('body').toggleClass('grid');
+			}
+		});
+	}
+
+  var niceSelects = function() {
+    var years = Array();
+    var d = new Date();
+    for (var i=d.getFullYear(); i>=2000; i--) {
+      years.push(i);
+    }
+    $('#edit-publicatiejaar-wrapper').input2select(years);
+    $('.views-widget-sort-order').addClass('js-hide');
+    $('.custom-select').remove();
+    $('select').each(function(){
+      var $_this = $(this);
+      var $custom_select = $('<div/>').addClass('custom-select').text(getSelectedOptionText($_this)).append(
+        $('<span/>')
+        .html('<span class="indicator"></span>')
+        .addClass('select-button')
+      );
+
+      $_this
+        .css({
+          'position': 'absolute',
+          'z-index': 1,
+          'opacity': 0
+        })
+        .after($custom_select)
+        .bind('change', function(){
+          $custom_select.text(getSelectedOptionText($_this)).append(
+            $('<span/>')
+            .html('<span class="indicator"></span>')
+            .addClass('select-button')
+          );
+        })
+        .focus(function() {
+          $custom_select.addClass('focus');
+        })
+        .blur(function() {
+          $custom_select.removeClass('focus');
+        });
+
+
+        $('.page-monumentenregister #content-top .block').show();
+    });
+  }
+
+
+
+  var hideExposedLabels = function() {
+    $('#main .views-exposed-widget').each(function(){
+      var $text_input = $(this).find('input[type="text"]').eq(0);
+      var $select = $(this).find('select').eq(0);
+      var $label = $(this).find('label').eq(0);
+      if ($select.length > 0) {
+        $label.addClass('js-hide');
+        var label_text = $.trim($label.text());
+        if (label_text == 'Vakgebied') {
+          $select.find('option').eq(0).text('- Alle vakgebieden -');
+        } else if (label_text == 'Jaar') {
+          $select.find('option').eq(0).text('- Alle jaren -');
+        } else if (label_text == 'Auteur') {
+          $select.find('option').eq(0).text('- Alle auteurs -');
+        } else if (label_text == 'Specialisme') {
+          $select.find('option').eq(0).text('- Alle specialismes -');
+        } else if (label_text == 'Afdeling') {
+          $select.find('option').eq(0).text('- Alle afdelingen -');
+        } else if (label_text == 'Persberichten') {
+          $select.find('option').eq(0).text('- Alle berichten -');
+        } else if (label_text == 'Onderwerp') {
+          $select.find('option').eq(0).text('- Alle onderwerpen -');
+        } else if (label_text == 'Reeks') {
+          $select.find('option').eq(0).text('- Alle reeksen -');
+        } else if (label_text == 'Mediatype') {
+          $select.find('option').eq(0).text('- Alle mediatypen -');
+        } else if (label_text == 'Categorie') {
+          $select.find('option').eq(0).text('- Alle categorieën -');
+        } else if (label_text == 'Provincie') {
+          $select.find('option').eq(0).text('- Alle provinciën -');
+        } else if (label_text == 'Gemeente') {
+          $select.find('option').eq(0).text('- Alle gemeenten -');
+        } else if (label_text == 'Plaats') {
+          $select.find('option').eq(0).text('- Alle plaatsen -');
+        } else if (label_text == 'Juridische status') {
+          $select.find('option').eq(0).text('- Alle statussen -');
+        }
+      } else if ($text_input.length > 0) {
+        $(this).addClass('label-on-top');
+        if ($text_input.attr('value') != '') {
+          $label.addClass('element-invisible');
+        }
+        $text_input
+          .bind('focus', function(){
+            $label.addClass('element-invisible');
+          })
+          .bind('blur', function(){
+            if (this.value == '')
+              $label.removeClass('element-invisible');
+          });
+      }
+    });
+    var $views_submit = $('#main .views-submit-button');
+    if (!$views_submit.parents('block-views-exp-rce-dossiers-page')) {
+      $views_submit.addClass('js-hide');
+    }
+
+  }
+
+
+
+  var syncYearAndMonth = function(date_field) {
+    var date_field = date_field || '#edit-datum-value';
+    if ($(date_field+'-year').length > 0) {
+      if (date_field == '#edit-datum-value') {
+        var current_year_index = $(date_field+'-year').attr('options').length-1;
+      } else {
+        var current_year_index = 1;
+      }
+      $(date_field+'-year').bind('change', function(){
+        if (this.selectedIndex < 1) { // geen jaar geselecteerd -> ook geen maand selecteren
+          $(date_field+'-month').attr('selectedIndex', 0);
+        } else if ($(date_field+'-month').attr('selectedIndex') < 1) { // nog geen maand geselecteerd -> maand selecteren
+          var month = 1;
+          if (this.selectedIndex == current_year_index) { // huidige jaar geselecteerd -> selecteer ook huidige maand
+            var d = new Date();
+            month = d.getMonth() + 1;
+          }
+          $(date_field+'-month').attr('selectedIndex', month);
+        }
+      });
+      $(date_field+'-month').bind('change', function(){
+        if (this.selectedIndex < 1 && $(date_field+'-year').attr('selectedIndex') > 0) { // geen maand geselecteerd -> ook geen jaar selecteren
+          $(date_field+'-year').attr('selectedIndex', 0);
+        }
+        else if ($(date_field+'-year').attr('selectedIndex') < 1) { // nog geen jaar geselecteerd -> huidige jaar selecteren
+          $(date_field+'-year').attr('selectedIndex', current_year_index);
+        }
+      });
+    }
+  }
+
+
+
+  var kennisbanken = function() {
+    $('#block-views-rce-kennis-block .views-row .node-header h2').sameHeight();
+    $('#block-views-rce-kennis-block .views-row .field-name-field-teaser').sameHeight();
+  }
+
+
+
+  var faq = function() {
+
+    var toggleIt = function($el, sub_selector) {
+
+      if ($el.hasClass('closed')) {
+        var selector = 'h1.view-group-header a';
+        var title_txt = Drupal.t('Hide the questions');
+
+        if ($el.hasClass('node-question')) {
+          var selector = '.node-header a';
+          var title_txt = Drupal.t('Hide the answer');
+          $el.closest('.item-list').css({
+            'max-height': '1000em'
+          })
+        }
+        $(selector).attr('title', title_txt);
+        var $sub = $el.removeClass('closed').find(sub_selector).eq(0);
+        $sub.css({
+          'max-height': $sub.children().eq(0).height()
+        });
+        $sub.find('a:eq(0)').focus();
+      } else {
+        var selector = 'h1.view-group-header a';
+        var title_txt = Drupal.t('Show the questions');
+
+        if ($el.hasClass('node-question')) {
+          var selector = '.node-header a';
+          title_txt = Drupal.t('Show the answer');
+        }
+        $(selector).attr('title', title_txt);
+        $el.addClass('closed').find(sub_selector).css({
+          'max-height': '0',
+          'overflow': 'hidden'
+        });
+      }
+    }
+
+    var activate = function($el, sub_selector, trigger_selector) {
+      var $trigger = $('<a/>')
+        .attr({
+          'href': '#'
+        })
+        .bind('click', function(event){
+          (event.preventDefault) ? event.preventDefault() : event.returnValue = false;
+          toggleIt($el, sub_selector);
+        });
+      $el.find(trigger_selector).eq(0).wrapInner($trigger);
+      toggleIt($el, sub_selector);
+    }
+
+    $('.node-question').each(function(){
+      activate($(this), '.field-name-body', '.node-header h2');
+    });
+    if ($('.view-id-faq .view-content > section h1.view-group-header').length > 0) {
+      $('.view-id-faq .view-content > section').each(function(){
+        activate($(this), '.item-list', 'h1.view-group-header');
+      });
+    }
+
+    // open category on load
+    if ($(document.location.hash).eq(0).hasClass('closed')) {
+      toggleIt($(document.location.hash), '.item-list');
+    }
+
+  }
+
+
+  var video = function() {
+  	var html5video = $('html').hasClass('video');
+        var videoElt = $('video').get(0);
+        if (videoElt) {
+        	videoElt.height = 327;
+      	 	videoElt.width = 582;
+      		$(videoElt).attr('id', 'main-video');
+        }
+
+  	var vid_id = 'main-video';
+  	if ($('#'+vid_id).length > 0) {
+            // transcript
+            $('fieldset.transcript').addClass('closed').find('.content').hide();
+            $('fieldset.transcript legend').wrapInner('<a/>');
+            $('fieldset.transcript legend a').attr('href', '#').bind('click', function(event){
+                    event.preventDefault();
+                    $fieldset = $(this.parentNode.parentNode);
+                    if ($fieldset.hasClass('open')) {
+                        $fieldset.find('.content').slideUp(function(){
+                            $fieldset.removeClass('open').addClass('closed');
+                        });
+                    } else {
+                        $fieldset.addClass('open').removeClass('closed');
+                        $fieldset.find('.content').slideDown();
+                    }
+            });
+            if (html5video) {
+                $('#'+vid_id).after(
+                    $('<p/>').addClass('extra-controls').attr('id', 'extra-controls')
+                );
+                //$('#extra-controls').hide();
+                // subtitles
+                var subs_file = $('#'+vid_id).find('track[kind="subtitles"]').attr('src');
+                if (subs_file) {
+                    var subs = new Bubbles.video(vid_id);
+                    subs.subtitles(false, {
+                        "Nederlands" :	{
+                            language: "Dutch",
+                            file: subs_file
+                        }
+                    });
+                    $('#'+vid_id+'_subs').hide();
+                    var subs_status = false;
+                    $('#extra-controls').append(
+                        $('<a/>').addClass('subs-switch off').html('<abbr lang="en">CC</abbr>').attr({
+                            href: '#',
+                            title: 'Ondertitels inschakelen'
+                        }).bind('click', function(e){
+                            e.preventDefault();
+                            if (subs_status) {
+                                $('#'+vid_id+'_subs').hide();
+                                $(this).attr('title', 'Ondertitels inschakelen').addClass('off').removeClass('on');
+                                subs_status = false;
+                            } else {
+                                $('#'+vid_id+'_subs').show();
+                                $(this).attr('title', 'Ondertitels uitschakelen').addClass('on').removeClass('off');
+                                subs_status = true;
+                            }
+                            $(this).blur();
+                        })
+                    ).show();
+                }
+                // audio descriptions
+                var $audio_desc = $('#'+vid_id).find('track[kind="descriptions"]');
+                if (!iOS() && $audio_desc.length > 0) {
+                    var ad_status = false;
+                    var $audio = $('<audio/>');
+                    $audio_desc.each(function(){
+                        $audio.append(
+                            $('<source/>').attr({
+                                src: $(this).attr('src')
+                            })
+                        )
+                    });
+                    $('#'+vid_id).after($audio);
+                    var vid = $('#'+vid_id).get(0);
+                    var aud = $audio.get(0);
+                    if (aud.canPlayType("audio/mpeg")) {
+                        $('#'+vid_id).bind('play',function(event){
+                            aud.currentTime = vid.currentTime;
+                            if (ad_status) aud.play();
+                            }, false);
+                        $('#'+vid_id).bind('pause',function(event){
+                            aud.pause();
+                        }, false);
+                        $('#'+vid_id).bind('seeked',function(event){
+                            aud.currentTime = vid.currentTime;
+                        }, false);
+                        $('#extra-controls').append(
+                            $('<a/>').addClass('ad-switch off').html('<abbr lang="en">AD</abbr>').attr({
+                                    href: '#',
+                                    title: 'Audio-beschrijving inschakelen'
+                            }).bind('click', function(e){
+                                e.preventDefault();
+                                if (ad_status) {
+                                        aud.pause();
+                                        $(this).attr('title', 'Audio-beschrijving inschakelen').addClass('off').removeClass('on');
+                                        ad_status = false;
+                                } else {
+                                        if (!vid.paused) {
+                                                aud.currentTime = vid.currentTime;
+                                                aud.play();
+                                        }
+                                        $(this).attr('title', 'Audio-beschrijving uitschakelen').addClass('on').removeClass('off');
+                                        ad_status = true;
+                                }
+                                $(this).blur();
+                            })
+                        ).show();
+                    }
+                }
+            }
+  	}
+  }
+
+
+
+    var iframeLinks = function() {
+        if ($('html').hasClass('video')) {
+          var figure = 'figure';
+          var figcaption = 'figcaption';
+        } else { /* IE8 etc :( */
+          var figure = 'div';
+          var figcaption = 'div';
+        }
+        $('#main a.iframe, #main a.iframe-half').each(function(i){
+            if ($(this).attr('href').indexOf('vimeo.com') > -1 || $(this).attr('href').indexOf('youtube.com') > -1) {
+                var classes = 'embed-container video-embed';
+            } else {
+                var classes = 'embed-container ';
+            }
+            $(this).closest('p').wrap('<'+figure+' class="'+$(this).attr('class').replace('iframe', 'embed')+'"/>').before(
+                $('<p/>').addClass(classes).append(
+                    $('<iframe/>').attr({
+                        'title': 'Iframe ' + (i+1),
+                        'src': $(this).attr('href')
+                    })
+                )
+            )
+            if ($(this).attr('href').indexOf('google.com/maps') < 0) {
+                $(this).wrap('<'+figcaption+' class="figcaption"/>');
+            } else {
+                $(this).closest('p').addClass('element-invisible');
+            }
+        });
+    }
+
+
+
+    var updateTitle = function() {
+        if ($('body').hasClass('page-zoeken')) {
+            var q = $('#edit-search-api-views-fulltext').attr('value');
+            var title = $('#main-content .view-header h1').html();
+            if (q != '') {
+                title = title.replace('resultaten', 'resultaten voor <em>\''+q+'\'</em>');
+            }
+            $('#content-top .page-header h1').html(title);
+            $('#main-content .view-header').hide();
+        }
+        //updateMenutabs();
+    }
+
+    // update menu tabs with current exposed filters
+    var updateMenutabs = function() {
+        var field;
+        var query_vars = Array();
+        var i = 0;
+        if (field = document.getElementById("edit-search-api-views-fulltext")) {
+            if (field.value) {
+                $(field).parent().addClass('filter-active');
+                query_vars[query_vars.length] = 'search_api_views_fulltext=' + field.value;
+            } else {
+                $(field).parent().removeClass('filter-active');
+            }
+        }
+        if (field = document.getElementById("edit-tekst")) {
+            if (field.value) {
+                $(field).parent().addClass('filter-active');
+                query_vars[query_vars.length] = 'tekst=' + field.value;
+            } else {
+                $(field).parent().removeClass('filter-active');
+            }
+        }
+        if (field = document.getElementById("edit-achternaam")) {
+            if (field.value) {
+                $(field).parent().addClass('filter-active');
+                query_vars[query_vars.length] = 'achternaam=' + field.value;
+            } else {
+                $(field).parent().removeClass('filter-active');
+            }
+        }
+        if (field = document.getElementById("edit-voornaam")) {
+            if (field.value) {
+                $(field).parent().addClass('filter-active');
+                query_vars[query_vars.length] = 'voornaam=' + field.value;
+            } else {
+                $(field).parent().removeClass('filter-active');
+            }
+        }
+        if (field = document.getElementById("edit-functie")) {
+            if (field.value) {
+                $(field).parent().addClass('filter-active');
+                query_vars[query_vars.length] = 'functie=' + field.value;
+            } else {
+                $(field).parent().removeClass('filter-active');
+            }
+        }
+        if (field = document.getElementById("ajax-facets-selectbox-field-category")) {
+            if (field.selectedIndex > 0) {
+                $(field).parent().addClass('filter-active');
+                query_vars[query_vars.length] = 'field_category=' + field.options[field.selectedIndex].value;
+	    } else {
+                $(field).parent().removeClass('filter-active');
+            }
+        }
+        if (field = document.getElementById("edit-vakgebied")) {
+            if (field.selectedIndex > 0) {
+                $(field).parent().addClass('filter-active');
+                query_vars[query_vars.length] = 'vakgebied=' + field.options[field.selectedIndex].value;
+	    } else {
+                $(field).parent().removeClass('filter-active');
+            }
+        }
+        if (field = document.getElementById("edit-afdeling")) {
+            if (field.selectedIndex > 0) {
+                $(field).parent().addClass('filter-active');
+                query_vars[query_vars.length] = 'afdeling=' + field.options[field.selectedIndex].value;
+	    } else {
+                $(field).parent().removeClass('filter-active');
+            }
+        }
+        if (field = document.getElementById("edit-reeks")) {
+            if (field.selectedIndex > 0) {
+                $(field).parent().addClass('filter-active');
+                query_vars[query_vars.length] = 'reeks=' + field.options[field.selectedIndex].value;
+	    } else {
+                $(field).parent().removeClass('filter-active');
+            }
+        }
+        if (field = document.getElementById("edit-mediatype")) {
+            if (field.selectedIndex > 0) {
+                $(field).parent().addClass('filter-active');
+                query_vars[query_vars.length] = 'mediatype=' + field.options[field.selectedIndex].value;
+	    } else {
+                $(field).parent().removeClass('filter-active');
+            }
+        }
+        if (field = document.getElementById("edit-type")) {
+            if (field.selectedIndex > 0) {
+                $(field).parent().addClass('filter-active');
+                query_vars[query_vars.length] = 'type=' + field.options[field.selectedIndex].value;
+	    } else {
+                $(field).parent().removeClass('filter-active');
+            }
+        }
+        if (field = document.getElementById("edit-datum-value-year")) {
+            if (field.selectedIndex > 0) {
+                $(field).parent().addClass('filter-active');
+                query_vars[query_vars.length] = 'datum[value][year]=' + field.options[field.selectedIndex].value;
+	    } else {
+                $(field).parent().removeClass('filter-active');
+            }
+        }
+        if (field = document.getElementById("edit-datum-value-month")) {
+            if (field.selectedIndex > 0) {
+                $(field).parent().addClass('filter-active');
+                query_vars[query_vars.length] = 'datum[value][month]=' + field.options[field.selectedIndex].value;
+	    } else {
+                $(field).parent().removeClass('filter-active');
+            }
+        }
+        if (field = document.getElementById("edit-datum-van-value-year")) {
+            if (field.selectedIndex > 0) {
+                $(field).parent().addClass('filter-active');
+                query_vars[query_vars.length] = 'datum_van[value][year]=' + field.options[field.selectedIndex].value;
+	    } else {
+                $(field).parent().removeClass('filter-active');
+            }
+        }
+        if (field = document.getElementById("edit-datum-van-value-month")) {
+            if (field.selectedIndex > 0) {
+                $(field).parent().addClass('filter-active');
+                query_vars[query_vars.length] = 'datum_van[value][month]=' + field.options[field.selectedIndex].value;
+	    } else {
+                $(field).parent().removeClass('filter-active');
+            }
+        }
+        if (field = document.getElementById("edit-datum-tot-value-year")) {
+            if (field.selectedIndex > 0) {
+                $(field).parent().addClass('filter-active');
+                query_vars[query_vars.length] = 'datum_tot[value][year]=' + field.options[field.selectedIndex].value;
+	    } else {
+                $(field).parent().removeClass('filter-active');
+            }
+        }
+        if (field = document.getElementById("edit-datum-tot-value-month")) {
+            if (field.selectedIndex > 0) {
+                $(field).parent().addClass('filter-active');
+                query_vars[query_vars.length] = 'datum_tot[value][month]=' + field.options[field.selectedIndex].value;
+	    } else {
+                $(field).parent().removeClass('filter-active');
+            }
+        }
+        if (field = document.getElementById("edit-auteur")) {
+            if (field.selectedIndex > 0) {
+                $(field).parent().addClass('filter-active');
+                query_vars[query_vars.length] = 'auteur=' + field.options[field.selectedIndex].value;
+	    } else {
+                $(field).parent().removeClass('filter-active');
+            }
+        }
+        if (field = document.getElementById("edit-publicatiejaar")) {
+            if (field.selectedIndex > 0) {
+                $(field).parent().addClass('filter-active');
+                query_vars[query_vars.length] = 'publicatiejaar=' + field.options[field.selectedIndex].value;
+	    } else {
+                $(field).parent().removeClass('filter-active');
+            }
+        }
+        if (field = document.getElementById("edit-vestiging-wrapper")) {
+            $(field).find('input').each(function(){
+                if ($(this).attr('checked')) {
+  		    query_vars[query_vars.length] = 'vestiging[]=' + $(this).attr('value');
+                }
+            });
+        }
+        if (field = document.getElementById("edit-sort-by")) {
+	    if (field.options[field.selectedIndex].value == 'title') {
+	      if (document.getElementById("edit-sort-order").selectedIndex == 1) {
+	        var triggerChange = true;
+	      } else {
+	        var triggerChange = false;
+	      }
+	      document.getElementById("edit-sort-order").options[0].selected = 'selected';
+	      if (triggerChange) {
+	        $('#edit-sort-order').trigger("change");
+            }
+	    } else {
+	      if (document.getElementById("edit-sort-order").selectedIndex == 0) {
+	        var triggerChange = true;
+	      } else {
+	        var triggerChange = false;
+	      }
+	      document.getElementById("edit-sort-order").options[1].selected = 'selected';
+	      if (triggerChange) {
+	        $('#edit-sort-order').trigger("change");
+        }
+	    }
+		  if (field.selectedIndex > 0) {
+		    query_vars[query_vars.length] = 'sort_by=' + field.options[field.selectedIndex].value;
+	    }
+    }
+		if (field = document.getElementById("edit-sort-order")) {
+		  if (field.selectedIndex > 0 && field.options[field.selectedIndex].value != "DESC") {
+		    query_vars[query_vars.length] = 'sort_order=' + field.options[field.selectedIndex].value;
+	    }
+    }
+    var current_page = $('#main-content .view-rce-publicaties .pager').eq(0).find('.pager-current').eq(0).text();
+    if (current_page > 0) {
+	    query_vars[query_vars.length] = 'page=' + (current_page-1);
+    }
+    // add to tab links
+    var query_string = '';
+    if (query_vars.length > 0) {
+      query_string = '?' + query_vars.join('&');
+    }
+    $('#main .tabs.primary a').each(function(){
+      var href = this.href;
+      if (href.indexOf('?') > -1) {
+        href = href.substring(0, href.indexOf('?'));
+      }
+      this.href = href + query_string;
+    });
+    if (history.pushState) {
+      var href = document.location.href;
+      if (href.indexOf('?') > -1 && href.indexOf('vragen-over-monument?') == -1) {
+        href = href.substring(0, href.indexOf('?'));
+      }
+      var stateObj = {};
+      history.pushState(stateObj, "Nieuw", href + query_string);
+    }
+  }
+
+
+
+  var adminChecks = function() {
+		if ($('body').hasClass('toolbar')) {
+		  $('#main p').each(function(){
+		    if ($(this).html() == '&nbsp;' || $(this).html() == '') {
+  		    $(this).addClass('empty-paragraph');
+		    }
+		  });
+		  $('body.toolbar #main img[alt=""], body.toolbar #main img:not([alt])').each(function(){
+		    $(this).parent().addClass('img-without-alt');
+		  });
+		}
+  }
+
+
+
+	jQuery(document).ajaxStart(function() {
+		$('#main-content .view').animate({ opacity: 0.33 }, 100);
+	});
+	jQuery(document).ajaxComplete(function() {
+		$('#main-content .view').css({ opacity: 1 });
+		hideExposedLabels();
+		niceSelects();
+		$('.node-teaser, .view-rce-publicaties .node-extended_teaser, .view-rce-rijksmonumenten-search-api .node-extended_teaser, .view-rce-dossier-publicaties .node-extended_teaser').blockLinks();
+		updateTitle();
+		$('#pre-content .same-height').css({
+		  'min-height': 0
+		}).sameHeight();
+	});
+
+
+
+	// Helpers
+	function iOS() {
+	    return (
+	        (/iphone|ipod|ipad/gi).test(navigator.appVersion)
+	    );
+	}
+	function iPad() {
+	    return (
+	        (/ipad/gi).test(navigator.appVersion)
+	    );
+	}
+	function android() {
+	    return (
+	        (/android/gi).test(navigator.appVersion)
+	    );
+	}
+
+  var removeIframeBorders = function() {
+    // remove iframe border for < IE9
+    // border needs to be removed before iframe is added to the DOM!
+    if ($.browser.msie && $.browser.version < 9) {
+      $('iframe').each(function(){
+        var $frame = $(this).clone();
+        $frame.attr('frameBorder', '0');
+        $(this).hide().before($frame).remove();
+      });
+    }
+  }
+
+  var getSelectedOptionText = function($element) {
+    if ($element.length > 0) {
+      try {
+        return $($element.get(0).options[$element.get(0).selectedIndex]).text();
+      }
+      catch(err) {
+        return $($element.get(0).options[$element.eq(0).selectedIndex]).text();
+      }
+    }
+  }
+
+
+
+  var pageInit = function() {
+    // things that change things on screen first...
+    adminChecks();
+    searcharea();
+    faq();
+    $('#main-content .field-name-body').find('.image-ce_grid2, .image-ce_grid3, .image-ce_grid4, .image-ce_grid5, .image-ce_grid6, .image-ce_grid7, .image-ce_grid8').imageCaptions();
+    $('body.node-type-kennisbank #sidebar .field-name-field-images img').imageCaptions();
+    hideExposedLabels();
+    niceSelects();
+    syncYearAndMonth('#edit-datum-value');
+    syncYearAndMonth('#edit-datum-van-value');
+    syncYearAndMonth('#edit-datum-tot-value');
+    syncSelects($('#edit-datum-van-value-year'), $('#edit-datum-tot-value-year'));
+    syncSelects($('#edit-datum-van-value-month'), $('#edit-datum-tot-value-month'));
+    $('#edit-datum-tot-value').addClass('js-hide');
+    iframeLinks();
+    video();
+    updateTitle();
+    $('#main > header > h1').widont();
+    removeIframeBorders();
+    // then other things...
+    smoothAnchors();
+    $('.node-teaser, .view-categories .taxonomy-term, .view-rce-publicaties .node-extended_teaser, .view-rce-rijksmonumenten-search-api .node-extended_teaser, .view-rce-dossier-publicaties .node-extended_teaser').blockLinks();
+    // "Publicaties" after "Agenda" in footer menu
+    $('#footer .menu li.menu-mlid-712').after($('#footer .menu li.menu-mlid-940, #footer .menu li.menu-mlid-975'));
+    setTimeout(function(){ // things that need to happen a bit later...
+        $('body.front #columns-1 .block-header h1').sameHeight();
+        $('body.front #columns-1 .view .view-content').sameHeight();
+        $('body.front #columns-2 .block-header h1').sameHeight();
+        $('body.front #columns-2 .view .view-header p:first-child').sameHeight();
+        $('body.front #columns-2 .view .view-wrapper').sameHeight();
+        $('#pre-content .view .view-wrapper').sameHeight();
+        $('#block-system-main .main-panel .pane-node, #organisation-persons').sameHeight();
+        $('#main-content .panel-row-2 .panel-col-2 .view .view-wrapper').sameHeight();
+        $('#pre-content .block-facetapi').sameHeight();
+        kennisbanken();
+        $medewerker = $('body.node-type-medewerker #main-content .node-medewerker.node-full');
+        $medewerker_table = $medewerker.find('table').eq(0);
+        $medewerker_image = $medewerker.find('div.field-image-linkedin').eq(0);
+        if ($medewerker_table.length > 0 && $medewerker_image.length > 0) {
+          if ($medewerker_table.height() < $medewerker_image.height()) {
+            $medewerker_table.height($medewerker_image.height()+1).addClass('same-height');
+          }
+        }
+    }, 100);
+    if ($(window).width() > 959) {
+        toggleGrid();
+    }
+  }
+
+  // On page load
+  $(document).ready(function() {
+    pageInit();
+
+    if ($('body').hasClass('page-monumentenregister')) {
+      $('#content-top input[type=text], #content-top select').each(function(index, field) {
+        if ($(field).val() && $(field).val() !== 'All') {
+          $(field).parent().addClass('filter-active');
+        }
+      });
+    }
+
+    /* Monumenten description max height */
+
+    // Declare default height and max collapsed height
+    var monumentBodyMaxHeight = 150;
+    var monumentBodyHeight = $('.node-type-rijksmonument .field-name-body .field-item').height();
+
+    // Add max height, gradient class and expand button
+    if (monumentBodyHeight > monumentBodyMaxHeight) {
+      $('.node-type-rijksmonument .field-name-body .field-item').addClass('collapsed');
+      $('.node-type-rijksmonument .field-name-body .field-item').css('max-height', monumentBodyMaxHeight);
+      $('.node-type-rijksmonument .field-name-body').append('<button class=\'monument-text-toggle\'>Toon meer</button>');
+    }
+
+    // Toggle max height and gradient, and change button text
+    $('.node-type-rijksmonument .field-name-body .monument-text-toggle').click(function() {
+      $('.node-type-rijksmonument .field-name-body .field-item').toggleClass('collapsed');
+      if ($('.node-type-rijksmonument .field-name-body .monument-text-toggle').text() === 'Toon meer') {
+        $('.node-type-rijksmonument .field-name-body .field-item').animate({'max-height': monumentBodyHeight}, 500);
+        $('.node-type-rijksmonument .field-name-body .monument-text-toggle').text('Toon minder');
+      }
+      else {
+        $('.node-type-rijksmonument .field-name-body .field-item').animate({'max-height': monumentBodyMaxHeight}, 750);
+        $('.node-type-rijksmonument .field-name-body .monument-text-toggle').text('Toon meer');
+      }
+    });
+  });
+
+})(jQuery);
+
+(function ($, Drupal, window, document, undefined) {
+  if (typeof $.colorbox === 'undefined') {
+    return;
+  }
+
+  //Configure colorbox call back to resize with custom dimensions
+  $.colorbox.settings.onLoad = function () {
+      colorboxResize();
+  };
+
+  //Customize colorbox dimensions
+  var colorboxResize = function (resize) {
+      var width = "90%";
+      var height = "90%";
+
+      if ($(window).width() > 960) {
+          width = "860"
+      }
+      if ($(window).height() > 700) {
+          height = "630"
+      }
+
+      $.colorbox.settings.height = height;
+      $.colorbox.settings.width = width;
+
+      //if window is resized while lightbox open
+      if (resize) {
+          $.colorbox.resize({
+              'height': height,
+              'width': width
+          });
+      }
+  };
+
+  //In case of window being resized
+  $(window).resize(function () {
+      colorboxResize(true);
+  });
+})(jQuery, Drupal, this, this.document);

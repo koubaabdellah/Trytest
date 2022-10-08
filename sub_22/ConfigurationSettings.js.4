@@ -1,0 +1,300 @@
+/*
+ *   Copyright (c) 2022 Esri
+ *   All rights reserved.
+
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+
+ *   http://www.apache.org/licenses/LICENSE-2.0
+
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ */
+define(["require", "exports", "tslib", "esri/core/accessorSupport/decorators", "TemplatesCommonLib/baseClasses/configurationSettingsBase"], function (require, exports, tslib_1, decorators_1, configurationSettingsBase_1) {
+    "use strict";
+    configurationSettingsBase_1 = tslib_1.__importDefault(configurationSettingsBase_1);
+    var ConfigurationSettings = /** @class */ (function (_super) {
+        tslib_1.__extends(ConfigurationSettings, _super);
+        function ConfigurationSettings() {
+            var _this = _super !== null && _super.apply(this, arguments) || this;
+            _this.activePanel = null;
+            return _this;
+        }
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "actionBar", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "webmap", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "extentSelectorConfig", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "extentSelector", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "exportToPDF", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "mapZoom", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "mapZoomPosition", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "maxScale", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "minScale", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "theme", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "title", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "googleAnalytics", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "googleAnalyticsKey", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "googleAnalyticsConsentMsg", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "googleAnalyticsConsent", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "telemetry", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "activePanel", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "details", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "detailsContent", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "customCSS", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "header", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "logo", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "logoLink", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "applySharedTheme", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "popupPanel", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "popupHover", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "basemapGallery", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "basemapGalleryConfig", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "panelSize", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "legendPanel", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "utilityNetwork", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "layerListPanel", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "layerListConfig", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "hiddenLayers", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "showLayers", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "layerEditPanel", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "allowedWorkflows", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "editLayers", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "magnifier", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "addEditToPopup", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "enableSnapping", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "filterPanel", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "filterConfig", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "bookmarksPanel", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "disableScroll", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "layoutType", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "sidebarPosition", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "basemapToggle", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "basemapTogglePosition", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "nextBasemap", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "basemapSelector", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "search", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "searchPosition", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "searchConfiguration", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "searchOpenAtStart", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "scalebar", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "scalebarPosition", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "keyboardShortcuts", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "sidebarExpanded", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "screenshot", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "screenshotPosition", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "home", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "homePosition", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "share", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "shareIncludeSocial", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "mapA11yDesc", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "customUrlParam", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "customURLParamName", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "coverPage", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "coverPageConfig", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "bundle", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "appBundle", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "editor", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "applyCustomTheme", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "customTheme", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "locateWidget", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "locateWidgetPosition", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "measure", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "measurePosition", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "measureOpenAtStart", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "splash", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "splashContent", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "splashTitle", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "splashButtonText", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "splashButtonPosition", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "splashFullScreen", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "selectedLayers", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "selectedFeature", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], ConfigurationSettings.prototype, "expandFilters", void 0);
+        ConfigurationSettings = tslib_1.__decorate([
+            (0, decorators_1.subclass)("app.ConfigurationSettings")
+        ], ConfigurationSettings);
+        return ConfigurationSettings;
+    }(configurationSettingsBase_1.default));
+    return ConfigurationSettings;
+});

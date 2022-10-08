@@ -1,0 +1,224 @@
+define(["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.defaultTheme = exports.presetThemes = exports.transparentImg = exports.fonts = void 0;
+    exports.fonts = [
+        "Avenir Next",
+        "Arial",
+        "Georgia",
+        "Helvetica",
+        "Noto Serif",
+        "Playfair Display",
+        "Times New Roman",
+        "Verdana"
+    ];
+    var pathname = window.location.pathname;
+    var distPath = pathname.substring(0, pathname.lastIndexOf("/"));
+    exports.transparentImg = "url(" + distPath + "/assets/images/transparent-bg.png)";
+    exports.presetThemes = [
+        {
+            type: "shared",
+            primary: {
+                background: null,
+                text: "#FFFFFF"
+            },
+            secondary: {
+                background: null,
+                text: "#000000"
+            },
+            accent: {
+                background: null,
+                text: "#000000"
+            }
+        },
+        {
+            type: "forest",
+            primary: {
+                background: "#31612C",
+                text: "#FFFFFF"
+            },
+            secondary: {
+                background: "#E6EFE5",
+                text: "#000000"
+            },
+            accent: {
+                background: "#B4CF56",
+                text: "#000000"
+            }
+        },
+        {
+            type: "beach",
+            primary: {
+                background: "#8A5B1E",
+                text: "#FFFFFF"
+            },
+            secondary: {
+                background: "#F9F7DF",
+                text: "#000000"
+            },
+            accent: {
+                background: "#F9E54E",
+                text: "#000000"
+            }
+        },
+        {
+            type: "ocean",
+            primary: {
+                background: "#005E95",
+                text: "#FFFFFF"
+            },
+            secondary: {
+                background: "#E2EFF9",
+                text: "#000000"
+            },
+            accent: {
+                background: "#0DA5FC",
+                text: "#000000"
+            }
+        },
+        {
+            type: "clay",
+            primary: {
+                background: "#6F3018",
+                text: "#FFFFFF"
+            },
+            secondary: {
+                background: "#FCEDD9",
+                text: "#000000"
+            },
+            accent: {
+                background: "#F89927",
+                text: "#000000"
+            }
+        },
+        {
+            type: "soil",
+            primary: {
+                background: "#5C4224",
+                text: "#FFFFFF"
+            },
+            secondary: {
+                background: "#F1E2CA",
+                text: "#000000"
+            },
+            accent: {
+                background: "#E19836",
+                text: "#000000"
+            }
+        },
+        {
+            type: "street",
+            primary: {
+                background: "#4A4A4A",
+                text: "#FFFFFF"
+            },
+            secondary: {
+                background: "#F3F3F3",
+                text: "#000000"
+            },
+            accent: {
+                background: "#F9E54E",
+                text: "#000000"
+            }
+        },
+        {
+            type: "indigo",
+            primary: {
+                background: "#48307B",
+                text: "#FFFFFF"
+            },
+            secondary: {
+                background: "#EBE6FD",
+                text: "#000000"
+            },
+            accent: {
+                background: "#854EFB",
+                text: "#FFFFFF"
+            }
+        },
+        {
+            type: "rose",
+            primary: {
+                background: "#912F24",
+                text: "#FFFFFF"
+            },
+            secondary: {
+                background: "#F5E0DD",
+                text: "#000000"
+            },
+            accent: {
+                background: "#D83020",
+                text: "#FFFFFF"
+            }
+        }
+    ];
+    exports.defaultTheme = {
+        primary: {
+            type: "primary",
+            background: null,
+            text: "#000000"
+        },
+        secondary: {
+            type: "secondary",
+            background: null,
+            text: "#000000"
+        },
+        accent: {
+            type: "accent",
+            background: null,
+            text: "#000000"
+        }
+    };
+    var ogInput = [
+        {
+            type: "header",
+            themes: {
+                background: {
+                    dark: "#2c2c2c",
+                    light: "#2c2c2c",
+                    value: "#8F8989"
+                },
+                text: {
+                    dark: "#FFFFFF",
+                    light: "#FFFFFF",
+                    value: "#FFFFFF"
+                },
+                font: "Avenir Next"
+            }
+        },
+        {
+            type: "button",
+            themes: {
+                background: {
+                    dark: "#007AC2",
+                    light: "#007AC2",
+                    value: "#CBCBCB"
+                },
+                text: {
+                    dark: "#FFFFFF",
+                    light: "#FFFFFF",
+                    value: "#000000"
+                },
+                font: "Avenir Next",
+                bold: false
+            }
+        },
+        {
+            type: "body",
+            themes: {
+                background: {
+                    dark: "#2b2b2b",
+                    light: "#FFFFFF",
+                    value: "#FFC876"
+                },
+                text: {
+                    dark: "#FFFFFF",
+                    light: "#4a4a4a",
+                    value: "#000000"
+                },
+                font: "Avenir Next",
+                bold: true
+            }
+        }
+    ];
+});

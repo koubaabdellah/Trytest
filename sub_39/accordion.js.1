@@ -1,0 +1,61 @@
+
+
+(function ($) {
+
+  Drupal.atlas = {};
+
+  Drupal.behaviors.atlas = {
+    attach: function (context, settings) {
+      // Add the accordions.
+      Drupal.atlas.accordion();
+    }
+  }
+    
+  /**
+   * Create a simple accordions for the "justification" fields.
+   */
+  Drupal.atlas.accordion = function() {
+    var accordion = $('.accordion');
+    var accordionTitle = accordion.find('.accordion-title');
+    var accordionBody = accordion.find('.accordion-body');
+    var accordionId = accordion.attr('id');
+    var target = window.location.pathname + '#' + accordionId;
+
+    // Don't close accordion when referred to title.
+    if(window.location.hash != '#' + accordionId) {
+      accordionBody.hide();
+    }
+
+    // Events when title or icons are clicked or pressed.
+    // Need to update jQuery UI for this to work.
+    accordionTitle.on('keypress click', function (e) {
+      e.preventDefault();
+      var parent = $(this).parents('.accordion');
+      Drupal.atlas.accordionToggle(parent);
+    });
+  };
+  Drupal.atlas.accordionToggle = function(accordion) {
+    // Get all accordion bodies.
+    var accordionbody = $('.accordion-body');
+    $('.accordion-body').each( function() { // Loop through all bodies.
+      if ($(this).attr('id') != accordion.find('.accordion-body').attr('id')) { // All bodies except the currently clicked item.
+        $(this).slideUp(); // Close it.
+        $(this).parents('.accordion').find('.accordion-icon').attr('src', Drupal.settings.basePath + 'sites/all/themes/rijkshuisstijl_atlas/images/arrow-right.png'); // Reset the arrow icon.
+      }
+    });
+
+    // Open  the clicked item.
+    accordion.find('.accordion-body').slideToggle();
+    accordion.toggleClass('open');
+    
+    // Change the arrow icon.
+    if (accordion.hasClass('open')) {
+      accordion.find('.accordion-icon').attr('src', Drupal.settings.basePath + 'sites/all/themes/rijkshuisstijl_atlas/images/arrow-down.png');
+    }
+    else {
+      accordion.find('.accordion-icon').attr('src', Drupal.settings.basePath + 'sites/all/themes/rijkshuisstijl_atlas/images/arrow-right.png');
+    }
+
+  };
+  
+})(jQuery);

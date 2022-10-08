@@ -1,0 +1,89 @@
+(function () {
+    var _a = window.location, pathname = _a.pathname, search = _a.search;
+    var distPath = pathname.substring(0, pathname.lastIndexOf("/"));
+    var localeUrlParamRegex = /locale=([\w-]+)/;
+    var dojoLocale = search.match(localeUrlParamRegex) ? RegExp.$1 : undefined;
+    var config = {
+        async: true,
+        locale: dojoLocale,
+        packages: [
+            { name: "Application", location: "" + distPath, main: "init" },
+            { name: "PageBlock", location: "" + distPath, main: "pageBlockCheck" },
+            {
+                name: "AccountSwitcherEntry",
+                location: distPath + "/app/accountSwitcher",
+                main: "accountSwitcherEntry"
+            },
+            {
+                name: "utils",
+                location: distPath + "/app/utils"
+            },
+            {
+                name: "esri-global-nav",
+                location: distPath + "/node_modules/esri-global-nav",
+                main: "dist/esri-global-nav"
+            },
+            {
+                name: "ResizeSensor",
+                location: distPath + "/node_modules/css-element-queries/src",
+                main: "ResizeSensor"
+            },
+            {
+                name: "AGOWebWorkerInterface",
+                location: distPath + "/ago-globalnav-resources/dist",
+                main: "AGOWebWorkerInterface"
+            },
+            {
+                name: "arcgis-components",
+                location: distPath + "/arcgis-components/dist"
+            },
+            {
+                name: "arcgis-app-components",
+                location: distPath + "/arcgis-app-components/dist"
+            },
+            {
+                name: "ArcGISHTMLSanitizer",
+                location: distPath + "/node_modules/@esri/arcgis-html-sanitizer/dist/umd",
+                main: "arcgis-html-sanitizer"
+            },
+            {
+                name: "q",
+                location: distPath + "/node_modules/q",
+                main: "q"
+            },
+            {
+                name: "resize-observer-polyfill",
+                location: distPath + "/node_modules/resize-observer-polyfill/dist",
+                main: "ResizeObserver"
+            },
+            {
+                name: "telemetry",
+                location: distPath + "/node_modules/@esri/telemetry/dist"
+            },
+            {
+                name: "TemplatesCommonLib",
+                location: distPath + "/node_modules/templates-common-library"
+            },
+            {
+                name: "config",
+                location: distPath + "/config"
+            },
+            {
+                name: "tslib",
+                location: distPath + "/node_modules/tslib",
+                main: "tslib"
+            },
+            {
+                name: "moment",
+                location: distPath + "/node_modules/moment",
+                main: "moment"
+            },
+            {
+                name: "@ckeditor",
+                location: distPath + "/node_modules/@ckeditor"
+            }
+        ]
+    };
+    window["esriConfig"] = { locale: dojoLocale };
+    window["dojoConfig"] = config;
+})();

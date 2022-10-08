@@ -1,0 +1,2 @@
+//>>built
+define("esri/kernel",["dojo/_base/kernel","dojo/_base/config","dojo/has"],function(d,e,b){d=function(){return this}();var a=d.location,c=a.pathname;b=a.protocol;a={version:"3.41",_appBaseUrl:b+"//"+a.host+c.substring(0,c.lastIndexOf(c.split("/")[c.split("/").length-1]))};e.noGlobals||(d.esri=a);(a.dijit=a.dijit||{})._arcgisUrl=("http:"===b||"https:"===b?b:"http:")+"//www.arcgis.com/sharing/rest";return a});

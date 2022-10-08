@@ -1,0 +1,127 @@
+/*
+var host = "http://marketplacedevext.arcgis.com",
+    searchHost = "http://searchdev.esri.com",
+*/
+
+
+var _searchHost = "//esearchapistg.esri.com",
+	_searchCollection = "arcgis_doc_col|esri_arcgis_blog|esri_new_community_blogs",
+	_searchClient = "resourcesbeta",
+	_agolHost = "//devext.arcgis.com",
+	_mkpHost = "//marketplace.arcgis.com",
+	_esriHost = "http://dev.esri.com",
+	trialUrl = "//learndev.arcgis.com",
+	_downloadUrl = "https://downloadsdev.arcgis.com/dms/rest/update/secured/",
+	_esriWebappsCdnHost = "https://webapps-cdn-dev.esri.com", 
+	_esriAEMHost = "https://preview.esri.com";
+	
+if(window.location.hostname.match( /(docstg.arcgis.com)/)) {
+	_searchHost = "//esearchapistg.esri.com";
+	_searchCollection = "arcgis_doc_col|esri_arcgis_blog|esri_new_community_blogs",
+	_agolHost = "//qaext.arcgis.com";
+	trialUrl = "https://learnstg.arcgis.com";
+	_esriHost = "http://cmsqa.esri.com";
+	_downloadUrl = "https://downloadsqa.arcgis.com/dms/rest/update/secured/",
+	_esriWebappsCdnHost = "https://webapps-cdn-dev.esri.com", 
+	_esriAEMHost = "https://preview.esri.com";
+} else if(window.location.hostname.match( /(doc.arcgis.com)/)) {
+	_searchHost = "//esearchapi.esri.com";
+	_searchCollection = "arcgis_doc_col|esri_arcgis_blog|esri_new_community_blogs",
+	_agolHost = "//www.arcgis.com";
+	trialUrl = "https://learn.arcgis.com";
+	_esriHost = "http://www.esri.com";
+	_downloadUrl = "https://downloads.arcgis.com/dms/rest/update/secured/",
+	_esriWebappsCdnHost = "https://webapps-cdn.esri.com", 
+	_esriAEMHost = "https://www.esri.com";
+}
+
+
+    sitecfg = {
+	  	"debug" : false,
+	
+	    "portalHostname" : _agolHost,
+
+		"agolSignin" : 	_agolHost + "/home/signin.html",
+		"agolProfile" :  "/home/user.html",
+		"agolHelp" :  	 "/en/arcgis-online/",
+		"agolSignout" :  "/sharing/rest/oauth2/signout",
+		"trialDownloadUrl": trialUrl + "/en/trial/",
+
+		"mkpSignin" : 	_mkpHost + "/signin.html",
+		"mkpConsole" : 	_mkpHost + "/console.html",
+		"mkpSearch" : 	_mkpHost + "/index.html",
+
+        "searchUrl" : 	_searchHost + "/search",
+		"esriHostname" : _esriHost,
+		"securedDownloadUrl" : _downloadUrl,
+
+		"searchCollection" : _searchCollection,
+	  	"searchClient" : _searchClient,
+		"isValidToken" : false
+
+	};
+	
+	if(window.location.port && window.location.port == "4567"){
+		sitecfg.localhost = true;
+	}
+	
+	window.onload = function () {
+	  // Initialize all calcite.js patterns
+	  setTimeout(function(){ calcite.init()}, 200);
+	  //Temp workaround
+	  /*setTimeout(function(){ 
+			var pLang = document.getElementsByTagName("html")[0].getAttribute("lang").toLowerCase()
+				var tDict = (window.localeJsonObj || {})[pLang];
+				if(appOverviewURL){
+					var proLangURL = appOverviewURL.replace("/content/esri-sites", "//www.esri.com").replace("/en-us/", "/"+esrilLangMapping[pLang]+"/").replace("/overview", "/resources")
+					$(".breadcrumbs").prepend('<a class="crumb" href="'+proLangURL+'">'+tDict['nav_resources']+'</a>');
+				}
+		}, 200);*/
+	  //workaround
+	};
+
+	var esrilLangMapping = {
+				"en": "en-us",
+				"de": "de-de",
+				"es": "es-es",
+				"fr": "fr-fr",
+				"ja": "ja-jp",
+				"zh-cn": "zh-cn",
+				"ru": "ru-ru",
+				"it": "it-it",
+				"ar": "ar-sa",
+				"pl": "pl-pl",
+				"pt-br": "pt-br",
+				"pt-pt": "pt-pt",
+				"ro": "ro-ro",
+				"ko": "ko-kr"
+			}
+	function insertElem (ele, cls="", content) {
+		var pageLang = document.getElementsByTagName("html")[0].getAttribute("lang").toLowerCase()
+		content = (esrilLangMapping[pageLang]) ? content.replace("/en-us/", "/"+esrilLangMapping[pageLang]+"/"):content
+		
+		var explodedPath = window.location.pathname.split("/");
+		var versionSegment = "version='"+explodedPath[3]+"'";
+		if (window.location.pathname.indexOf("/business-analyst/")<0){
+			content = content.replace("<nav", "<nav "+ versionSegment);
+		}
+		var elem = document.createElement(ele);
+		elem.className = cls
+		elem.innerHTML = content
+		document.body.appendChild(elem);
+	}
+	function insertCss (cssUrl,addLink=false) {
+		var css = document.createElement('link');
+		css.rel = "stylesheet";
+		//css.type = "text/css";
+		css.href = cssUrl;
+		if(addLink){
+		 document.getElementsByTagName('head')[0].appendChild(css);
+		}
+	}
+	insertCss(_esriAEMHost+"/etc.clientlibs/esri-sites/components/content/local-navigation/clientlibs.css", true)
+	;
+	
+if(appOverviewURL && document.location.href.match(/(\/explorer\/|\/tracker\/|\/collector\/)/)){
+		appOverviewURL = appOverviewURL.replace("overview","resources")
+}

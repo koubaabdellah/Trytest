@@ -1,0 +1,93 @@
+/**
+ * Namespace "Base"
+ * @class Base
+ * @desc Base class of this project
+ */
+var Base = function() {
+	// VARIABLES DEFINED HERE ARE PRIVATE
+	var arr_init = []; // Array containing all registered init-functions of subclasses
+	
+	// FUNCTIONS DEFINED HERE ARE PRIVATE
+	
+	/**
+	 * Check and execute registered subclass functions
+	 */
+	function check_register() {
+		for (var i=0; i<arr_init.length; i++) {
+			arr_init[i]();
+		}
+	}
+	
+  
+  /**
+   * Checks IE version. This requires a line of JS in the <head> tags within
+   * IE conditional statements similar to the one below. If not given,
+   * Base.ieVersion stays null.
+   * 
+   * document.getElementsByTagName("html")[0].className += (" ie6");
+   */
+    function check_ie(){
+        if( $ ){
+          if( $('html.ie6').length > 0 )
+            Base.ieVersion = 6;
+          
+          if( $('html.ie7').length > 0 )
+            Base.ieVersion = 7;
+        }
+    }
+    
+	return { // Public area
+		// VARIABLES DEFINED HERE ARE PUBLIC
+		ie6	: ($.browser.msie && ( parseInt($.browser.version)==6 ) ) ? true : false,
+		
+		// FUNCTIONS DEFINED HERE ARE PUBLIC
+		
+		/**
+		* Register (initialization) calls from subclasses
+		* @param (obj_function) Function to initialize subclass
+		*/
+		register: function(obj_function) {
+			arr_init.push(obj_function);
+		},
+		
+    // DEV functions
+		/**
+		* Logs an message tot the console or alerts it
+		* @param (message) The message to log
+		*/
+		log :function(message) {
+ 			if(window.console) {
+    		console.debug(message);
+			} else {
+				alert(message);
+			}
+		},
+		
+    
+    /**
+     * Returns microtime
+     * Usage: var timeStamp = microtime(true);
+     * @param {Object} get_as_float
+     */
+    microtime: function(get_as_float){
+      var now = new Date().getTime() / 1000;
+      var s = parseInt(now);
+      
+      return (get_as_float) ? now : (Math.round((now - s) * 1000) / 1000) + ' ' + s;
+    },
+		// end DEV functions
+		
+		/**
+		* Initialize this class
+		*/
+		init: function() {
+      check_ie();
+      
+			check_register();
+		}
+	}
+}();
+
+$(document).ready(function(){
+	Base.init();
+});

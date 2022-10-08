@@ -1,0 +1,268 @@
+/**
+ * Copyright 2016 Google Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+*/
+
+// DO NOT EDIT THIS GENERATED OUTPUT DIRECTLY!
+// This file should be overwritten as part of your build process.
+// If you need to extend the behavior of the generated service worker, the best approach is to write
+// additional code and include it using the importScripts option:
+//   https://github.com/GoogleChrome/sw-precache#importscripts-arraystring
+//
+// Alternatively, it's possible to make changes to the underlying template file and then use that as the
+// new base for generating output, via the templateFilePath option:
+//   https://github.com/GoogleChrome/sw-precache#templatefilepath-string
+//
+// If you go that route, make sure that whenever you update your sw-precache dependency, you reconcile any
+// changes made to this original template file with your modified copy.
+
+// This generated service worker JavaScript will precache your site's resources.
+// The code needs to be saved in a .js file at the top-level of your site, and registered
+// from your pages in order to be used. See
+// https://github.com/googlechrome/sw-precache/blob/master/demo/app/js/service-worker-registration.js
+// for an example of how you can register this script and handle various service worker events.
+
+/* eslint-env worker, serviceworker */
+/* eslint-disable indent, no-unused-vars, no-multiple-empty-lines, max-nested-callbacks, space-before-function-paren, quotes, comma-spacing */
+'use strict';
+
+var precacheConfig = [["/themes/burgernet_theme/assets/api/AanmakenAfwezigheidsRoosterV2--post.json","746709b20d809abc9a16fc094b90025b"],["/themes/burgernet_theme/assets/api/AanmeldenDeelnemer--post.json","8b1044333f29240d2fbb0a7c525fdb99"],["/themes/burgernet_theme/assets/api/AanpassenProfiel--get.json","a8c08e770d28d54db5699c33f79d0d29"],["/themes/burgernet_theme/assets/api/ValideerAanmeldenDeelnemer--post.json","452b409a182eee04b981de0aeb0aaf6d"],["/themes/burgernet_theme/assets/api/VerifieerPostcodeHuisnr--post.json","b9b7879b15a802724a15a59f737e515b"],["/themes/burgernet_theme/assets/css/dev.css","dc1527d7e385d2c53c2a647cc9f606e6"],["/themes/burgernet_theme/assets/css/main.css","4ac6966a855622cddcaddbd7c6797859"],["/themes/burgernet_theme/assets/images/favicons/android-chrome-144x144.png","63b205a322d33dd35f1a44ce315b1759"],["/themes/burgernet_theme/assets/images/favicons/android-chrome-96x96.png","d1c0cedf73e8fc31ed328a1ec7d1699a"],["/themes/burgernet_theme/assets/images/favicons/apple-touch-icon.png","d956d8ed8d4900defd8e06886640d6e0"],["/themes/burgernet_theme/assets/images/favicons/browserconfig.xml","99eb05c5b0d831e9f8381b64489e9120"],["/themes/burgernet_theme/assets/images/favicons/favicon-16x16.png","d5bdbe6a33a98659cced7f556ebefcbe"],["/themes/burgernet_theme/assets/images/favicons/favicon-32x32.png","e8bd80bcfc93f9c1914d6d908f09a267"],["/themes/burgernet_theme/assets/images/favicons/favicon.ico","27b458bf3b28bef5c02da193e75e976d"],["/themes/burgernet_theme/assets/images/favicons/manifest.json","dcc55a6570d89d3c005c2fd82bacee67"],["/themes/burgernet_theme/assets/images/favicons/mstile-150x150.png","8407d94e3c9091dd8f98a542a9bf115d"],["/themes/burgernet_theme/assets/images/favicons/safari-pinned-tab.svg","214e16326be611b4c49bdfc0bdb11499"],["/themes/burgernet_theme/assets/images/phone-bg.png","5b136e741c2caa10eb8718c168011cb1"],["/themes/burgernet_theme/assets/images/placeholder-message-image.jpg","9e1e874bee77286b2fbf091f70939b9d"],["/themes/burgernet_theme/assets/images/placeholder.400x250.jpg","859c81415e360e791f99ec7d171a4ff6"],["/themes/burgernet_theme/assets/js/AccessibilityLinks.chunk-es.js","654e086d1afa45b2a85818c7fb2bd18a"],["/themes/burgernet_theme/assets/js/AccessibilityLinks.chunk.js","322d556ac201dbdb556985302e2511c5"],["/themes/burgernet_theme/assets/js/Accordion.chunk-es.js","7725cb742adc573e3c72293eade54b76"],["/themes/burgernet_theme/assets/js/Accordion.chunk.js","cdbd35579c861dcc8a3cfef3b57a6af4"],["/themes/burgernet_theme/assets/js/AccountModalAddAddress.chunk-es.js","0e3babf61905e1fe5c3f6a8346d62745"],["/themes/burgernet_theme/assets/js/AccountModalAddAddress.chunk.js","2ad4f0e66ef412b56f4959732e5b26c3"],["/themes/burgernet_theme/assets/js/AccountModalChangePassword.chunk-es.js","1f5445614e49558513e06681a6ab905a"],["/themes/burgernet_theme/assets/js/AccountModalChangePassword.chunk.js","4f4247357f000b96e25439896529e0e2"],["/themes/burgernet_theme/assets/js/AccountModalEditAddress.chunk-es.js","bf92664241aa5f452c61dc2e2ef8bea8"],["/themes/burgernet_theme/assets/js/AccountModalEditAddress.chunk.js","3754c227e816574aa05ab6a4692f090c"],["/themes/burgernet_theme/assets/js/AccountModalNoMessages.chunk-es.js","31139d4ae412715f486eee64b4dbd21a"],["/themes/burgernet_theme/assets/js/AccountModalNoMessages.chunk.js","4c6fcce72a6a9d5a87f81b71e79041a3"],["/themes/burgernet_theme/assets/js/AccountModalRemoveAddress.chunk-es.js","e5fdd0f3730dd43523450576e64f99ff"],["/themes/burgernet_theme/assets/js/AccountModalRemoveAddress.chunk.js","5234374da28a044a729b3fa065f2b081"],["/themes/burgernet_theme/assets/js/AccountModalScheduleMessages.chunk-es.js","a5d14d1719b54a2cdb682e0576a7636f"],["/themes/burgernet_theme/assets/js/AccountModalScheduleMessages.chunk.js","447345f0131670f5664511e90fc008fc"],["/themes/burgernet_theme/assets/js/CTA.chunk-es.js","23ab651137a6d00943d4e1e927ffd132"],["/themes/burgernet_theme/assets/js/CTA.chunk.js","928d6ba784de4e50ac81e93fe7379247"],["/themes/burgernet_theme/assets/js/DatePicker.chunk-es.js","2fb31a4add6157b577eac337426c7163"],["/themes/burgernet_theme/assets/js/DatePicker.chunk.js","65aa6625fa11309586fe0a227c69c38a"],["/themes/burgernet_theme/assets/js/FormAccount.chunk-es.js","59f0730a5843f8905c8d4a7c9772ab52"],["/themes/burgernet_theme/assets/js/FormAccount.chunk.js","acbb8eccf28a7a93cc2552072455eecf"],["/themes/burgernet_theme/assets/js/FormRegistration.chunk-es.js","de7a4c311c30e3cbf98a43633e5d8875"],["/themes/burgernet_theme/assets/js/FormRegistration.chunk.js","48610690b31623ab41114637e5d2d38e"],["/themes/burgernet_theme/assets/js/Modal.chunk-es.js","a7f6f766243f97525a7ba5caf46fcd56"],["/themes/burgernet_theme/assets/js/Modal.chunk.js","36d4712777558b9639dec0a9ff7636ee"],["/themes/burgernet_theme/assets/js/ScrollIndicator.chunk-es.js","85a7f1330544f3b8b3e26b7d22e3e8e2"],["/themes/burgernet_theme/assets/js/ScrollIndicator.chunk.js","a7f3b0ee24dc1c4943eeccc796ccee50"],["/themes/burgernet_theme/assets/js/Tooltip.chunk-es.js","91c40ac7145027788c00b6d0bc358b21"],["/themes/burgernet_theme/assets/js/Tooltip.chunk.js","9784917ce7c8492d1b6061afc8eed8b1"],["/themes/burgernet_theme/assets/js/main-es.js","bc93f61f667dd7ff7bff2d35473e5f75"],["/themes/burgernet_theme/assets/js/main.js","ba0d64563c1f11ebdded797a4223fffe"],["/themes/burgernet_theme/assets/svg/brand/amber-alert-square.png","8ae03ff5fb0c5dd9ad0ee4c52e5ae81f"],["/themes/burgernet_theme/assets/svg/brand/amber-alert.svg","bff838fce5f3723f0bfb75026d39f443"],["/themes/burgernet_theme/assets/svg/brand/burgernet-logo.svg","5789d89c5d324898d804b5c0a833a129"],["/themes/burgernet_theme/assets/svg/brand/burgernet-square.png","6a5faebdd19806efeaa5183209b6a254"],["/themes/burgernet_theme/assets/svg/brand/kind-alarm.svg","5e690f6b1326862057ffa5722e89ef68"],["/themes/burgernet_theme/assets/svg/brand/politie.svg","30131c1a59e0acf1736184ae62aea358"],["/themes/burgernet_theme/assets/svg/elements/zigzag.svg","46bae3e2063e1a7a87c7d876edcad989"],["/themes/burgernet_theme/assets/svg/icons/add.svg","461a94b703745594a1309b9834d8f96c"],["/themes/burgernet_theme/assets/svg/icons/apple.svg","d1bb4beb37aa4a333f395645210f5682"],["/themes/burgernet_theme/assets/svg/icons/arrow-down.svg","cf3577ae859fe054fc6d8a7f5f14006f"],["/themes/burgernet_theme/assets/svg/icons/arrow-left-thin.svg","389fadb3ef915865a9cec47883cb1239"],["/themes/burgernet_theme/assets/svg/icons/arrow-left.svg","393e93c83edcd11d8ee8a437ccae3b2f"],["/themes/burgernet_theme/assets/svg/icons/arrow-right-thin.svg","174048d6960b68c50fb24d2c5d597dac"],["/themes/burgernet_theme/assets/svg/icons/arrow-right.svg","5f2b8566c0e9cf8c29078de7705176ae"],["/themes/burgernet_theme/assets/svg/icons/arrow-up.svg","514852ef5dc75c0aa22ccf3defc75bea"],["/themes/burgernet_theme/assets/svg/icons/check.svg","3950f69587aae1e841a22be4e242efb9"],["/themes/burgernet_theme/assets/svg/icons/chevron-right.svg","aa1f7297e50df8f00b6d42dfa2147cf1"],["/themes/burgernet_theme/assets/svg/icons/close-thin.svg","96d23a8927b8cb4d2ecaaaef545795e5"],["/themes/burgernet_theme/assets/svg/icons/close.svg","a8de393aa204999e8bcb18d15e37259d"],["/themes/burgernet_theme/assets/svg/icons/current-actions.svg","8e454f1e94e7eb0ad269c9866d485808"],["/themes/burgernet_theme/assets/svg/icons/google-play.svg","267aeb4479d31b3cba738f2fb669f583"],["/themes/burgernet_theme/assets/svg/icons/info.svg","607276b972cad05ded665a000b899f48"],["/themes/burgernet_theme/assets/svg/icons/pause.svg","a73d5e6d9d794c49e429e43e92affc46"],["/themes/burgernet_theme/assets/svg/icons/play.svg","e6816c1960d5d6a34898570c55838858"],["/themes/burgernet_theme/assets/svg/icons/scroll-to.svg","8fbcb1c619c7acec2022bfc20a92ca7f"],["/themes/burgernet_theme/assets/svg/social/facebook.svg","be1598ccbef8411a31b8304bbb5dbd52"],["/themes/burgernet_theme/assets/svg/social/google-plus.svg","7acc75978c7785f52cdb686b34b978fd"],["/themes/burgernet_theme/assets/svg/social/instagram.svg","0119c61484ce9a2d1935928715f69340"],["/themes/burgernet_theme/assets/svg/social/linkedin.svg","11d34ea812a8059805fc6396416882a6"],["/themes/burgernet_theme/assets/svg/social/twitter.svg","b8f8d4f96e2753bfe0b22cb5e97de3e7"],["/themes/burgernet_theme/assets/svg/social/whatsapp.svg","d847c495572c898a268c93554fd708fc"],["/themes/burgernet_theme/assets/svg/social/youtube-full.svg","8f311b8c7b0f21aa7a3ccb8a80c174eb"],["/themes/burgernet_theme/assets/svg/social/youtube.svg","2a85d6e07b537c6ea30a432b82e39741"]];
+var cacheName = 'sw-precache-v3--' + (self.registration ? self.registration.scope : '');
+
+
+var ignoreUrlParametersMatching = [/^utm_/];
+
+
+
+var addDirectoryIndex = function(originalUrl, index) {
+    var url = new URL(originalUrl);
+    if (url.pathname.slice(-1) === '/') {
+      url.pathname += index;
+    }
+    return url.toString();
+  };
+
+var cleanResponse = function(originalResponse) {
+    // If this is not a redirected response, then we don't have to do anything.
+    if (!originalResponse.redirected) {
+      return Promise.resolve(originalResponse);
+    }
+
+    // Firefox 50 and below doesn't support the Response.body stream, so we may
+    // need to read the entire body to memory as a Blob.
+    var bodyPromise = 'body' in originalResponse ?
+      Promise.resolve(originalResponse.body) :
+      originalResponse.blob();
+
+    return bodyPromise.then(function(body) {
+      // new Response() is happy when passed either a stream or a Blob.
+      return new Response(body, {
+        headers: originalResponse.headers,
+        status: originalResponse.status,
+        statusText: originalResponse.statusText
+      });
+    });
+  };
+
+var createCacheKey = function(originalUrl, paramName, paramValue,
+                           dontCacheBustUrlsMatching) {
+    // Create a new URL object to avoid modifying originalUrl.
+    var url = new URL(originalUrl);
+
+    // If dontCacheBustUrlsMatching is not set, or if we don't have a match,
+    // then add in the extra cache-busting URL parameter.
+    if (!dontCacheBustUrlsMatching ||
+        !(url.pathname.match(dontCacheBustUrlsMatching))) {
+      url.search += (url.search ? '&' : '') +
+        encodeURIComponent(paramName) + '=' + encodeURIComponent(paramValue);
+    }
+
+    return url.toString();
+  };
+
+var isPathWhitelisted = function(whitelist, absoluteUrlString) {
+    // If the whitelist is empty, then consider all URLs to be whitelisted.
+    if (whitelist.length === 0) {
+      return true;
+    }
+
+    // Otherwise compare each path regex to the path of the URL passed in.
+    var path = (new URL(absoluteUrlString)).pathname;
+    return whitelist.some(function(whitelistedPathRegex) {
+      return path.match(whitelistedPathRegex);
+    });
+  };
+
+var stripIgnoredUrlParameters = function(originalUrl,
+    ignoreUrlParametersMatching) {
+    var url = new URL(originalUrl);
+    // Remove the hash; see https://github.com/GoogleChrome/sw-precache/issues/290
+    url.hash = '';
+
+    url.search = url.search.slice(1) // Exclude initial '?'
+      .split('&') // Split into an array of 'key=value' strings
+      .map(function(kv) {
+        return kv.split('='); // Split each 'key=value' string into a [key, value] array
+      })
+      .filter(function(kv) {
+        return ignoreUrlParametersMatching.every(function(ignoredRegex) {
+          return !ignoredRegex.test(kv[0]); // Return true iff the key doesn't match any of the regexes.
+        });
+      })
+      .map(function(kv) {
+        return kv.join('='); // Join each [key, value] array into a 'key=value' string
+      })
+      .join('&'); // Join the array of 'key=value' strings into a string with '&' in between each
+
+    return url.toString();
+  };
+
+
+var hashParamName = '_sw-precache';
+var urlsToCacheKeys = new Map(
+  precacheConfig.map(function(item) {
+    var relativeUrl = item[0];
+    var hash = item[1];
+    var absoluteUrl = new URL(relativeUrl, self.location);
+    var cacheKey = createCacheKey(absoluteUrl, hashParamName, hash, false);
+    return [absoluteUrl.toString(), cacheKey];
+  })
+);
+
+function setOfCachedUrls(cache) {
+  return cache.keys().then(function(requests) {
+    return requests.map(function(request) {
+      return request.url;
+    });
+  }).then(function(urls) {
+    return new Set(urls);
+  });
+}
+
+self.addEventListener('install', function(event) {
+  event.waitUntil(
+    caches.open(cacheName).then(function(cache) {
+      return setOfCachedUrls(cache).then(function(cachedUrls) {
+        return Promise.all(
+          Array.from(urlsToCacheKeys.values()).map(function(cacheKey) {
+            // If we don't have a key matching url in the cache already, add it.
+            if (!cachedUrls.has(cacheKey)) {
+              var request = new Request(cacheKey, {credentials: 'same-origin'});
+              return fetch(request).then(function(response) {
+                // Bail out of installation unless we get back a 200 OK for
+                // every request.
+                if (!response.ok) {
+                  throw new Error('Request for ' + cacheKey + ' returned a ' +
+                    'response with status ' + response.status);
+                }
+
+                return cleanResponse(response).then(function(responseToCache) {
+                  return cache.put(cacheKey, responseToCache);
+                });
+              });
+            }
+          })
+        );
+      });
+    }).then(function() {
+      
+      // Force the SW to transition from installing -> active state
+      return self.skipWaiting();
+      
+    })
+  );
+});
+
+self.addEventListener('activate', function(event) {
+  var setOfExpectedUrls = new Set(urlsToCacheKeys.values());
+
+  event.waitUntil(
+    caches.open(cacheName).then(function(cache) {
+      return cache.keys().then(function(existingRequests) {
+        return Promise.all(
+          existingRequests.map(function(existingRequest) {
+            if (!setOfExpectedUrls.has(existingRequest.url)) {
+              return cache.delete(existingRequest);
+            }
+          })
+        );
+      });
+    }).then(function() {
+      
+      return self.clients.claim();
+      
+    })
+  );
+});
+
+
+self.addEventListener('fetch', function(event) {
+  if (event.request.method === 'GET') {
+    // Should we call event.respondWith() inside this fetch event handler?
+    // This needs to be determined synchronously, which will give other fetch
+    // handlers a chance to handle the request if need be.
+    var shouldRespond;
+
+    // First, remove all the ignored parameters and hash fragment, and see if we
+    // have that URL in our cache. If so, great! shouldRespond will be true.
+    var url = stripIgnoredUrlParameters(event.request.url, ignoreUrlParametersMatching);
+    shouldRespond = urlsToCacheKeys.has(url);
+
+    // If shouldRespond is false, check again, this time with 'index.html'
+    // (or whatever the directoryIndex option is set to) at the end.
+    var directoryIndex = '';
+    if (!shouldRespond && directoryIndex) {
+      url = addDirectoryIndex(url, directoryIndex);
+      shouldRespond = urlsToCacheKeys.has(url);
+    }
+
+    // If shouldRespond is still false, check to see if this is a navigation
+    // request, and if so, whether the URL matches navigateFallbackWhitelist.
+    var navigateFallback = '/?utm_source=homescreen';
+    if (!shouldRespond &&
+        navigateFallback &&
+        (event.request.mode === 'navigate') &&
+        isPathWhitelisted([], event.request.url)) {
+      url = new URL(navigateFallback, self.location).toString();
+      shouldRespond = urlsToCacheKeys.has(url);
+    }
+
+    // If shouldRespond was set to true at any point, then call
+    // event.respondWith(), using the appropriate cache key.
+    if (shouldRespond) {
+      event.respondWith(
+        caches.open(cacheName).then(function(cache) {
+          return cache.match(urlsToCacheKeys.get(url)).then(function(response) {
+            if (response) {
+              return response;
+            }
+            throw Error('The cached response that was expected is missing.');
+          });
+        }).catch(function(e) {
+          // Fall back to just fetch()ing the request if some unexpected error
+          // prevented the cached response from being valid.
+          console.warn('Couldn\'t serve response for "%s" from cache: %O', event.request.url, e);
+          return fetch(event.request);
+        })
+      );
+    }
+  }
+});
+
+
+
+
+
+
+

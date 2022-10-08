@@ -1,0 +1,300 @@
+define(["require", "exports", "tslib", "esri/core/accessorSupport/decorators", "./ui/main/ConfigPanel", "./widgets/Portal/Portal", "./widgets/Portal/PortalUser", "./utils/UrlParameters", "esri/identity/IdentityManager", "esri/identity/OAuthInfo", "esri/widgets/Widget", "esri/portal/PortalItem", "telemetry/telemetry.dojo", "esri/intl", "esri/core/promiseUtils", "esri/widgets/support/widget"], function (require, exports, tslib_1, decorators_1, ConfigPanel, Portal, PortalUser, UrlParameters, IdentityManager, OAuthInfo, Widget, PortalItem, Telemetry, intl_1, promiseUtils, widget_1) {
+    "use strict";
+    var App = (function (_super) {
+        tslib_1.__extends(App, _super);
+        function App(params) {
+            var _this = _super.call(this, params) || this;
+            _this.appConfig = null;
+            _this.noAppAccessMessages = null;
+            var appConfig = params.appConfig;
+            _this.appConfig = appConfig;
+            var portalUrl = _this._getEsriEnvironmentPortalUrl();
+            _this.appConfig.portalUrl = portalUrl;
+            _this.appConfig.urlParameters = new UrlParameters();
+            if (window.location.href.indexOf("arcgis") !== -1) {
+                _this._registerOAuthInfos();
+            }
+            return _this;
+        }
+        App.prototype.postInitialize = function () {
+            this.init();
+        };
+        App.prototype._getEsriEnvironmentPortalUrl = function () {
+            var pathname = location.pathname;
+            var esriAppsPath = "/apps/";
+            var esriHomePath = "/home/";
+            var esriAppsPathIndex = pathname.indexOf(esriAppsPath);
+            var esriHomePathIndex = pathname.indexOf(esriHomePath);
+            var isEsriAppsPath = esriAppsPathIndex !== -1;
+            var isEsriHomePath = esriHomePathIndex !== -1;
+            var appLocationIndex = isEsriAppsPath
+                ? esriAppsPathIndex
+                : isEsriHomePath
+                    ? esriHomePathIndex
+                    : null;
+            if (appLocationIndex === undefined || this.appConfig.localEnv.isLocal) {
+                return this.appConfig.portalUrl;
+            }
+            var portalInstance = pathname.substring(0, appLocationIndex);
+            var host = location.host;
+            return location.protocol + "//" + host + portalInstance;
+        };
+        App.prototype._registerOAuthInfos = function () {
+            var _a = this.appConfig, oauthAppId = _a.oauthAppId, portalUrl = _a.portalUrl;
+            var info = new OAuthInfo({
+                appId: oauthAppId,
+                portalUrl: portalUrl
+            });
+            if (info) {
+                IdentityManager.registerOAuthInfos([info]);
+            }
+        };
+        App.prototype.init = function () {
+            return tslib_1.__awaiter(this, void 0, void 0, function () {
+                var portalAppResponse, portal, authorizedMessage, href, searchParams, localeUrlParam, locale, dir, darkModeEnabled;
+                var _this = this;
+                return tslib_1.__generator(this, function (_a) {
+                    switch (_a.label) {
+                        case 0: return [4, this._initPortal()];
+                        case 1:
+                            portalAppResponse = _a.sent();
+                            portal = portalAppResponse.portal, authorizedMessage = portalAppResponse.authorizedMessage;
+                            href = window.location.href;
+                            searchParams = new URL(href).searchParams;
+                            localeUrlParam = searchParams.get("locale");
+                            locale = localeUrlParam ? localeUrlParam : portal.get("user.culture");
+                            intl_1.setLocale(locale);
+                            document.documentElement.lang = locale;
+                            dir = intl_1.prefersRTL(locale) ? "rtl" : "ltr";
+                            this.appConfig.direction = dir;
+                            this.appConfig.locale = locale;
+                            document.querySelector("html").setAttribute("dir", dir);
+                            darkModeEnabled = window.matchMedia("(prefers-color-scheme: dark)")
+                                .matches;
+                            promiseUtils
+                                .create(function (resolve) {
+                                require(["ArcGISHTMLSanitizer"], resolve);
+                            })
+                                .then(function (arcgisSanitizer) {
+                                var sanitizer = new arcgisSanitizer({
+                                    whiteList: {
+                                        h1: ["style"],
+                                        h2: ["style"],
+                                        h3: ["style"],
+                                        h4: ["style"],
+                                        h5: ["style"],
+                                        h6: ["style"],
+                                        img: ["style", "src", "width", "height"],
+                                        pre: ["style"],
+                                        p: ["id", "class", "style"],
+                                        div: ["id", "class", "style", "role"],
+                                        span: ["id", "class", "style", "role"],
+                                        figure: ["class", "style"]
+                                    }
+                                }, true);
+                                var telemetry = _this._initTelemetry(portal);
+                                telemetry.logPageView();
+                                new ConfigPanel({
+                                    container: document.body,
+                                    darkModeEnabled: darkModeEnabled,
+                                    portal: portal,
+                                    authorizedMessage: authorizedMessage,
+                                    appConfig: _this.appConfig,
+                                    sanitizer: sanitizer,
+                                    ariaLiveNode: document.getElementById("ariaLiveRegion"),
+                                    telemetry: telemetry,
+                                    configPanelMessages: _this.messages
+                                });
+                            });
+                            return [2];
+                    }
+                });
+            });
+        };
+        App.prototype._initTelemetry = function (portal) {
+            var telemetry = this.appConfig.telemetry;
+            if (telemetry) {
+                var options = telemetry.prod;
+                if (portal.customBaseUrl.indexOf("mapsdevext") !== -1) {
+                    options = telemetry.devext;
+                }
+                else if (portal.customBaseUrl.indexOf("mapsqa") !== -1) {
+                    options = telemetry.qaext;
+                }
+                return new Telemetry({
+                    portal: portal,
+                    disabled: options.disabled,
+                    debug: options.debug,
+                    amazon: options.amazon
+                });
+            }
+        };
+        App.prototype._initPortal = function () {
+            return tslib_1.__awaiter(this, void 0, void 0, function () {
+                var _a, portalUrl, oauthAppId, sharingUrl, checkAppAccess;
+                var _this = this;
+                return tslib_1.__generator(this, function (_b) {
+                    _a = this.appConfig, portalUrl = _a.portalUrl, oauthAppId = _a.oauthAppId;
+                    sharingUrl = portalUrl + "/sharing";
+                    checkAppAccess = IdentityManager.checkAppAccess(sharingUrl, oauthAppId);
+                    return [2, checkAppAccess.then(function (result) {
+                            return _this._createPortal(result, portalUrl);
+                        }, function (error) {
+                            console.error("APP ACCESS ERROR: ", error);
+                            return _this._createPortal(error, portalUrl);
+                        })];
+                });
+            });
+        };
+        App.prototype._createPortal = function (appAccessResponse, url) {
+            return tslib_1.__awaiter(this, void 0, void 0, function () {
+                var viewOnly, portal;
+                var _this = this;
+                return tslib_1.__generator(this, function (_a) {
+                    viewOnly = appAccessResponse.viewOnly;
+                    portal = new Portal({
+                        url: url,
+                        authMode: "immediate"
+                    });
+                    return [2, portal
+                            .load()
+                            .then(function (loadedPortal) { return tslib_1.__awaiter(_this, void 0, void 0, function () {
+                            var authorizedMessage;
+                            return tslib_1.__generator(this, function (_a) {
+                                switch (_a.label) {
+                                    case 0:
+                                        this._setPortalUser(loadedPortal, viewOnly);
+                                        return [4, this._getMessage(appAccessResponse)];
+                                    case 1:
+                                        authorizedMessage = _a.sent();
+                                        console.warn("PORTAL SUCCESS - authorize message: ", (authorizedMessage === null || authorizedMessage === void 0 ? void 0 : authorizedMessage.name) ? authorizedMessage === null || authorizedMessage === void 0 ? void 0 : authorizedMessage.name : "Authorization successful");
+                                        return [2, {
+                                                portal: loadedPortal,
+                                                authorizedMessage: authorizedMessage
+                                            }];
+                                }
+                            });
+                        }); })
+                            .catch(function (loadedErrorPortal) { return tslib_1.__awaiter(_this, void 0, void 0, function () {
+                            var authorizedMessage;
+                            return tslib_1.__generator(this, function (_a) {
+                                switch (_a.label) {
+                                    case 0: return [4, this._getMessage(appAccessResponse)];
+                                    case 1:
+                                        authorizedMessage = _a.sent();
+                                        console.error("PORTAL FAIL - authorize message: ", authorizedMessage === null || authorizedMessage === void 0 ? void 0 : authorizedMessage.name);
+                                        return [2, {
+                                                portal: loadedErrorPortal,
+                                                authorizedMessage: authorizedMessage
+                                            }];
+                                }
+                            });
+                        }); })];
+                });
+            });
+        };
+        App.prototype._setPortalUser = function (portal, viewOnly) {
+            var user;
+            var portalUser = portal.user;
+            if (portalUser) {
+                var json = portalUser && portalUser.sourceJSON;
+                user = new PortalUser();
+                user.sourceJSON = json;
+                user.portal = portal;
+                user.isViewOnly = viewOnly || false;
+                user.read(json);
+                user.init();
+                portal.user = user;
+            }
+        };
+        App.prototype._getMessage = function (appAccessResponse) {
+            return tslib_1.__awaiter(this, void 0, void 0, function () {
+                return tslib_1.__generator(this, function (_a) {
+                    return [2, this._checkForAuthorization(appAccessResponse)];
+                });
+            });
+        };
+        App.prototype._checkForAuthorization = function (appAccessResponse) {
+            return tslib_1.__awaiter(this, void 0, void 0, function () {
+                var id, appPortalItem;
+                var _this = this;
+                return tslib_1.__generator(this, function (_a) {
+                    id = this._getAppId();
+                    if (!id) {
+                        return [2, {
+                                name: "error:does-not-exist-or-inaccessible",
+                                header: this.noAppAccessMessages.error,
+                                message: this.noAppAccessMessages.itemDoesNotExist
+                            }];
+                    }
+                    appPortalItem = new PortalItem({
+                        id: id,
+                        portal: {
+                            url: this.appConfig.portalUrl
+                        }
+                    });
+                    return [2, appPortalItem
+                            .load()
+                            .then(function (loadedAppPortalItem) {
+                            var _a, _b;
+                            var notAuthorized = "identity-manager:not-authorized";
+                            var appAccessResponseName = appAccessResponse === null || appAccessResponse === void 0 ? void 0 : appAccessResponse.name;
+                            var appAccess = loadedAppPortalItem === null || loadedAppPortalItem === void 0 ? void 0 : loadedAppPortalItem.access;
+                            var userId = (_b = (_a = loadedAppPortalItem === null || loadedAppPortalItem === void 0 ? void 0 : loadedAppPortalItem.portal) === null || _a === void 0 ? void 0 : _a.credential) === null || _b === void 0 ? void 0 : _b.userId;
+                            var itemUrl = loadedAppPortalItem === null || loadedAppPortalItem === void 0 ? void 0 : loadedAppPortalItem.itemUrl;
+                            if (appAccess !== "public" && appAccessResponseName === notAuthorized) {
+                                return {
+                                    name: notAuthorized,
+                                    header: _this.noAppAccessMessages.notLicensed,
+                                    message: _this.noAppAccessMessages.notLicensedMessage
+                                };
+                            }
+                            else if (appAccessResponseName === notAuthorized) {
+                                return {
+                                    name: appAccessResponseName,
+                                    header: _this.noAppAccessMessages.notAuthorized,
+                                    message: intl_1.substitute(_this.noAppAccessMessages.notAuthorizedMessage, {
+                                        userId: userId,
+                                        itemUrl: itemUrl
+                                    })
+                                };
+                            }
+                            else if (loadedAppPortalItem === null || loadedAppPortalItem === void 0 ? void 0 : loadedAppPortalItem.error) {
+                                return loadedAppPortalItem;
+                            }
+                        })
+                            .catch(function (err) {
+                            console.error("PORTAL ITEM LOAD ERROR: ", err);
+                            return err;
+                        })];
+                });
+            });
+        };
+        App.prototype._getAppId = function () {
+            var _a = this.appConfig.localEnv, isLocal = _a.isLocal, appid = _a.appid;
+            if (isLocal && appid) {
+                return appid;
+            }
+            var href = window.location.href;
+            var url = new URL(href);
+            var searchParams = url.searchParams;
+            var appidValue = searchParams.get("appid");
+            return appidValue ? appidValue : "";
+        };
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], App.prototype, "messages", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], App.prototype, "appConfig", void 0);
+        tslib_1.__decorate([
+            decorators_1.property(),
+            widget_1.messageBundle("dist/assets/t9n/ui/noAppAccess/resources")
+        ], App.prototype, "noAppAccessMessages", void 0);
+        App = tslib_1.__decorate([
+            decorators_1.subclass("esri.widgets.App")
+        ], App);
+        return App;
+    }(Widget));
+    return App;
+});

@@ -1,0 +1,1 @@
+$.fn.pagingMenu=function(){var n=window.innerWidth||document.documentElement.clientWidth,e=$(".paging__number:first"),g=$(".paging__number:last");n<375&&(2===$(".paging__number--dot").length?e.next().remove():(g.hasClass("paging__number--dot")&&g.prev().remove(),e.hasClass("paging__number--dot")&&e.next().remove()))},$(".paging-menu").pagingMenu();

@@ -1,0 +1,38 @@
+var app = angular.module('app', [])
+    .directive('onloadDirective', function(){
+        return function(){
+            if(!arcScripts) {
+                arcScripts = new ArcScripts();
+            }
+            arcScripts.init();
+        }
+    });
+
+app.config(['$sceProvider', function($sceProvider) {
+    $sceProvider.enabled(false);
+}]);
+
+app.directive("fileread", [function () {
+    return {
+        scope: {
+            fileread: "="
+        },
+        link: function (scope, element, attributes) {
+            element.bind("change", function (changeEvent) {
+                var reader = new FileReader();
+                reader.onload = function (loadEvent) {
+                    scope.$apply(function () {
+                        scope.fileread = changeEvent.target.files[0];
+                    });
+                };
+                reader.readAsDataURL(changeEvent.target.files[0]);
+            });
+        }
+    }
+}]);
+
+//Handles response from OAuth Window
+function SignedIn(authInfo){
+    AuthScriptsAuth.authInfo = authInfo;
+    $.fancybox.open('#uploadForm');
+}

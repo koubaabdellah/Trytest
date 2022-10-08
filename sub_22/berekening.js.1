@@ -1,0 +1,792 @@
+var bshowBerekeningDetailsReserveringsruimte = false;
+var iLeeftijd;
+var iPremiegrondslag;
+var iFOR;
+var iPAobvLoon;
+var iPAobvBeschikbaarheid;
+var iPA;
+var iAOWfranchise;
+var aReserveringsJaren = new Array();
+var iJaarruimtePercentage;
+var iPremiegrondslagMaximaal;
+var iAangroeifactor;
+var iJaarruimte;
+var iReserveringsruimtePercentage;
+var iReserveringsRuimte;
+var iSaveJaarMaxBereikt;
+var strAlert = "";
+var v_gebdat;
+var v_geboortejaar;
+var v_aow_leeftijd;
+var v_aow_jaar;
+var v_aow_gerechtigd;
+var v_aow_grensdatum;
+
+function Bereken1() {
+  //document.getElementById("ResultOuderDan71Leeftijd").innerHTML = Leeftijd();
+  BerekenWaarden();
+}
+
+function Bereken2() {
+  BerekenWaarden();
+  var aDate = v_aow_grensdatum.split('-')
+  if (strAlert != null && document.getElementById('divDetailsReserveringsruimte')) {
+    document.getElementById('divDetailsReserveringsruimte').innerHTML = strAlert;
+  }
+  if (iLeeftijd < 72 && iPremiegrondslag <= 0) {
+    // Verberg evt. tussenresultaat (waarbij grondslag > 0 was)
+    document.getElementById("divTussenResult1").style.display = 'none';
+    document.getElementById("RestultAOW_franchise").innerHTML = iAOWfranchise;
+    doUitvoerResult('divResultJongerDan72EnPremieMin');
+    return false;
+  }
+  //else if (iLeeftijd < 65 && iPremiegrondslag > 0) {
+  else if (v_aow_gerechtigd === false && iPremiegrondslag > 0) {
+    document.getElementById("spanPremiegrondslagMax").innerHTML = iPremiegrondslagMaximaal;
+    document.getElementById("spanPremiegrondslag").innerHTML = iPremiegrondslag;
+    if (!isVisible("divTussenResult1")) {
+      document.getElementById("divTussenResult1").style.display = 'block';
+      HideAndShowDiv("fsInvoer3")
+      HideAndShowDiv("fsInvoer4")
+    }
+  }
+  else if (iPremiegrondslag > 0 && gebdat <= new Date(parseInt(aDate[2], 10), parseInt(aDate[1], 10) - 1, parseInt(aDate[0], 10))) {
+    if (!isVisible("divTussenResult2a")) {
+      document.getElementById("divTussenResult2a").style.display = 'block';
+      HideAndShowDiv("fsInvoer3")
+      HideAndShowDiv("fsInvoer4")
+    }
+  }
+  return true;
+}
+
+function Bereken3() {
+  BerekenWaarden();
+  // Plus en Min en Pensioenaangroei bij werkgever staan aan
+  if (isChecked("PensioenopbouwWerkgeverTrue") || isChecked("PensioenopbouwWerkgeverFalse")) {
+    if (iLeeftijd >= v_aow_leeftijd) {
+      if (!isVisible("divTussenResult2a")) {
+        document.getElementById("divTussenResult2a").style.display = 'block';
+      }
+    } else {
+      if (!isVisible("divTussenResult2b2")) {
+        document.getElementById("ResultJongerDan65Jaarruimte").innerHTML = iJaarruimte;
+        document.getElementById("ResultJongerDan65Jaar1").innerHTML = strJaar;
+        document.getElementById("ResultJongerDan65Jaar2").innerHTML = strJaar - 7;
+        document.getElementById("ResultJongerDan65Jaar3").innerHTML = strJaar - 1;
+        document.getElementById("ResultJongerDan65Jaar4").innerHTML = strJaar;
+        document.getElementById("ResultJongerDan65Jaar5").innerHTML = strJaar;
+        document.getElementById("ResultJongerDan65Jaar6").innerHTML = strJaar - 7;
+        document.getElementById("ResultJongerDan65Jaar7").innerHTML = strJaar - 1;
+        document.getElementById("ResultJongerDan65Jaar8").innerHTML = parseInt(strJaar) + 1;
+        document.getElementById("ResultJongerDan65Jaar9").innerHTML = strJaar - 6;
+        document.getElementById("ResultJongerDan65Jaar10").innerHTML = strJaar;
+        document.getElementById("ResultJongerDan65Jaar11").innerHTML = strJaar - 7;
+        document.getElementById("divTussenResult2b2").style.display = 'block';
+      }
+    }
+  }
+  if (strAlert != null && document.getElementById('divDetailsReserveringsruimte')) {
+    document.getElementById('divDetailsReserveringsruimte').innerHTML = strAlert;
+  }
+}
+
+function Bereken4() {
+  BerekenWaarden();
+  // Plus en Min en Pensioenaangroei bij werkgever en reserveringsruimte staan aan
+  if (isChecked("radioReserveringsruimteTrue") || isChecked("radioReserveringsruimteFalse")) {
+    // Reserveringsruimte uitrekenen, indien van toepassing
+    if (isChecked("radioReserveringsruimteTrue")) {
+      iReserveringsRuimte = BerekenReserveringsRuimte();
+      document.getElementById("ResultJongerDan65Reserveringsruimte").innerHTML = "<br/>De reserveringsruimte " + strJaar + " is &euro; " + iReserveringsRuimte + " en kan niet hoger zijn dan het wettelijk maximum van &euro;&nbsp;" + ReserveringsruimteMAX() + ".";
+      document.getElementById("ResultJongerDan65Totaal").innerHTML = "<br/>In totaal kunt u in " + strJaar + " dus &euro;&nbsp;" + (parseInt(iJaarruimte) + parseInt(iReserveringsRuimte)) + " aan lijfrentepremies aftrekken in uw aangifte over " + strJaar + ".";
+
+    } else {
+      iReserveringsRuimte = 0;
+      document.getElementById("ResultJongerDan65Reserveringsruimte").innerHTML = "";
+      document.getElementById("ResultJongerDan65Totaal").innerHTML = "";
+    }
+    document.getElementById("ResultTussen65En71Reserveringsruimte").innerHTML = iReserveringsRuimte;
+    // Toon eindresultaat
+    bEindberekening = true;
+    document.getElementById("ResultAangiftebiljetJaar").innerHTML = strJaar;
+    if (parseInt(strJaar) >= 2012)
+      document.getElementById("ResultAangiftebiljetJaarVanaf2012").innerHTML = "in " + strJaar + " ";
+    else
+      document.getElementById("ResultAangiftebiljetJaarVanaf2012").innerHTML = "";
+    //if (iLeeftijd >= 65) {
+    if (v_aow_gerechtigd === true) {
+      doUitvoerResult('divResultTussen65En72EnPremiePlus');
+    } else {
+      doUitvoerResult('divResultJongerDan65EnPremiePlus');
+    }
+    strAlert += '<p>Reserveringsruimte: ' + iReserveringsRuimte;
+    strAlert += '<br />Jaarruimte: ' + iJaarruimte;
+    strAlert += '<br />Totaal: ' + (iReserveringsRuimte + iJaarruimte);
+    strAlert += '<br />Leeftijd: ' + iLeeftijd + '</p>';
+    if (strAlert != null && document.getElementById('divDetailsReserveringsruimte')) {
+      document.getElementById('divDetailsReserveringsruimte').innerHTML = strAlert;
+    }
+  }
+}
+
+function BerekenWaarden() {
+  SluitHelp();
+  strAlert = "<h2>" + "* Jaarruimte *" + '</h2>'
+  var aDate = document.getElementById('gebdat').value.split('-');
+  v_gebdat = new Date(parseInt(aDate[2], 10), parseInt(aDate[1], 10) - 1, parseInt(aDate[0], 10));
+  v_geboortejaar = v_gebdat.getFullYear();
+  iLeeftijd = (parseInt(strJaar) - 1) - v_geboortejaar;
+  v_aow_temp = bepaalAOWdatum('gebdat');
+  v_aow_datum = v_aow_temp[0];
+  v_aow_grensdatum = v_aow_temp[1];
+  //v_aow_leeftijd = v_aow_datum.getFullYear() - v_geboortejaar;
+  iPremiegrondslag = Premiegrondslag();
+  iFOR = FOR();
+  iPAobvLoon = PAobvLoon();
+  iPAobvBeschikbaarheid = PAobvBeschikbaarheid();
+  if (isChecked('PensioenopbouwWerkgeverTrue')) {
+    iPA = PA();
+  } else {
+    iPA = 0;
+  }
+  iPA += iFOR;
+  iJaarruimtePercentage = 0;
+  iPremiegrondslagMaximaal = 0;
+  iJaarruimte = 0;
+  for (i = 0; i < aJaarruimtePercentage.length; i++) {
+    if (aJaarruimtePercentage[i][0] == parseInt(strJaar)) {
+      iJaarruimtePercentage = aJaarruimtePercentage[i][1];
+    }
+  }
+  for (i = 0; i < aPremiegrondslagMaximaal.length; i++) {
+    if (aPremiegrondslagMaximaal[i][0] == parseInt(strJaar)) {
+      iPremiegrondslagMaximaal = aPremiegrondslagMaximaal[i][1];
+    }
+  }
+  if (iPremiegrondslag > iPremiegrondslagMaximaal) {
+    iPremiegrondslag = iPremiegrondslagMaximaal
+  }
+
+  iReserveringsruimtePercentage = iJaarruimtePercentage;
+  if (parseInt(strJaar) >= 2014) {
+    for (var i = 0; i < aReserveringsruimtePercentage.length; i++) {
+      if (aReserveringsruimtePercentage[i][0] == parseInt(strJaar)) {
+        iReserveringsruimtePercentage = aReserveringsruimtePercentage[i][1];
+      }
+    }
+  }
+  strAlert += '<p>Reserveringsruimte perc.: ' + iReserveringsruimtePercentage;
+  iJaarruimteReserveringsruimte = parseInt(((iPremiegrondslag / 100) * iReserveringsruimtePercentage) + 1);
+  //if (iLeeftijd < 65) {
+  if (v_aow_gerechtigd === false) {
+    iJaarruimte = parseInt(((iPremiegrondslag / 100) * iJaarruimtePercentage) + 1) - iPA;
+    if (iJaarruimte < 0) {
+      iJaarruimte = 0;
+    }
+  } else {
+    iJaarruimte = 0;
+  }
+  strAlert += '<br />Premiegrondslag max.: ' + iPremiegrondslagMaximaal;
+  strAlert += '<br />Jaarruimte perc.: ' + iJaarruimtePercentage;
+  strAlert += '<br />F naar boven afronden: ' + iJaarruimteReserveringsruimte;
+  strAlert += '<br />L (-): ' + iPA;
+  strAlert += '<br />Jaarruimte: ' + iJaarruimte + "</p>";
+  strAlert += '<p>iFOR = ' + iFOR + '</p>';
+
+  VulTussenresultaat();
+}
+
+function VulTussenresultaat() {
+
+  document.getElementById("spanTussen2b2Jaarruimte").innerHTML = iJaarruimte;
+  document.getElementById("ResultTussen65En71Reserveringsruimte").innerHTML = iJaarruimteReserveringsruimte;
+  document.getElementById("spanReserveringsruimteMAX").innerHTML = ReserveringsruimteMAX();
+  document.getElementById("spanTussenResult1AOW").innerHTML = iAOWfranchise;
+
+  var sHtml = "";
+  if (parseInt(strJaar) <= 2012) {
+    sHtml = "<p>U bent " + iLeeftijd + "&nbsp;jaar op 31 december " + (parseInt(strJaar) - 1) + ". \n\
+ Omdat u ouder bent dan 64, hebt u geen recht op jaarruimte voor het jaar " + strJaar + ".\n\
+ U hebt wel nog recht op eventuele niet-benutte jaarruimtes.";
+  } else if (parseInt(strJaar) === 2013) {
+    sHtml = "<p>U bent " + iLeeftijd + "&nbsp;jaar op 31 december " + (parseInt(strJaar) - 1) + ". \n\
+ Omdat u ouder bent dan " + v_aow_leeftijd + ", hebt u geen recht op jaarruimte voor het jaar " + strJaar + ".\n\
+ U hebt wel nog recht op eventuele niet-benutte jaarruimtes.";
+  } else if (parseInt(strJaar) > 2013) {
+    sHtml = "<p>U bent geboren op of voor " + v_aow_grensdatum + ". U hebt dus de leeftijd bereikt waarop uw AOW-uitkering ingaat. Daarom hebt u geen recht op jaarruimte voor het jaar " + strJaar + ". U hebt wel nog recht op eventuele niet-benutte jaarruimtes.";
+    ;
+  }
+  sHtml += " Dit heet reserveringsruimte. De reserveringsruimte kunt u gebruiken om extra premies af te trekken.</p>";
+  $("#divTussenResult2a div.clUitkomst").html(sHtml);
+
+}
+
+function BerekenReserveringsRuimte(iWelkJaar, bAlleenVerbergen) {
+  // Oudste jaar eerst!!
+  if (iWelkJaar > 0) {
+    iWelkJaar = iWelkJaar;
+  } else {
+    iWelkJaar = -1;
+  }
+  var iTemp = 0;
+  var iTempF;
+  var iTempL;
+  var iJaarruimteTotaal = 0;
+
+  var BR_PersInk7 = 0;
+  var BR_PersInk6 = 0;
+  var BR_PersInk5 = 0;
+  var BR_PersInk4 = 0;
+  var BR_PersInk3 = 0;
+  var BR_PersInk2 = 0;
+  var BR_PersInk1 = 0;
+  var BR_PensAangr7 = 0;
+  var BR_PensAangr6 = 0;
+  var BR_PensAangr5 = 0;
+  var BR_PensAangr4 = 0;
+  var BR_PensAangr3 = 0;
+  var BR_PensAangr2 = 0;
+  var BR_PensAangr1 = 0;
+  var BR_ToeAfFOR7 = 0;
+  var BR_ToeAfFOR6 = 0;
+  var BR_ToeAfFOR5 = 0;
+  var BR_ToeAfFOR4 = 0;
+  var BR_ToeAfFOR3 = 0;
+  var BR_ToeAfFOR2 = 0;
+  var BR_ToeAfFOR1 = 0;
+  var BR_JaarRuim7 = 0;
+  var BR_JaarRuim6 = 0;
+  var BR_JaarRuim5 = 0;
+  var BR_JaarRuim4 = 0;
+  var BR_JaarRuim3 = 0;
+  var BR_JaarRuim2 = 0;
+  var BR_JaarRuim1 = 0;
+  var BR_Aftrek7 = 0;
+  var BR_Aftrek6 = 0;
+  var BR_Aftrek5 = 0;
+  var BR_Aftrek4 = 0;
+  var BR_Aftrek3 = 0;
+  var BR_Aftrek2 = 0;
+  var BR_Aftrek1 = 0;
+
+  var BR_AOWfran7 = 0;
+  var BR_AOWfran6 = 0;
+  var BR_AOWfran5 = 0;
+  var BR_AOWfran4 = 0;
+  var BR_AOWfran3 = 0;
+  var BR_AOWfran2 = 0;
+  var BR_AOWfran1 = 0;
+  var BR_JaarRuimPerc7 = 0;
+  var BR_JaarRuimPerc6 = 0;
+  var BR_JaarRuimPerc5 = 0;
+  var BR_JaarRuimPerc4 = 0;
+  var BR_JaarRuimPerc3 = 0;
+  var BR_JaarRuimPerc2 = 0;
+  var BR_JaarRuimPerc1 = 0;
+  var BR_PremiegrondslagMax7 = 0;
+  var BR_PremiegrondslagMax6 = 0;
+  var BR_PremiegrondslagMax5 = 0;
+  var BR_PremiegrondslagMax4 = 0;
+  var BR_PremiegrondslagMax3 = 0;
+  var BR_PremiegrondslagMax2 = 0;
+  var BR_PremiegrondslagMax1 = 0;
+  var BR_AangrFact7 = 0;
+  var BR_AangrFact6 = 0;
+  var BR_AangrFact5 = 0;
+  var BR_AangrFact4 = 0;
+  var BR_AangrFact3 = 0;
+  var BR_AangrFact2 = 0;
+  var BR_AangrFact1 = 0;
+
+  iReserveringsruimteMAX = ReserveringsruimteMAX();
+
+  strAlert += "<h2>" + "* Reserveringsruimte *" + '</h2>'
+  strAlert += '<p>* Max Reserveringsruimte = ' + iReserveringsruimteMAX + '</p>';
+
+  for (i = 7; i > 0; i--) {
+    // 7 keer de loop doorlopen (zeven jaar) of aantal jaar vanuit checkMaximum()
+    // Wanneer dit gestart wordt met de parameter iWelkJaar gevuld dan wordt aan het einde van de for 
+    // de for-next verlaten en wel of niet de tussendiv <div id="divRRinfotekst?"> getoond
+    // Er wordt dan niets verder berekend
+
+    strAlert += '<hr /><p>Jaar: ' + aReserveringsJaren[i] + '</p>';
+
+    if (eval("document.getElementById('divReserveringsruimte" + i + "').style.display == 'block'") == true) {
+
+
+      if (aReserveringsJaren[i] <= iRegimeOud) {
+        //REGIME    OUD
+        strAlert += '<p>regime: OUD</p>';
+
+        if (document.getElementById('inpPersoonlijkInkomen' + i).value == "") {
+          eval("BR_PersInk" + i + " = 0")
+        } else {
+          eval("BR_PersInk" + i + " = parseInt(document.getElementById('inpPersoonlijkInkomen" + i + "').value)")
+        }
+        if (document.getElementById('inpPensioenaangroei' + i).value == "") {
+          eval("BR_PensAangr" + i + " = 0")
+        } else {
+          eval("BR_PensAangr" + i + " = parseInt(document.getElementById('inpPensioenaangroei" + i + "').value)")
+        }
+        if (document.getElementById('inpToenameAfnameFOR' + i).value == "") {
+          eval("BR_ToeAfFOR" + i + " = 0")
+        } else {
+          eval("BR_ToeAfFOR" + i + " = parseInt(document.getElementById('inpToenameAfnameFOR" + i + "').value)")
+        }
+        if (document.getElementById('inpAfgetrokken' + i).value == "") {
+          eval("BR_Aftrek" + i + " = 0")
+        } else {
+          eval("BR_Aftrek" + i + " = parseInt(document.getElementById('inpAfgetrokken" + i + "').value)")
+        }
+
+        strAlert += '<p>Inkomen: ' + eval("BR_PersInk" + i);
+        strAlert += '<br />Aangroei: ' + eval("BR_PensAangr" + i);
+        strAlert += '<br />FOR: ' + eval("BR_ToeAfFOR" + i);
+        strAlert += '<br />Afgetrokken: ' + eval("BR_Aftrek" + i);
+
+        for (x = 0; x < aAOWfranchise.length; x++) {
+          if (aAOWfranchise[x][0] == aReserveringsJaren[i]) {
+            eval("BR_AOWfran" + i + " = aAOWfranchise[x][1]")
+          }
+        }
+        for (x = 0; x < aJaarruimtePercentage.length; x++) {
+          if (aJaarruimtePercentage[x][0] == aReserveringsJaren[i]) {
+            eval("BR_JaarRuimPerc" + i + " = aJaarruimtePercentage[x][1]")
+          }
+        }
+        for (x = 0; x < aPremiegrondslagMaximaal.length; x++) {
+          if (aPremiegrondslagMaximaal[x][0] == aReserveringsJaren[i]) {
+            eval("BR_PremiegrondslagMax" + i + " = aPremiegrondslagMaximaal[x][1]")
+          }
+        }
+        for (x = 0; x < aAangroeifactor.length; x++) {
+          if (aAangroeifactor[x][0] == aReserveringsJaren[i]) {
+            eval("BR_AangrFact" + i + " = aAangroeifactor[x][1]")
+          }
+        }
+        strAlert += '<br />AOW franchise: ' + eval("BR_AOWfran" + i);
+        strAlert += '<br />Jaarruimte percentage: ' + eval("BR_JaarRuimPerc" + i);
+        strAlert += '<br />Premiegrondslag maximaal: ' + eval("BR_PremiegrondslagMax" + i);
+        strAlert += '<br />Aangroei factor: ' + eval("BR_AangrFact" + i);
+
+        // F // iTempF = Inkomen - AOWfranchise
+        iTempF = eval("BR_PersInk" + i) - eval("BR_AOWfran" + i);
+
+        // F // iTempF = min iTempF/iTempMax
+        iTempMax = eval("BR_PremiegrondslagMax" + i);
+        if (iTempF >= iTempMax) {
+          iTempF = iTempMax
+        }
+
+        // F // iTempF = (iTempF / 100 ) * JaarruimtePercentage
+        iTempF = ((iTempF / 100) * eval("BR_JaarRuimPerc" + i));
+        iTempF = parseInt(iTempF + 1);
+
+        // L // (( Aangroei / 100 ) * Aangroeifactor) + FOR + Afgetrokken
+
+        iTempL = eval("BR_PensAangr" + i) * eval("BR_AangrFact" + i);
+        strAlert += '<br />Aangroei: ' + eval("BR_PensAangr" + i);
+        strAlert += '<br />Aangroei totaal: ' + iTempL + '</p>';
+
+        iTempL += parseInt(eval("BR_ToeAfFOR" + i)) + parseInt(eval("BR_Aftrek" + i));
+        iTempL = parseInt(iTempL);
+        strAlert += '<p>F: ' + iTempF;
+        strAlert += '<br />L: ' + iTempL + '</p>';
+
+        // Jaarruimte OUD // F - L als F > L
+        if (iTempF >= iTempL) {
+          iTemp = iTempF - iTempL;
+        } else {
+          iTemp = 0;
+        }
+        iReserveerJaarruimte = iTemp;
+        strAlert += '<p>Jaarruimte: ' + iReserveerJaarruimte + '<p>';
+
+      } else {
+        //REGIME    NIEUW
+        strAlert += '<p>regime: NIEUW</p>';
+        if (document.getElementById('inpJaarruimte' + i).value == "") {
+          eval("BR_JaarRuim" + i + " = 0")
+        } else {
+          eval("BR_JaarRuim" + i + " = parseInt(document.getElementById('inpJaarruimte" + i + "').value)")
+        }
+        if (document.getElementById('inpAfgetrokken' + i).value == "") {
+          eval("BR_Aftrek" + i + " = 0")
+        } else {
+          eval("BR_Aftrek" + i + " = parseInt(document.getElementById('inpAfgetrokken" + i + "').value)")
+        }
+
+        iReserveerJaarruimte = eval("BR_JaarRuim" + i) - eval("BR_Aftrek" + i);
+        if (iReserveerJaarruimte < 0) {
+          iReserveerJaarruimte = 0;
+        }
+        strAlert += '<p>Inkomen: ' + eval("BR_JaarRuim" + i);
+        strAlert += " - Afgetrokken: " + eval("BR_Aftrek" + i);
+        strAlert += " = " + "Jaarruimte: " + iReserveerJaarruimte + '</p>';
+      }
+    } else {
+      iReserveerJaarruimte = 0;
+    }
+    iJaarruimteTotaal += iReserveerJaarruimte;
+    if (iJaarruimteTotaal < iReserveringsruimteMAX) {
+      strAlert += '<p>Reserveringsruimte: ' + iJaarruimteTotaal + '</p>';
+    } else {
+      strAlert += '<p>Reserveringsruimte (maximum bereikt): ' + iReserveringsruimteMAX + '</p>';
+    }
+//Controle alleen uitvoeren wanneer de gebruiker een ander jaar kiest
+    if (iWelkJaar != iSaveJaarMaxBereikt || bAlleenVerbergen == true) {
+      // Alleen wanneer de parameter iWelkJaar is gevuld en de maximale reserveringsruimte is bereikt
+      // Eerst checken of div al aanstaat?
+
+      var bStaatDivAan = false;
+      var iDivStaatAan = 0;
+      for (x = 2; x <= 7 && bStaatDivAan == false; x++) {
+        if (eval("document.getElementById('divMaxResBereikt" + x + "').style.display == 'block'") == true) {
+          bStaatDivAan = true;
+          iDivStaatAan = x
+        }
+      }
+      if (bStaatDivAan == true && iJaarruimteTotaal < iReserveringsruimteMAX && (bAlleenVerbergen != true || (bAlleenVerbergen == true && iWelkJaar > iSaveJaarMaxBereikt))
+              ) {
+        //for ( x = 2; x <= 7; x++ ) { eval("document.getElementById('divMaxResBereikt" + x + "').style.display = 'none'") }
+        eval("document.getElementById('divMaxResBereikt" + iDivStaatAan + "').style.display = 'none'")
+      }
+      if (iWelkJaar > 0 && iJaarruimteTotaal > iReserveringsruimteMAX && bStaatDivAan == false) {
+        var tmpJaar;
+        if (parseInt(strJaar) - 7 == aReserveringsJaren[i]) {
+          var tmpJaar = aReserveringsJaren[i];
+        } else {
+          var tmpJaar = (parseInt(strJaar) - 7) + ' tot en met ' + aReserveringsJaren[i]
+        }
+        if (i > 1 && bAlleenVerbergen != true) {
+          eval("document.getElementById('divMaxResBereikt" + i + "').innerHTML = '<p>U hebt bij de berekening van de niet-benutte jaarruimte over ' + tmpJaar + ' al het maximum bereikt dat u in ' + strJaar + ' in de reserveringsruimte mag aftrekken. Als u toch uw totale niet-benutte jaarruimte van de periode ' + (parseInt(strJaar) - 7) + ' tot en met ' + (parseInt(strJaar) - 1) + ' wilt berekenen, kunt u verder gaan en de volgende vragen invullen.</p>'");
+          eval("document.getElementById('divMaxResBereikt" + i + "').style.display = 'block'");
+          eval("document.getElementById('divMaxResBereikt" + i + "').style.visibility = 'visible'");
+        }
+      }
+    }
+  }
+  iSaveJaarMaxBereikt = iWelkJaar;
+//alert("iReserveringsruimteMAX: " + iReserveringsruimteMAX + "\niJaarruimteTotaal : "+ iJaarruimteTotaal);
+  if (iWelkJaar == -1) {
+    iTemp = iJaarruimteTotaal;
+    if (iTemp > iReserveringsruimteMAX) {
+      iTemp = iReserveringsruimteMAX
+    }
+    strAlert += '<p>Som: ' + iJaarruimteTotaal;
+    strAlert += '<br />Max res: ' + iReserveringsruimteMAX + '</p>';
+    ;
+    /* 		strAlert += '<br />Reserveringsruimte: ' + iTemp;
+     strAlert += '<br />Jaarruimte: ' + iJaarruimte;
+     strAlert += '<br />Totaal: ' + (iTemp + iJaarruimte) + '</p>'; */
+    return (iTemp);
+  }
+}
+
+function doCheckMaxBereikt(iWelkJaar, bAlleenVerbergen) {
+  BerekenReserveringsRuimte(iWelkJaar, bAlleenVerbergen)
+}
+
+function ReserveringsruimteMAX() {
+  var iMaxReserveringsruimte = 0;
+  var iJaar = parseInt(strJaar); // Gezet in interface.js
+  GebdatMaxReserveringsruimte = -1;
+  for (var i = 0; i < aJaarMaxReserveringsruimte.length; i++) {
+    if(aJaarMaxReserveringsruimte[i][0] === iJaar){
+      GebdatMaxReserveringsruimte = aJaarMaxReserveringsruimte[i][1];
+      break;
+    }
+  }
+//  if ((iJaar < 2014 && iLeeftijd < 55) || (iJaar === 2014 && gebdat >= new Date(1958, 11, 1)) || (iJaar === 2015 && gebdat >= new Date(1959, 10, 1))) {
+  if ((iJaar < 2014 && iLeeftijd < 55) || (GebdatMaxReserveringsruimte !== -1 && gebdat >= GebdatMaxReserveringsruimte)) {    
+    for (var i = 0; i < aResRuimteJongerdan55.length; i++) {
+      if (aResRuimteJongerdan55[i][0] == iJaar) {
+        iMaxReserveringsruimte = aResRuimteJongerdan55[i][1];
+      }
+    }
+  } else {
+    for (var i = 0; i < aResRuimte55enOuder.length; i++) {
+      if (aResRuimte55enOuder[i][0] == iJaar) {
+        iMaxReserveringsruimte = aResRuimte55enOuder[i][1]
+      }
+    }
+  }
+  if (iJaarruimteReserveringsruimte < iMaxReserveringsruimte) {
+    iMaxReserveringsruimte = iJaarruimteReserveringsruimte
+  }
+//	if ( iMinimum < iMaxReserveringsruimte ) { iMaxReserveringsruimte = iMinimum }
+  return iMaxReserveringsruimte;
+}
+
+function PA() {
+  // Pensioenaangroei
+  var iOpgaaf = 0;
+  var iAangroei = 0;
+  iAangroeifactor = 0;
+  var iSpaarloonregeling = 0;
+  if (document.getElementById('inpOpgaaf').value != "" && document.getElementById('divOpgaaf').style.display == "block") {
+    iOpgaaf = parseInt(document.getElementById('inpOpgaaf').value)
+  }
+
+  if (parseInt(strJaar) === 2015) {
+    iAangroei = iOpgaaf + (iPAobvLoon + iPAobvBeschikbaarheid) * (37 / 40);
+  } else if (parseInt(strJaar) === 2014) {
+    iAangroei = iOpgaaf + (iPAobvLoon + iPAobvBeschikbaarheid) * (35 / 37);
+  } else {
+    iAangroei = iOpgaaf + iPAobvLoon + iPAobvBeschikbaarheid;
+  }
+
+  strAlert += '<p>Pensioenaangroei: ' + iAangroei + '</p>';
+  for (i = 0; i < aAangroeifactor.length; i++) {
+    if (aAangroeifactor[i][0] == parseInt(strJaar)) {
+      iAangroeifactor = aAangroeifactor[i][1]
+    }
+  }
+  iAangroeiNaFactor = iAangroei * iAangroeifactor;
+  if (document.getElementById('inpSpaarloonregeling').value != "" && document.getElementById('divSpaarloonregeling').style.display == "block") {
+    iSpaarloonregeling = parseInt(document.getElementById('inpSpaarloonregeling').value)
+  }
+  strAlert += '<p>Aftrek Pensioenaangroei: ' + parseInt(iAangroeiNaFactor + iSpaarloonregeling) + '</p>';
+  return parseInt(iAangroeiNaFactor + iSpaarloonregeling);
+}
+
+function PAobvBeschikbaarheid() {
+  // Pensioenaangroei op basis beschikbaarheid
+  var iVrijwillig = 0;
+  var iPremiefactor = 0;
+  var iTemp1 = 0;
+  var iTemp2 = 0;
+  var iLeeftijdPremiefactor = parseInt(strJaar) >= 2012 ? iLeeftijd - 1 : iLeeftijd;
+  if (document.getElementById('inpVrijwillig').value != "" && document.getElementById('divPensioenaangroeiBerekenen').style.display == "block") {
+    iVrijwillig = parseInt(document.getElementById('inpVrijwillig').value)
+  }
+  if (parseInt(strJaar) >= 2015) {
+    for (i = 0; i < aPremiefactor2015.length; i++) {
+      iTemp1 = aPremiefactor2015[i][0];
+      if (i == aPremiefactor2015.length - 1) {
+        iTemp2 = 99;
+      } else {
+        iTemp2 = aPremiefactor2015[i + 1][0];
+      }
+      if (iLeeftijdPremiefactor >= iTemp1 && iLeeftijdPremiefactor < iTemp2) {
+        iPremiefactor = aPremiefactor2015[i][1]
+      }
+    }
+  } else if (parseInt(strJaar) >= 2007) {
+    for (i = 0; i < aPremiefactor2007.length; i++) {
+      iTemp1 = aPremiefactor2007[i][0];
+      if (i == aPremiefactor2007.length - 1) {
+        iTemp2 = 99;
+      } else {
+        iTemp2 = aPremiefactor2007[i + 1][0];
+      }
+      if (iLeeftijdPremiefactor >= iTemp1 && iLeeftijdPremiefactor < iTemp2) {
+        iPremiefactor = aPremiefactor2007[i][1]
+      }
+    }
+  } else {
+    for (i = 0; i < aPremiefactor.length; i++) {
+      iTemp1 = aPremiefactor[i][0];
+      if (i == aPremiefactor.length - 1) {
+        iTemp2 = 99;
+      } else {
+        iTemp2 = aPremiefactor[i + 1][0];
+      }
+      if (iLeeftijdPremiefactor >= iTemp1 && iLeeftijdPremiefactor < iTemp2) {
+        iPremiefactor = aPremiefactor[i][1]
+      }
+    }
+  }
+  strAlert += '<p>LeeftijdPremiefactor: ' + iLeeftijdPremiefactor + '</p>';
+  strAlert += '<p>Premiefactor: ' + iPremiefactor + '</p>';
+  return parseInt(iVrijwillig * iPremiefactor);
+}
+
+function PAobvLoon() {
+  // Pensioenaangroei op basis loon
+  var iGrondslag = 0;
+  var iFranchise = 0;
+  var iPercentage = 0;
+  var iTemp = 0;
+  if (document.getElementById('inpGrondslag').value != "" && document.getElementById('divPensioenaangroeiBerekenen').style.display == "block") {
+    iGrondslag = parseInt(document.getElementById('inpGrondslag').value)
+  }
+  if (document.getElementById('inpFranchise').value != "" && document.getElementById('divPensioenaangroeiBerekenen').style.display == "block") {
+    iFranchise = parseInt(document.getElementById('inpFranchise').value)
+  }
+  if (document.getElementById('inpPercentage').value != "" && document.getElementById('divPensioenaangroeiBerekenen').style.display == "block") {
+    iPercentage = toRekenBedrag(document.getElementById('inpPercentage').value)
+  }
+  if (iGrondslag > iFranchise) {
+    iTemp = ((iGrondslag - iFranchise) / 100) * iPercentage
+  }
+  if (strJaar >= 2008 && isVisible("divPensioenaangroeiLeeftijd")) {
+    //var test = aCorrectiefactor[0][document.getElementById('selectPensioenaangroeiLeeftijd').value];
+    iTemp = iTemp * aCorrectiefactor[0][document.getElementById('selectPensioenaangroeiLeeftijd').value];
+  }
+  //	return parseInt(iTemp);
+  return iTemp;
+}
+
+function FOR() { //tricky name?
+  //Pensioenaangroei FOR
+  var iFORP = 0;
+  var iFORM = 0;
+  var iTemp = 0;
+  if (document.getElementById('inpFORPreserve').value != "" && document.getElementById('divFORPreserve').style.display == "block") {
+    iFORP = parseInt(document.getElementById('inpFORPreserve').value)
+  }
+  if (strJaar < 2013) {
+    if (document.getElementById('inpFORMaftrek').value != "" && document.getElementById('divFORMaftrek').style.display == "block") {
+      iFORM = parseInt(document.getElementById('inpFORMaftrek').value)
+    }
+  } else {
+    if (document.getElementById('inpFORMaftrek_verplicht').value != "" && document.getElementById('divFORMaftrek_vanaf_2013').style.display == "block") {
+      iFORM = parseInt(document.getElementById('inpFORMaftrek_verplicht').value)
+    }
+  }
+  if (iFORP > iFORM) {
+    iTemp = iFORP - iFORM
+  }
+  return parseInt(iTemp);
+}
+
+function Premiegrondslag() {
+  var iWinst = 0;
+  var iSalaris = 0;
+  var iFORPreserve = 0;
+  var iAuto = 0;
+  var iBuitenland = 0;
+  var iOverig = 0;
+  var iVroeger = 0;
+  var iVermogen = 0;
+  var iAlimentatie = 0;
+  var iUitkering = 0;
+  var iTotaalPlus = 0;
+  var iReisaftrek = 0;
+  var iZeedagen = 0;
+  var iFORMaftrek = 0;
+  iAOWfranchise = 0;
+  var iTotaalMin = 0;
+  var iPremiegrondslagTemp = 0;
+  var i = 0;
+
+  // Plusposten tellen
+  if (document.getElementById('inpWinst').value != "" && document.getElementById('divWinst').style.display == "block") {
+    iWinst = parseInt(document.getElementById('inpWinst').value)
+  }
+  if (document.getElementById('inpSalaris').value != "") {
+    iSalaris = parseInt(document.getElementById('inpSalaris').value)
+  }
+  if (document.getElementById('inpFORPreserve').value != "" && document.getElementById('divFORPreserve').style.display == "block") {
+    iFORPreserve = parseInt(document.getElementById('inpFORPreserve').value)
+  }
+  if (document.getElementById('inpAuto').value != "" && document.getElementById('divAuto').style.display == "block") {
+    iAuto = parseInt(document.getElementById('inpAuto').value)
+  }
+  if (document.getElementById('inpBuitenland').value != "") {
+    iBuitenland = parseInt(document.getElementById('inpBuitenland').value)
+  }
+  if (document.getElementById('inpOverig').value != "") {
+    iOverig = parseInt(document.getElementById('inpOverig').value)
+  }
+  if (document.getElementById('inpVroeger').value != "") {
+    iVroeger = parseInt(document.getElementById('inpVroeger').value)
+  }
+  if (document.getElementById('inpVermogen').value != "") {
+    iVermogen = parseInt(document.getElementById('inpVermogen').value)
+  }
+  if (document.getElementById('inpAlimentatie').value != "" && document.getElementById('divAlimentatie').style.display == "block") {
+    iAlimentatie = parseInt(document.getElementById('inpAlimentatie').value)
+  }
+  if (document.getElementById('inpUitkering').value != "") {
+    iUitkering = parseInt(document.getElementById('inpUitkering').value)
+  }
+  iTotaalPlus = iWinst + iSalaris + iFORPreserve + iAuto + iBuitenland + iOverig + iVroeger + iVermogen + iAlimentatie + iUitkering;
+
+  // Minposten
+  if (document.getElementById('inpReisaftrek').value != "") {
+    iReisaftrek = parseInt(document.getElementById('inpReisaftrek').value)
+  }
+  if (document.getElementById('inpZeedagen').value != "") {
+    iZeedagen = parseInt(document.getElementById('inpZeedagen').value)
+  }
+  if (strJaar < 2013) {
+    if (document.getElementById('inpFORMaftrek').value != "" && document.getElementById('divFORMaftrek').style.display == "block") {
+      iFORMaftrek = parseInt(document.getElementById('inpFORMaftrek').value)
+    }
+  } else if (document.getElementById('divFORMaftrek_vanaf_2013').style.display == "block") {
+    if (document.getElementById('inpFORMaftrek_verplicht').value != "") {
+      iFORMaftrek += parseInt(document.getElementById('inpFORMaftrek_verplicht').value)
+    }
+    if (document.getElementById('inpFORMaftrek_vrijwillig').value != "") {
+      iFORMaftrek += parseInt(document.getElementById('inpFORMaftrek_vrijwillig').value)
+    }
+  }
+
+  iTotaalMin = iReisaftrek + iZeedagen + iFORMaftrek;
+  iTemp = iTotaalPlus - iTotaalMin;
+  for (i = 0; i < aAOWfranchise.length; i++) {
+    if (aAOWfranchise[i][0] == parseInt(strJaar)) {
+      iAOWfranchise = aAOWfranchise[i][1]
+    }
+  }
+  if (iTemp > iAOWfranchise) {
+    iPremiegrondslagTemp = iTemp - iAOWfranchise
+  }
+
+  strAlert += '<p>Plusposten: ' + iTotaalPlus;
+  strAlert += '<br />Minposten: ' + iTotaalMin;
+  strAlert += '<br />AOW Franchise: ' + iAOWfranchise;
+  strAlert += '<br />Premiegrondslag: ' + iPremiegrondslagTemp;
+  return iPremiegrondslagTemp;
+}
+
+function bepaalAOWdatum(id) {
+  //In deze berekening 	wordt rekening gehouden met schrikkeljaren en maanden met 30 en 31 dagen.
+  // oplossing voor bijv: 31-3 + 1 maand
+  // js berekent dan 1-5, dit moet echter worden: 30-4
+  var v_aow_grensdatum = Tabellen.aow[0][0]
+  for (var i = 0; i < Tabellen.aow.length; i++) {
+    if (parseInt(strJaar) === Tabellen.aow[i][2]) {
+      v_aow_grensdatum = Tabellen.aow[i][0];
+    }
+  }
+
+  var aDate = document.getElementById(id).value.split('-');
+  gebdat = new Date(parseInt(aDate[2], 10), parseInt(aDate[1], 10) - 1, parseInt(aDate[0], 10));
+
+  var v_datum65 = new Date(gebdat);
+  var dag_voor = gebdat.getDate();
+  v_datum65.setFullYear(v_datum65.getFullYear() + 65);
+  var dag_na = v_datum65.getDate();
+  if (dag_na < dag_voor) {
+    v_datum65.setDate(v_datum65.getDate() - dag_na);
+  }
+  var v_extra_maanden = 0;
+  if (!(strJaar === "2013" && gebdat > new Date(1947, 10, 30) && gebdat < new Date(1948, 01, 01))) { // specifiek voor module lijfrente
+    for (var i = 0; i < Tabellen.aow.length; i++) {
+      var aDate = Tabellen.aow[i][0].split('-');
+      if (gebdat > new Date(parseInt(aDate[2], 10), parseInt(aDate[1], 10) - 1, parseInt(aDate[0], 10))) {
+        var v_extra_maanden = Tabellen.aow[i][1];
+      } else {
+        break;
+      }
+    }
+  }
+  v_aow_leeftijd = 65 + (v_extra_maanden / 12);
+  dag_voor = v_datum65.getDate();
+  v_datum65.setMonth(v_datum65.getMonth() + v_extra_maanden);
+  dag_na = v_datum65.getDate();
+  if (dag_na < dag_voor) {
+    v_datum65.setDate(v_datum65.getDate() - dag_na);
+  }
+  v_aow_jaar = v_datum65.getFullYear();
+  if (parseInt(strJaar) > v_aow_jaar) {
+    v_aow_gerechtigd = true;
+  } else {
+    v_aow_gerechtigd = false;
+  }
+  return [v_datum65, v_aow_grensdatum];
+}

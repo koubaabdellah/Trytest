@@ -1,0 +1,1 @@
+!function(e){"function"==typeof define&&define.amd?define(e):e()}((function(){"use strict";(Drupal=>{Drupal.behaviors.pageOptions={attach(e){const t=(e.parentNode||e).querySelectorAll(".js-page-options").once("page-options"),n=e=>{e.preventDefault()};t.forEach((e=>{e.querySelectorAll('a[href="#"]').forEach((e=>{e.addEventListener("click",n)}))}))}}})(Drupal)}));

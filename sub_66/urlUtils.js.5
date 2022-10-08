@@ -1,0 +1,179 @@
+define(["require", "exports", "tslib", "dojo/io-query", "./matchUrlWildCard"], function (require, exports, tslib_1, ioQuery, matchUrlWildCard_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.isValidHttpUrl = exports.checkUrl = exports.checkUrlREST = exports.upgradeToHttps = exports.isHTTP = exports.urlParams = void 0;
+    matchUrlWildCard_1 = tslib_1.__importDefault(matchUrlWildCard_1);
+    function urlParams(winLocationSearch) {
+        var urlObj = ioQuery.queryToObject(winLocationSearch.replace(/^\?/, ""));
+        urlObj = urlObj || {};
+        for (var key in urlObj) {
+            if (urlObj.hasOwnProperty(key) && typeof urlObj[key] === "string") {
+                urlObj[key] = urlObj[key].replace(/(&lt;|&gt;|<|>|%3C|%3E)/g, "");
+            }
+        }
+        return urlObj;
+    }
+    exports.urlParams = urlParams;
+    function isHTTP(url) {
+        return (url === null || url === void 0 ? void 0 : url.indexOf("http://")) !== -1;
+    }
+    exports.isHTTP = isHTTP;
+    exports.upgradeToHttps = function (url) {
+        return url.replace(/^http:\/\//, "https://");
+    };
+    exports.checkUrlREST = "https://arcgis.com/sharing/checkUrl.jsp";
+    exports.checkUrl = function (options) { return tslib_1.__awaiter(void 0, void 0, void 0, function () {
+        var httpsUrl, url, res, data, headers_1, isEmbedSupported_1, hasAccessControlOriginHeader_1, isSupportedVideoType_1, isSupportedAudioType_1, isSupportedImageType_1, isSupportedPdfType_1, isRangeRequestSupported_1, error_1;
+        return tslib_1.__generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    if (options.portal.isPortal) {
+                        return [2, {
+                                isEmbedSupported: true,
+                                url: options.url
+                            }];
+                    }
+                    httpsUrl = exports.upgradeToHttps(options.url);
+                    url = null;
+                    if (options.portal.customBaseUrl.indexOf("mapsdevext") !== -1) {
+                        url = exports.checkUrlREST.replace("arcgis.com", "devext.arcgis.com") + "?url=" + options.url;
+                    }
+                    else if (options.portal.customBaseUrl.indexOf("mapsqa") !== -1) {
+                        url = exports.checkUrlREST.replace("arcgis.com", "qaext.arcgis.com") + "?url=" + options.url;
+                    }
+                    else {
+                        url = exports.checkUrlREST + "?url=" + options.url;
+                    }
+                    _a.label = 1;
+                case 1:
+                    _a.trys.push([1, 4, , 5]);
+                    return [4, fetch(url + "?url=" + options.url, {
+                            method: "POST",
+                            cache: "no-cache",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({ url: httpsUrl })
+                        })];
+                case 2:
+                    res = _a.sent();
+                    return [4, res.json()];
+                case 3:
+                    data = _a.sent();
+                    if ((data === null || data === void 0 ? void 0 : data.httpStatusMessage) === "HTTP/1.1 200 OK") {
+                        headers_1 = data.httpHeaders;
+                        isEmbedSupported_1 = true;
+                        hasAccessControlOriginHeader_1 = false;
+                        isSupportedVideoType_1 = false;
+                        isSupportedAudioType_1 = false;
+                        isSupportedImageType_1 = false;
+                        isSupportedPdfType_1 = false;
+                        isRangeRequestSupported_1 = false;
+                        Object.keys(headers_1).forEach(function (key) {
+                            var header = headers_1[key];
+                            var lowerCaseHeader = header.toLowerCase();
+                            var lowerCaseKey = key.toLowerCase();
+                            if (lowerCaseKey === "xframeoptions") {
+                                var policy = lowerCaseHeader;
+                                if (typeof window !== "undefined" &&
+                                    !!policy.match(window.location.origin)) {
+                                    return;
+                                }
+                                if (!!policy.match("deny") || !!policy.match("sameorigin")) {
+                                    isEmbedSupported_1 = false;
+                                    return;
+                                }
+                            }
+                            if (lowerCaseKey === "contentsecuritypolicy" &&
+                                /frame-ancestors/i.test(header)) {
+                                var isUrlMatched_1 = false;
+                                var matchers = header
+                                    .split(/frame-ancestors/i)[1]
+                                    .split(/;/)[0]
+                                    .split(/\s/)
+                                    .filter(function (uri) { return !!uri; });
+                                matchers.forEach(function (matcher) {
+                                    if (matcher !== "'self'" &&
+                                        matcher !== "'none'" &&
+                                        (matcher === "https:" ||
+                                            matchUrlWildCard_1.default(window.location.href, matcher))) {
+                                        isUrlMatched_1 = true;
+                                    }
+                                });
+                                if (!isUrlMatched_1) {
+                                    isEmbedSupported_1 = false;
+                                    return;
+                                }
+                            }
+                            if (lowerCaseKey === "accesscontrolalloworigin") {
+                                hasAccessControlOriginHeader_1 =
+                                    matchUrlWildCard_1.default(window.location.href, header) || header === "*";
+                            }
+                            if (lowerCaseKey === "contenttype") {
+                                if (/video\/mp4/i.test(header)) {
+                                    isSupportedVideoType_1 = true;
+                                }
+                                else if (/audio\/mp3/i.test(header) ||
+                                    /audio\/mpeg/i.test(header) ||
+                                    /audio\/wav/i.test(header) ||
+                                    /audio\/wave/i.test(header) ||
+                                    /audio\/x-wav/i.test(header)) {
+                                    isSupportedAudioType_1 = true;
+                                }
+                                else if (/image\/jpeg/i.test(header) ||
+                                    /image\/png/i.test(header) ||
+                                    /image\/gif/i.test(header)) {
+                                    isSupportedImageType_1 = true;
+                                }
+                                else if (/application\/pdf/i.test(header)) {
+                                    isSupportedPdfType_1 = true;
+                                }
+                                return;
+                            }
+                            if ((lowerCaseKey === "acceptranges" && /bytes/i.test(header)) ||
+                                (lowerCaseKey === "contentrange" && /bytes/i.test(header))) {
+                                isRangeRequestSupported_1 = true;
+                            }
+                        });
+                        return [2, {
+                                isEmbedSupported: isSupportedPdfType_1
+                                    ? isEmbedSupported_1 && hasAccessControlOriginHeader_1
+                                    : isEmbedSupported_1,
+                                url: data.url,
+                                isSupportedVideoUrl: isSupportedVideoType_1 && isRangeRequestSupported_1 ? true : false,
+                                isSupportedAudioUrl: isSupportedAudioType_1 && isRangeRequestSupported_1 ? true : false,
+                                isSupportedImageUrl: isSupportedImageType_1,
+                                isSupportedPdfUrl: isSupportedPdfType_1
+                            }];
+                    }
+                    return [2, {
+                            isEmbedSupported: false,
+                            url: typeof data.url === "string" ? data.url : options.url
+                        }];
+                case 4:
+                    error_1 = _a.sent();
+                    console.error("NO DATA: ", error_1);
+                    return [2, {
+                            isEmbedSupported: false,
+                            url: options.url
+                        }];
+                case 5: return [2];
+            }
+        });
+    }); };
+    function isValidHttpUrl(checkUrl) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var url;
+            return tslib_1.__generator(this, function (_a) {
+                try {
+                    url = new URL(checkUrl);
+                }
+                catch (e) {
+                    return [2, false];
+                }
+                return [2, url.protocol === "http:" || url.protocol === "https:"];
+            });
+        });
+    }
+    exports.isValidHttpUrl = isValidHttpUrl;
+});

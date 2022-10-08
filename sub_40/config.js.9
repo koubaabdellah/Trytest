@@ -1,0 +1,136 @@
+const __ge_copyOnly = {
+    "geoenrichment/init": 1,
+    "geoenrichment/utils/workers/dojo-config": 1,
+    "geoenrichment/utils/workers/worker": 1,
+    "geoenrichment/widgets/PanoramicViewer/esripv_lens": 1,
+    "geoenrichment/widgets/PanoramicViewer/esripv_three": 1
+}
+
+var dojoConfig = {
+    baseUrl: '..',
+    waitSeconds: '60',
+    async: true,
+    deps: ['esriAnalystCore/_config'],
+    packages: [{
+        name: 'baUtil',
+        location: './baUtil'
+    }, {
+        name: 'dojo',
+        location: './dojo'
+    }, {
+        name: 'dijit',
+        location: './dijit'
+    }, {
+        name: 'dojox',
+        location: './dojox'
+    }, {
+        name: 'dgrid',
+        location: './dgrid'
+    }, {
+        name: 'dgrid1',
+        location: './dgrid1'
+    }, {
+        name: 'dstore',
+        location: './dstore'
+    }, {
+        name: 'put-selector',
+        location: './put-selector'
+    }, {
+        name: 'xstyle',
+        location: './xstyle'
+    }, {
+        name: 'esri',
+        location: './esri'
+    }, {
+        name: 'esri4',
+        location: './ge4/node_modules/arcgis-js-api',
+        packageJson: {}, // this will prevent from using esri.profile.js file, where paths are not resolved to esri4
+        resourceTags: {
+            copyOnly: (filename, mid) => {
+                // copy assets as is
+                const assetsFolderRe = /\/assets\//i;
+                return assetsFolderRe.test(mid);
+            },
+            amd: function (filename, mid) {
+                return /\.js$/.test(filename);
+            }
+        }
+    }, {
+        name: 'jszip',
+        location: './ge4/node_modules/jszip',
+        resourceTags: {
+            test: (filename, mid) => {
+                return mid !== "jszip/dist/jszip";
+            },
+            amd: (filename, mid) => {
+                return /\.js$/.test(filename)
+            }
+        }
+    }, {
+        name: "geoenrichment",
+        location: "./ge4/geoenrichment",
+        resourceTags: {
+            copyOnly: function (filename, mid) {
+                return mid in __ge_copyOnly || mid.indexOf("calcite-components") !== -1;
+            },
+            amd: function (filename, mid) {
+                return !(mid in __ge_copyOnly) && /\.js$/.test(filename);
+            }
+        }
+    }, {
+        name: 'lib',
+        location: './lib'
+    }, {
+        name: 'moment',
+        location: './moment',
+        main: 'moment/moment'
+    }, {
+        name: 'esriAnalystCore',
+        location: './esriAnalystCore'
+    }, {
+        name: 'esriAnalyst',
+        location: './esriAnalyst'
+    }, {
+        name: 'esriAnalystX',
+        location: './esriAnalystX'
+    }, {
+        name: 'businessAnalyst',
+        location: './businessAnalyst'
+    }, {
+        name: 'esriBAO',
+        location: './esriBAO'
+    }, {
+        name: 'esriBAOnPrem',
+        location: './esriBAOnPrem'
+    }, {
+        name: 'esriCA',
+        location: './esriCA'
+    }, {
+        name: 'd3',
+        location: './d3'
+    }, {
+        name: "telemetry",
+        location: './telemetry'
+    }, {
+        name: "pdf-lib",
+        location: './pdf-lib'
+    }, {
+        name: "tslib",
+        location: './node_modules/tslib',
+        main: "tslib",
+        resourceTags: {
+            miniExclude: (filename, mid) => {
+                return filename.indexOf("/tslib.js") === -1;
+            }
+        }
+    }, {
+        //including src/ge4/buildOutput so its contents remain in built artifacts - required for onPrem story map export
+        name: "geoenrichment_buildOutput",
+        location: "./ge4/buildOutput",
+        resourceTags: {
+            copyOnly: function (filename, mid) {
+                return true;
+            }
+        }
+    }]
+};

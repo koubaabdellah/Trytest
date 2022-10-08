@@ -1,0 +1,152 @@
+/**
+ * @file
+ */
+
+(function($) {
+	Drupal.behaviors.print = {
+		attach: function(context, settings) {
+			// Find the class.
+			$('.print-link').click(function(e) {
+				e.preventDefault();
+				window.print();
+				// Stops a 2nd trigger.
+				e.stopPropagation();
+			});
+
+			$('.top-link').click(function() {
+				$('html, body').animate({ scrollTop: 0 }, 'slow');
+				return false;
+			});
+		}
+	};
+
+	Drupal.behaviors.activateSearch = {
+		attach: function(context, settings) {
+			$('.search-button-menu').click(function(event) {
+				event.preventDefault();
+				event.stopImmediatePropagation();
+				$('#block-search').slideToggle();
+			});
+		}
+	};
+
+	Drupal.behaviors.addLabelClass = {
+		attach: function(context, settings) {
+			if ($('.shs-widget-container > label', context).length) {
+				$('.shs-widget-container > label').addClass('visually-hidden');
+			}
+		}
+	};
+})(jQuery);
+
+jQuery(document).ready(function($) {
+	// Responsive menu.
+	$('button.navbar-toggler').click(function() {
+		// Slides menu open & close.
+		$('.navbar-toggleable-md').slideToggle('slow');
+
+		// Changes text for accesibility.
+		if ($(this).find('.sr-only').html() == 'Collapsed') {
+			$(this).find('.sr-only').html('Expanded');
+		} else {
+			$(this).find('.sr-only').html('Collapsed');
+		}
+	});
+
+	if (!$('.navbar-branded-light li.nav-item').hasClass('is-active')) {
+		$('.navbar-branded-light ul.nav').append(
+			'<li class="is-active link-style">' + Drupal.t('Open submenu') + '</li>'
+		);
+	}
+
+	$('.navbar-branded-light li.is-active').click(function() {
+		$('.navbar-branded-light').find('li.nav-item').not('li.is-active').slideToggle();
+	});
+
+    // FAQ Open/Close.
+    $(".accordion-head").click(function (e) {
+        e.preventDefault();
+        $control = $(this);
+        $(this).closest("div").find(".accordion-content").slideToggle();
+        $(this).toggleClass("open");
+        isAriaExp = $control.attr('aria-expanded');
+        newAriaExp = (isAriaExp == "false") ? "true" : "false";
+        $(this).attr('aria-expanded', newAriaExp);
+    });
+
+
+    ///// FACET CHECK & ACCORDION
+    $(".facet-head").click(function (e) {
+        e.preventDefault();
+        $control = $(this);
+        $(this).closest("div").find(".facet-content").toggleClass("checked");
+        $(this).toggleClass("open");
+        isAriaExp = $control.attr('aria-expanded');
+        newAriaExp = (isAriaExp == "false") ? "true" : "false";
+        $(this).attr('aria-expanded', newAriaExp);
+        if(newAriaExp == 'false' && $(".facet-item").hasClass("open") ) {
+            console.log("je zit nu in IF");
+            $(this).closest('div').find('.facet-item-all').addClass('open');
+
+        }
+        else {
+            console.log("je zit nu in ELSE");
+            $(this).closest('div').find('.facet-item-all').removeClass('open');
+
+        }
+    });
+
+    $(".facet-item-all").click(function (e) {
+        e.preventDefault();
+        $(this).closest('div').find(".facet-head").click();
+        var ariaCheck = $(this).closest('div').find(".facet-head").attr('aria-expanded');
+        if (ariaCheck == 'true') {
+            $(this).removeClass('open');
+        } else {
+            $(this).addClass('open');
+        }
+
+    });
+
+    $('.facet-item').each(function(index) {
+        var facetItem = $('.facet-item');
+        var checked = $(facetItem[index]).find('input').prop("checked");
+        if(checked == true) {
+            $(facetItem[index]).addClass('open');
+        }
+    })
+
+    $('.facet-item-all').each(function(i) {
+        var checkChecked = $(this)
+        .closest('.block-facet--checkbox')
+        .find('.facet-item')
+        .find('input')
+        .prop("checked");
+
+        if(checkChecked == true) {
+            $(this).addClass("open");
+        }
+    });
+
+
+    // Close status message.
+    $('#close-status-message').click(function (e) {
+        e.preventDefault();
+        $('.alert').hide();
+    });
+
+    $('.clickable-card').on('click', function() {
+        const elWithLink = $(this).find('.cardmainlink').find('a');
+        if (elementHasLink(elWithLink)) {
+            location.href = elWithLink.attr('href');
+        }
+    });
+
+    function elementHasLink(el) {
+        const href = el.attr('href');
+        if (href.length) {
+            return true;
+        }
+        return false;
+    }
+});

@@ -1,0 +1,11 @@
+function AerConfig() {
+  this.healthchecksEndpoint = "/connect/dataservice/monitor/M21/natura2000areas/1";
+  this.layerEndpoint = "/api/";
+  this.cmsEndpoint = "/api/v2/";
+
+  this.basicAuthEndpoint = "/connect";
+
+  this.searchEndpoint = "/api/search?query=";
+  
+  this.applicationVersion = "5bbc937e";
+}

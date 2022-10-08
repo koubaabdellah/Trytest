@@ -1,0 +1,821 @@
+﻿Array.prototype.contains = function (obj) {
+    var i = this.length;
+    while (i--) {
+        if (this[i] === obj) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
+
+var gWindowWidth;
+var masonry = {};
+
+$(document).ready(function () {
+    $('.js-devWarning').modal('show');
+
+    gWindowWidth = $(window).width();
+    $('a').each(function () {
+        var $this = $(this);
+        $this.attr('href', $.trim($this.attr('href')).replace('http://sbasta.smartobjects.nl', '/nl'))
+    });
+
+    InitializeSelect2();
+    FormChoice();
+    FormOrText();
+    CheckToEnableDatePicker();
+    // Masonry run on page load
+    masonryWindowRange(750, 1240);
+    sideMenuPositioning();
+
+    /*
+    |  ------------------------------------
+    |  Menu
+    |  ------------------------------------
+    */
+    SetCollapseMenuMaxHeight();
+
+    CheckIfHome($('.js-rootlink'));
+    ShowSubMenu();
+    OpenLoginForm();
+    $('.js-submenu-close').click(function () {
+        $(this).parents('.js-submenu').addClass('submenu--closed');
+        $(this).parents('.has-submenu').find('.js-submenu-open').removeClass('open');
+    });
+    $('.js-menu-icon').click(function () {
+        $('.menu__icon').toggleClass('open');
+    });
+    $('.js-main-menu-search').click(function () {
+        $('.js-submenu-close').each(function () {
+            $(this).trigger('click');
+        });
+        $(this).next('.SBA-menu__search-form__wrapper').addClass('SBA-menu__search-form__wrapper--open');
+        $('.js-hide-when-search').addClass('relative-hidden');
+        $('.SBA-menu__search-form').focus();
+    });
+    $('.js-close-search').click(function () {
+        $('.SBA-menu__search-form__wrapper').removeClass('SBA-menu__search-form__wrapper--open');
+        $('.js-hide-when-search').removeClass('relative-hidden');
+        $('.SBA-menu__search-form').val("").blur();
+    });
+    //-------------------------------------
+
+    $('.block-search__search-box').focusout(hideSearchSubtext);
+
+    FormInfo();
+    FormCheckBoxes();
+
+    //Google maps init, can be extended with 
+    if ($("#google-map").length > 0) {
+        var mapOptions = {
+            zoom: 8,
+            center: { lat: 52.3167, lng: 5.5500 }
+        };
+
+        //Check for mobile/touch support
+        if (Modernizr.touch) {
+            mapOptions.draggable = false;
+            mapOptions.disableDefaultUI = true;
+            mapOptions.disableDoubleClickZoom = true;
+        } else {
+            mapOptions.disableDefaultUI = false;
+            mapOptions.disableDoubleClickZoom = false;
+        }
+
+        $.getJSON("/Content/json/googlemapsstyle.json", function (data) {
+            mapOptions.styles = data != undefined ? data : [];
+            googlemaps.init("google-map",
+            mapOptions,
+            function () {
+                googlemaps.generateMarkers(googlemaps.locations, true);
+                googlemaps.setBounds(true);
+            });
+        });
+    }
+    $('#passwordForgotten').preventDoubleSubmission();
+    
+    // Course overview open add activity form for users to add to their profile
+    $('.js-add-activity-block').on('click', function (e) {
+        e.preventDefault();
+        $(this).parent().siblings('.courses-block').slideDown();
+        $(this).slideUp();
+    });
+
+    // Course overview close add activity form for users to add to their profile
+    $('.js-close-add-activity-block').on('click', function (e) {
+        e.preventDefault();
+        $(this).closest('.courses-block').slideUp();
+    });
+
+    // Open course/training/activity form for users to add to their profile
+    $(document).on('click', '.js-add-activity', function (e) {
+        e.preventDefault();
+        getCourseCardAttachment(this).slideDown();
+    });
+
+    // Close course/training/activity form
+    $(document).on('click', '.js-close-collapsable-attachment', function (e) {
+        e.preventDefault();
+        getCourseCardAttachment(this).slideUp();
+        $('.js-add-activity-block').slideDown();
+    });
+    //container click
+    $('.js-items__container').on('click', '.js-link-click', function () {
+        window.location = $(this).find('a').attr('href')
+    });
+
+    // Course edit and delete panels
+
+    $('.js-courseCardsContainer').on('click', '.js-edit-button', function (e) {
+        e.preventDefault();
+        var $thiscard = $(this).closest('.js-course-card');
+        if ($thiscard.find('form').is(':visible')) {
+            return;
+        }
+        $thiscard.find('form').get(0).reset();
+        var dd = $thiscard.find('.js-select2').select2();
+        
+        $(this).closest('.block__content').siblings('.js-delete-panel').slideUp();
+        $(this).closest('.block__content').siblings('.js-edit-panel').slideDown();
+    });
+
+    $('.js-courseCardsContainer').on('click', '.js-delete-button', function (e) {
+        e.preventDefault();
+        $(this).closest('.block__content').siblings('.js-edit-panel').slideUp();
+        $(this).closest('.block__content').siblings('.js-delete-panel').slideDown();
+    });
+
+    $('.js-courseCardsContainer').on('click', '.js-form-cancel', function (e) {
+        e.preventDefault();
+        $(this).closest('form').get(0).reset();
+
+        var dd = $(this).closest('.js-course-card').find('.js-select2').select2();
+        var value = $(this).closest('form').data("course-type");
+
+        dd.select2().val(value).trigger('change');
+        $(this).closest('.js-course-card').find('.js-edit-panel').slideUp();
+    });
+
+    $('.js-courseCardsContainer').on('click', '.js-delete-cancel', function (e) {
+        $(this).closest('.js-course-card').find('.js-delete-panel').slideUp();
+    });
+
+    $('.js-cancel-add-course').click(function () {
+        $('.js-form-courseActivity').find('.js-select2').select2().select2('val', '');
+        $('.js-form-courseActivity').slideUp();
+    });
+
+    $('.js-add-courseActivity').on('click', function (e) {
+        e.preventDefault();
+        $('.js-form-courseActivity').slideDown();
+    });
+
+    // Disable ProfessionalyIdle submit if selected option == current status
+    var selectedNACT = $('input[name="NACT"]:checked');
+    var selectedNACTVal = selectedNACT.val();
+    var submitNACTStatus = $('.js-NACT-submit');
+
+    submitNACTStatus.prop('disabled', true);
+
+    $('input[name="NACT"]').on('change', function () {
+        if (selectedNACTVal != $('input[name="NACT"]:checked').val()) {
+            submitNACTStatus.removeProp('disabled');
+        } else {
+            submitNACTStatus.prop('disabled', true);
+        }
+    });
+
+    $('.js-submenu-login-open').on('click', function (e) {
+        e.preventDefault();
+        OpenLoginWindow();
+    });
+
+    $(document).on('change', '.js-unselected-warning', function (e) {
+        if ($(this).is(':checked')) {
+            $('.js-disabled-if').removeProp('disabled');
+        } else {
+            $('.js-disabled-if').prop('disabled', true).attr('checked', false);
+        }
+    });
+
+    // Open course registration form directly after logging in
+    if (getQueryParameterByName('loggedIn')) {
+        var anchor = $('.js-add-activity-block');
+
+        var page = $("html, body");
+
+        page.on("scroll mousedown wheel DOMMouseScroll mousewheel keyup touchmove", function () {
+            page.stop();
+        });
+
+        page.animate({ scrollTop: anchor.offset().top + 100 }, function () {
+            page.off("scroll mousedown wheel DOMMouseScroll mousewheel keyup touchmove");
+
+            anchor.trigger('click'); // Open form
+        });
+    }
+    AddCoursedata();
+    //$(".js-search-architect-discipline").on("change", function () {
+    //    if ($(".js-search-architect-text").val().length > 1) {
+    //        $(this).closest("form").submit();
+    //    }
+    //});
+
+
+    $('.block-payments__status').each(function () {
+        getPaymentStatus($(this), $(this).attr('data-year'));
+    })
+    $('.js-payment-list').each(function () {
+        getPayments($(this));
+    })
+    $('.submenu--mobile__current').on('click', function () {
+        $(this).toggleClass('open');
+        $('.submenu--mobile__list').slideToggle(500);
+    });
+
+    $('button.js-accept-underdevelopment').click(function () {
+        setUnderDevelopmentCookie("UnderDevelopmentCookie", "1", 1);
+    });
+    CountryBankAccount();
+});
+
+//function SearchArchitect() {
+//    var $searchContainer = $('#search-results')
+//    if ($searchContainer.length > 0) {
+
+//    }
+//}
+
+function ClearPasswordForgottenForm() {
+    $form = $('#passwordForgotten');
+    $form.data('submitted', false);
+    $form.find('input[type="text"]').val("");
+}
+
+
+function AddCoursedata() {
+    $('.js-courseCardsContainer').on('click', '.js-add-coursedata', function (e) {
+        e.preventDefault();
+        var $this = $(this);
+        $row = $this.closest('form').find('div[data-index]').first().clone();
+        var index = Math.abs($this.attr('data-index'));
+        $this.attr('data-index', index+1)
+        $row.attr('data-index', index)
+        $row.find('input').each(function () {
+            switch ($(this).attr('type')) {
+                case 'text':
+                case 'hidden':
+                    $(this).val('');
+                    $(this).attr('name', $.trim($(this).attr('name')).replace('[0]', '[' + index + ']'));
+                    $(this).removeAttr('data-set')
+                    break;
+                case 'checkbox':
+                    $(this).removeAttr('checked');
+                    $(this).attr('id', $.trim($(this).attr('id')).replace('_0', '_' + index));
+                    $(this).attr('name', $.trim($(this).attr('name')).replace('[0]', '[' + index + ']'));
+                    break;
+            }
+        });
+        $row.find('label[for]').each(function () {
+            $(this).attr('for', $.trim($(this).attr('for')).replace('_0', '_' + index));
+        });
+        $row.attr('style', 'display:none;');
+        $row.insertBefore($this.closest('.form-group'));
+        $row.slideDown();
+        EnableDatePicker();
+    });
+    $('.js-courseCardsContainer').on('click', '.js-remove-coursedata', function (e) {
+        if ($(this).is(':checked')) {
+            var $group = $(this).closest('.form-group');
+            $group.slideUp();
+            setTimeout(function () {
+                $group.find('[id="CourseData_Date"]').val('0001:01:01');
+                $group.find('[id="CourseData_From"]').val('00:00');
+                $group.find('[id="CourseData_Till"]').val('00:00');
+            }, 500);
+        }
+    });
+}
+
+function getQueryParameterByName(name, url) {
+    if (!url) url = window.location.href;
+    name = name.replace(/[\[\]]/g, "\\$&");
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+        results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+}
+
+function getCourseCardAttachment(elem) {
+    return $(elem).closest(".js-course-card").find(".js-collapsable-attachment");
+}
+
+// Close menu items when clicked outside of menu
+$(document).bind('click touchstart', function (e) {
+    if ($(e.target).is('.SBA-menu *')) {
+        return;
+    } else {
+        $('.js-submenu').addClass('submenu--closed');
+        $('.js-submenu-open').removeClass('open');
+        if ($('#SBA-menu-collapse').hasClass('in')) {
+            $('#SBA-menu-collapse').removeClass('in');
+            $('.menu__icon').removeClass('open');
+        }
+        if ($('.SBA-menu__search-form__wrapper').hasClass('SBA-menu__search-form__wrapper--open')) {
+            $('.SBA-menu__search-form__wrapper').removeClass('SBA-menu__search-form__wrapper--open');
+            $('.SBA-menu__search-form').val("").blur();
+            $('.js-hide-when-search').removeClass('relative-hidden');
+        }
+    }
+}
+);
+
+var resizeTimer;
+
+
+$(window).resize(function () {
+    gWindowWidth = $(window).width();
+    masonryWindowRange(750, 1240);
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () {
+        SetCollapseMenuMaxHeight();
+        sideMenuPositioning();
+    }, 250);
+});
+
+var scrollTimer;
+
+$(window).scroll(function () {
+    sideMenuPositioning();
+    AddScrolledClass($('.js-nav'));
+});
+
+function AddScrolledClass(el) {
+    if ($(window).scrollTop() > 0) {
+        el.addClass('scrolled');
+    } else {
+        el.removeClass('scrolled');
+    }
+}
+
+function CloseCoursePanel() {
+    $('.js-course-card').children('.js-edit-panel').slideUp();
+}
+function FinishAddCourseForm() {
+    setTimeout(function () {
+        window.location.reload();
+    }, 3000);
+}
+
+function AddCourseSuccess() {
+    $('.js-add-course-form').hide();
+    $('.js-course-overview-links').show();
+}
+
+function ChangeCourseStatusSuccess() {
+    var approvalButton = $(".approval-form button");
+    var approvalButtonText = approvalButton.text();
+    var approvalButtonTempText = approvalButton.attr("data-temptext");
+
+    approvalButton.prop('disabled', true).text(approvalButtonTempText);
+    setTimeout(function () {
+        approvalButton.prop('disabled', false).text(approvalButtonText);
+    }, 2000)
+}
+
+function clearForm(form) {
+    var formElement = $(form);
+
+    formElement.trigger('reset'); // Clear input fields
+
+    formElement.find('select').select2("val", ""); // Clear select2
+
+    formElement.find('[type=submit]').prop('disabled', false);
+}
+function ShowSubMenu() {
+    $('.js-submenu-open').each(function () {
+
+        var _this = $(this);
+        var _thisSubmenu = _this.next('.js-submenu');
+        var allSubMenus = $('.js-submenu').each(function () {
+            $(this);
+        });
+        var allOtherSubmenus = allSubMenus.not(_thisSubmenu);
+
+        _this.click(function () {
+            if (gWindowWidth > 992) {
+                _this.addClass('open').next('.js-submenu').removeClass('submenu--closed');
+                allOtherSubmenus.addClass('submenu--closed');
+            } else {
+                _this.toggleClass('open').next('.js-submenu').toggleClass('submenu--closed');
+                allOtherSubmenus.addClass('submenu--closed').prev('.js-submenu-open').removeClass('open');
+            }
+        });
+    });
+}
+
+function CheckToEnableDatePicker() {
+    if (!Modernizr.inputtypes.date) {
+        EnableDatePicker();
+    }
+}
+function EnableDatePicker() {
+    $('.js-datepicker').not('[data-set]').attr('data-set', 'true').datepicker({
+        forceParse: false,
+        format: "yyyy-mm-dd"
+    });
+}
+function sideMenuPositioning() {
+    if ($('.js-sidemenu').length) {
+        // Lock sidemenu position in document body as soon as it touches the footer 
+        // Fix sidemenu position in window when scrolltop is above footer+sidemenu height
+
+        var sideMenu = $('.js-sidemenu');
+        var sideMenuTop = sideMenu.offset().top;
+        var sideMenuHeight = sideMenu.outerHeight(true);
+        var sideMenuBottom = sideMenuTop + sideMenuHeight;
+        var footer = $('footer');
+        var footerTop = footer.offset().top;
+        var footerHeight = footer.outerHeight(true);
+
+        if (sideMenuBottom >= footerTop) {
+            sideMenu.css({ 'position': 'absolute', 'top': footerTop - sideMenuHeight });
+        }
+
+        if ($(window).scrollTop() < $('body').height() - footerHeight - sideMenuHeight) {
+            sideMenu.css({ 'position': 'fixed', 'top': '130px' });
+        }
+    }
+}
+
+function SetCollapseMenuMaxHeight() {
+    var winh = $(window).height();
+    var menu = $('.navbar-fixed-top .navbar-collapse');
+    $(menu).css('max-height', winh - $('.navbar-header').height());
+}
+function CheckIfHome(el) {
+    var url = location.pathname;
+    if (url == "/nl/" || url == "/en/") {
+        $(el).parent().addClass('active');
+    } else {
+        $(el).parent().removeClass('active');
+    }
+}
+
+function hideSearchSubtext() {
+    var searchValue = $(this).val();
+    if (searchValue !== "") {
+        $(this).next('.block-search__subtext').hide();
+    } else {
+        $(this).next('.block-search__subtext').show();
+    }
+
+}
+
+function masonryWindowRange(low, high) {
+    if (gWindowWidth >= low && gWindowWidth < high) {
+        masonry = $('.grid').masonry({
+            itemSelector: '.grid-item',
+            columnWidth: '.grid-item',
+            percentPosition: true
+        });
+    } else {
+        if (!jQuery.isEmptyObject(masonry) && masonry !== undefined) {
+            masonry.masonry('destroy');
+            masonry = {};
+        }
+    }
+}
+
+function ScrollTo(element) {
+    var menuHeight = $('.navbar-default').height();
+    var offsetTop = $(element).offset().top;
+    $('html, body')
+        .stop()
+        .animate({
+            'scrollTop': offsetTop - menuHeight
+        });
+}
+
+function OpenLoginWindow() {
+    var $login = $('.js-submenu-open.menu-item--login');
+    console.log($login);
+    if (!$login.hasClass('open')) {
+        setTimeout(function () {
+            $login.trigger('click');
+        }, 400);
+    }
+}
+
+function OpenLoginForm() {
+    $('a').click(function (e) {
+        if ($(this).attr('href').indexOf('login-click') > -1) {
+            e.preventDefault();
+            OpenLoginWindow();
+        }
+        
+    });
+    $('.btn-CTA-login, js-login-click').click(function (e) {
+        e.preventDefault();
+        OpenLoginWindow();
+    });
+    $(document).on('click touchstart', '.js-passwordforgotten', function (e) {
+        e.preventDefault();
+        var $submenu = $(this).closest('.js-submenu');
+        $submenu.find('.js-login-container').addClass('hidden');
+        $submenu.find('.js-passwordforgotten-container').removeClass('hidden');
+    });
+    $(document).on('click touchstart', '.js-login', function (e) {
+        e.preventDefault();
+        var $submenu = $(this).closest('.js-submenu');
+        $submenu.find('.js-login-container').removeClass('hidden');
+        $submenu.find('.js-passwordforgotten-container').addClass('hidden');
+    });
+}
+function FormInfo() {
+    $(document).on('click', '.js-info-form,.js-form-info,.js-submit', function (e) {
+        e.preventDefault();
+        var $this = $(this);
+        var $form = $this.closest('form');
+        $form.find('.form-info__error,.form-info__message').remove();
+        if ($this.hasClass('js-info-form')) {
+            $form.find('.js-info').addClass('hidden');
+            $form.find('.js-form').removeClass('hidden');
+        } else if ($this.hasClass('js-form-info')) {
+            $form.find('.js-form').addClass('hidden');
+            $form.find('.js-info').removeClass('hidden');
+        } else if ($this.hasClass('js-submit')) {
+            //console.log("submit pressed");
+            $form.submit();
+           // console.log("form submitted");
+        }
+    });
+    $(document).on('change', 'input.js-same', function () {
+        var $this = $(this);
+        var $form = $this.closest('form');
+        if ($this.is(':checked')) {
+            $form.find('.js-same').addClass('hidden');
+        } else {
+            $form.find('.js-same').removeClass('hidden');
+        }
+    });
+}
+
+function FormCheckBoxes() {
+    $(document).on('change', 'input[type="checkbox"][data-disable]', function () {
+        var $this = $(this);
+        if ($this.is(':checked')) {
+            $($this.data('disable')).prop('disabled', false);
+        } else {
+            $($this.data('disable')).prop('disabled', true);
+        }
+    });
+    
+    $(document).on('change', '#PostBTV, .js-unselected-warning', function () {
+        var $checkbox = $(this);
+        if ($checkbox.is(':checked')) {
+            $('#js-myinfowarning').hide();
+        } else {
+            $('#js-myinfowarning').show();
+        }
+    });
+
+
+    if ($('#PostBTV').length > 0) {
+        $('#PostBTV').trigger('change');
+    }
+}
+function FormChoice() {
+    $('.js-formchoice input[type="radio"]').each(function () {
+        var $this = $(this);
+
+        $this.change(function () {
+            var element = $('.js-formchoice-placeholder');
+            var selectedID = $(this).data("id");
+
+            $(element).html();
+
+            $('.js-formchoice-placeholder').empty();
+            $('#js-form-loader').show();
+
+            if ($this.val() == "true") {
+                $.get('/umbraco/surface/FormPagePartials/RequestFormForeign?ParentId=' + selectedID, function (data) {
+                    $(element).html(data);
+                    $(element).removeClass("hidden");
+                    $('#js-form-loader').hide();
+                });
+            } else {
+                $.get('/umbraco/surface/FormPagePartials/RegistrationFormForeign?ParentId=' + selectedID, function (data) {
+                    $(element).html(data);
+                    $(element).removeClass("hidden");
+                    $('#js-form-loader').hide();
+                });
+            }
+        });
+    });
+}
+function FormOrText() {
+    $('.js-form-or-text input[type="radio"]').each(function () {
+        var $this = $(this);
+        var element = $('.js-form-or-text-placeholder');
+        var htmlTextContent = $(element).html();
+
+        $this.change(function () {
+            var selectedID = $(this).data("id");
+            $('.js-form-or-text-placeholder').empty();
+            $('#js-form-loader').show();
+
+            if ($this.val() == "true") {
+                $(element).html(htmlTextContent);
+                $(element).removeClass('hidden');
+                $('#js-form-loader').hide();
+            } else {
+                $.get('/umbraco/surface/FormPagePartials/RegistrationForm?ParentId=' + selectedID, function (data) {
+                    $(element).html(data);
+                    $(element).removeClass("hidden");
+                    $('#js-form-loader').hide();
+                    //var $form = $(data);
+                }).then(function () {
+                    //console.log('valid this shit!!!!')
+                    //var $form = $('#RegistrationFormPost');
+                    //$form.removeData('validator');
+                    //$form.removeData('unobtrusiveValidation');
+                    //$.validator.unobtrusive.parse($form);
+                    //$form.validate();
+                });
+            }
+        });
+    });
+}
+
+function CombiFormSelect() {
+    $('.js-formtypeselect').select2().change(function () {
+        GetTextAjax($(this), 'CombiFormIntro?ParentId=', $('.js-combiform-intro'));
+        GetTextAjax($(this), 'CombiFormRequiredPapers?ParentId=', $('.js-combiform-required-papers'));
+        $("#CombiForm_FormTypeName").val(getSelect2Text($(this)));
+
+    });
+}
+function DisciplineSelect(el) {
+    $('.js-discipline-select').select2().change(function () {
+        $(el).val(getSelect2Text($(this)));
+    });
+}
+function getSelect2Text(el) {
+    return el.select2('data')[0]['text'];
+}
+function GetTextAjax(select2Instance, actionName, element) {
+    var selectedID = $(select2Instance).val();
+    $.get('/umbraco/surface/FormPagePartials/' + actionName + selectedID, function (data) {
+        $(element).html(data);
+        $(element).parent(".form-group").removeClass("hidden");
+    });
+}
+function InitializeSelect2(element) {
+    /*
+    *   SELECT2
+    *   Loop trough elements with class js-select2 and read out data attributes; used to activate the select2 plugin
+    *   Each select must have the same data attributes set atm.
+    *   Container & Dropdown classes added to the maindropdownbox before expanding (container) and to the dropdownlist visible when expanded (dropdown)
+    */
+    if (!element) {
+        element = 'body';
+    }
+    $.each($(element).find('.js-select2').not('[data-set]'), function (key, elem) {
+        $(elem).attr('data-set', 'true');
+        if ($(elem).find('option').length === 2) {
+            $(elem).attr("disabled", true);
+            $(elem).find('option:last').attr("selected", "selected");
+        }
+
+        $(elem)
+            .select2({
+                allowClear: true,
+                minimumResultsForSearch: $(this).data("minimumresultsforsearch"),
+                placeholder: $(this).data("placeholder"),
+                //templateResult: function () {
+                //},
+                //templateSelection: function () {
+                //},
+                containerCssClass: $(this).data("containerclass"),
+                dropdownCssClass: $(this).data("dropdownclass")
+            }).on("select2:unselecting", function (e) {
+                $(this).data('state', 'unselected');
+            }).on("select2:open", function (e) {
+                if ($(this).data('state') === 'unselected') {
+                    $(this).removeData('state');
+                    var self = $(this);
+                    setTimeout(function () {
+                        self.select2('close');
+                    }, 1);
+                }
+            });
+
+        // Select selected option from select2 in original, underlying select and remove validation errors when selection is made
+        $(elem).on('select2:select', function () {
+            var activeSelect = $(this);
+            activeSelect.removeClass('input-validation-error');
+            activeSelect.siblings('.field-validation-error').empty().removeClass('field-validation-error').addClass('field-validation-valid');
+            activeSelect.find('option').each(function (index, value) {
+                if (activeSelect.select2('data')[0].text == value.text) {
+                    $(this).attr("selected", true);
+                } else {
+                    $(this).removeAttr("selected");
+                }
+            });
+        });
+        var value = $(elem).find('option[selected]').val();
+        $(elem).select2().val(value).trigger('change');
+    });
+
+    select2initialized = true;
+}
+
+function getPaymentStatus(el, year) {
+    /*
+    $.get('/ajax/LoginMyPaymentInformationDownload/GetPaymentStatus?Year=' + year, function (data) {
+        if (data.FieldValue == 0.00) {
+            el.find('.status-loading').addClass('hidden');
+            el.find('.js-payment-paid').removeClass('hidden');
+        } else {
+            el.find('.status-loading').addClass('hidden');
+            el.find('.js-payment-due').removeClass('hidden');
+        }
+    });
+    */
+
+    $.ajax({
+        url: '/ajax/LoginMyPaymentInformationDownload/GetPaymentStatus?Year=' + year,
+        method: "GET",
+        cache: false
+    })
+
+    .done(function (data) {
+        if (data.FieldValue == 0.00) {
+            el.find('.status-loading').addClass('hidden');
+            el.find('.js-payment-paid').removeClass('hidden');
+        } else {
+            el.find('.status-loading').addClass('hidden');
+            el.find('.js-payment-due').removeClass('hidden');
+        }
+    });
+}
+
+function getPayments($this) {
+    /*
+    $.get('/ajax/LoginMyPaymentInformationDownload/GetPayment?years=' + $this.attr('data-years') + '&culture=' + $('body').attr('culture'), function (data) {
+        $this.html(data);
+    });
+    */
+    $.ajax({
+        url: '/ajax/LoginMyPaymentInformationDownload/GetPayment?years=' + $this.attr('data-years') + '&culture=' + $('body').attr('culture'),
+        method: "GET",
+        cache: false
+    })
+
+    .done(function (data) {
+        $this.html(data);
+    });
+}
+
+function setUnderDevelopmentCookie(cname, cvalue, exdays) {
+    var d = new Date();
+    d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+    var expires = "expires=" + d.toUTCString();
+    document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+}
+
+function CountryBankAccount(selector) {
+    var BICFreeCountries = ['NL']
+    $(document).on('change', '.js-country-bankaccount', function () {
+        var country = $(this).val();
+        if (BICFreeCountries.contains(country)) {
+            $('.js-autocollect-sepa').hide();
+            $('.js-autocollect-notsepa').show();
+            $('.js-bic').prop("disabled", true);
+            $('.js-bic').closest('.form-group').hide();
+        } else {
+            $('.js-autocollect-sepa').show();
+            $('.js-autocollect-notsepa').hide();
+            $('.js-bic').prop("disabled", false);
+            $('.js-bic').closest('.form-group').show();
+        }
+    });
+    $('.js-country-bankaccount').trigger('change');
+    $(document).on('change', '.js-autocollect-switch', function () {
+        var $this = $(this);
+        if ($this.is(':checked')) {
+            $('.js-autocollect-true').show();
+            $('.js-autocollect-false').hide();
+            $('.js-autocollect-off').prop("disabled", false);
+        } else {
+            $('.js-autocollect-true').hide();
+            $('.js-autocollect-false').show();
+            $('.js-autocollect-off').prop("disabled", true);
+        }
+    });
+    $('.js-autocollect-switch').trigger('change');
+}

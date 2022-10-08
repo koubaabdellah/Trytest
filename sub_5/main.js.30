@@ -1,0 +1,178 @@
+/*! BuildToolsCookbook v1.0.0 | (c) 2022 VormVijf | MIT License | http://github.com/cferdinandi/build-tools-boilerplate */
+(function () {
+    'use strict';
+
+    function VvNavBarClass() {
+
+        // MODEL ////////////
+
+        let root;
+        let buttons;
+        let panels;
+
+        // VIEW ////////////
+
+        /**
+         * Toggle panel.
+         */
+        function togglePanel(link) {
+            const activePanelId = link.getAttribute('aria-controls');
+            const activePanel = root.querySelector('#' + activePanelId);
+
+            // Reset other buttons and panels.
+            reset(link, activePanel);
+
+            // Toggle off.
+            if (activePanel.classList.contains('active')) {
+                link.setAttribute('aria-expanded', false);
+                activePanel.classList.toggle('active', false);
+
+            } else { // Toggle on.
+                link.setAttribute('aria-expanded', true);
+                link.classList.toggle('active', true);
+                activePanel.classList.toggle('active', true);
+
+                // Focus first nav element.
+                const focusable = activePanel.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+                focusable[0].focus(); // Focus first item.
+
+                // Activate overlay.
+                root.classList.toggle('open', true);
+            }
+        }
+
+        function reset(link = null, activePanel = null) {
+
+            // Reset other buttons.
+            buttons.forEach(btn => {
+                if (link !== btn) {
+                    btn.setAttribute('aria-expanded', false);
+                    btn.classList.toggle('active', false);
+                }
+            });
+
+            // Reset other panels.
+            panels.forEach(panel => {
+                if (activePanel !== panel) {
+                    panel.classList.toggle('active', false);
+                }
+            });
+
+            // Reset overlay.
+            root.classList.toggle('open', false);
+        }
+
+        // CONTROLERS //////
+
+        /**
+         * Capture local clicks.
+         */
+        function localClickEvents(e) {
+            let link;
+
+            if (link = e.target.closest('.vv-navbar__icon-btn')) {
+                togglePanel(link);
+
+            } else if (link = e.target.closest('.vv-navbar__close-btn')) {
+                togglePanel(link);
+
+            } else if (e.target === root) {
+                reset();
+                
+            } else {
+                return;
+            }
+        }
+
+        /**
+         * Event listeners.
+         */
+        function initListeners() {
+            root.addEventListener('click', localClickEvents);
+        }
+
+        /**
+         * Constuctor.
+         */
+        this.construct = function () {
+            root = document.querySelector('#VvNavBar');
+            buttons = root.querySelectorAll('.vv-navbar__icon-btn');
+            panels = root.querySelectorAll('.vv-navbar__panel');
+            initListeners();
+        };
+    }
+
+    let vvNavBarClass = new VvNavBarClass();
+    vvNavBarClass.construct();
+
+    function VvToolTipClass() {
+
+      // MODEL ////////////
+
+      let root;
+
+      /**
+       * Create tooltip element.
+       */
+      function createTooltip(link) {
+        const url = new URL(link.href);
+        const footenote = root.querySelector(url.hash);
+        const tooltip = document.createElement('span');
+
+        tooltip.className = 'vv-tooltip-v2__footnote';
+        tooltip.innerHTML = footenote.innerHTML;
+        tooltip.id = url.hash;
+        tooltip.role = 'tooltip';
+        link.appendChild(tooltip);
+        link.setAttribute('aria-describedby', url.hash);
+
+        // Remove footenote.
+        footenote.remove();
+      }
+
+      /**
+       * Check for deepslinks and add CSS class.
+       */
+      function prepareTooltips() {
+        const links = root.querySelectorAll('a');
+        const pageUrl = window.location.href;
+        links.forEach(element => {
+          const url = new URL(element.href);
+          if (url.hash && pageUrl === url.origin + url.pathname) {
+            element.classList.add('vv-tooltip-v2');
+            createTooltip(element);
+          }
+        });
+      }
+
+      /**
+       * Capture local clicks.
+       */
+      function tooltipClickEvents(e) {
+        if (e.target.closest('.vv-tooltip-v2')) {
+          e.preventDefault();
+          // createTooltip(link);
+        }
+      }
+
+      /**
+       * Event listeners.
+       */
+      function initListeners() {
+        root.addEventListener('click', tooltipClickEvents);
+      }
+
+      /**
+       * Constuctor.
+       */
+      this.construct = function () {
+        root = document.querySelector('.entry-content');
+        initListeners();
+        prepareTooltips();
+      };
+    }
+
+    const vvToolTipClass = new VvToolTipClass();
+    vvToolTipClass.construct();
+
+})();

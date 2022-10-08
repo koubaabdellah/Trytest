@@ -1,0 +1,58 @@
+﻿/*global define */
+/*
+ | Copyright 2014 Esri
+ |
+ | Licensed under the Apache License, Version 2.0 (the "License");
+ | you may not use this file except in compliance with the License.
+ | You may obtain a copy of the License at
+ |
+ |    http://www.apache.org/licenses/LICENSE-2.0
+ |
+ | Unless required by applicable law or agreed to in writing, software
+ | distributed under the License is distributed on an "AS IS" BASIS,
+ | WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ | See the License for the specific language governing permissions and
+ | limitations under the License.
+ */
+define({
+  "unsupportedBrowser": "ł_You are using a browser that is deprecated. Some parts of this application may not work optimally or at all in this browser. Support for this browser will be discontinued in the future. Please use the latest versions of Google Chrome, Mozilla Firefox, Apple Safari, or Microsoft Edge. For more information on browser support, see our documentation. Provide your feedback through______________________________________________________________________________________________________________________________________________________________________________________________ą",
+  "originError": {
+    "message": "ł_The application you are trying to access does not originate from the URL you provided____________________________________________ą",
+    "close": "ł_Close___________ą",
+    "options": "ł_Advanced options_________________ą",
+    "linkMessage": "ł_Proceed to_____________________ą"
+  },
+  "tools": {
+    "search": {
+      "error": "Nie można odnaleźć lokalizacji",
+      "notWhatYouWanted": "Oczekiwano innej lokalizacji?",
+      "selectAnother": "Wybierz inną lokalizację",
+      "currentLocation": "Bieżąca lokalizacja",
+      "title": "Lokalizacja"
+    },
+    "basemap": {
+      "label": "Mapa bazowa",
+      "title": "Wybierz mapę bazową",
+      "close": "Zamknij"
+    },
+    "legend": {
+      "title": "Legenda"
+    },
+    "details": {
+      "title": "Szczegóły",
+      "error": "Aktualizuj opis mapy internetowej za pomocą informacji wyświetlanych w tej sekcji."
+    },
+    "popup": {
+      "title": "Informacje",
+      "instructions": "Wybierz obiekt na mapie, aby wyświetlić szczegóły."
+    }
+  },
+  "map": {
+    "toggle": "Przełącz panel boczny",
+    "error": "Nie można utworzyć mapy",
+    "licenseError": {
+      "message": "Twoje konto nie jest licencjonowane do korzystania z aplikacji konfigurowalnych, które nie są publiczne. Poproś administratora instytucji o przypisanie typu użytkownika, który obejmuje licencję na kluczowe aplikacje lub licencję na kluczowe aplikacje dodatkowe.",
+      "title": "Nie licencjonowano"
+    }
+  }
+});

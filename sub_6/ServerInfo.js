@@ -1,0 +1,3 @@
+//>>built
+define("esri/ServerInfo",["dojo/_base/declare","dojo/_base/lang","dojo/has","./kernel","./lang"],function(a,b,f,c,d){a=a(null,{declaredClass:"esri.ServerInfo",constructor:function(e){b.mixin(this,e)},toJson:function(){return d.fixJson({server:this.server,tokenServiceUrl:this.tokenServiceUrl,adminTokenServiceUrl:this.adminTokenServiceUrl,shortLivedTokenValidity:this.shortLivedTokenValidity,owningSystemUrl:this.owningSystemUrl,owningTenant:this.owningTenant,currentVersion:this.currentVersion,hasPortal:this.hasPortal,
+hasServer:this.hasServer,webTierAuth:this.webTierAuth})}});return c.ServerInfo=a});

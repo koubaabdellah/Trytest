@@ -1,0 +1,1294 @@
+var Toeslagen = Toeslagen || {};
+/** 
+ * worklow for toeslagen
+ *
+ */
+Toeslagen.workflow = function () {
+  /**
+   * shows a div with the given id
+   *
+   * @param theCase case
+   * @param id of the element
+   *
+   * the div is added to the list of visible elements and not actually shown
+   * for caching reasons
+   */
+  function show(theCase, id) {
+    theCase.visibleElements = theCase.visibleElements || {};
+    theCase.visibleElements[id] = document.getElementById(id);
+  }
+
+  /** 
+   * get the value of an input field
+   *
+   * @param elem input element (e.g. input, select)
+   */
+  function getFormValue(elem) {
+    if (elem.getAttribute && (elem.getAttribute('type') == 'radio' || elem.getAttribute('type') == 'checkbox')) {
+      if (elem.checked)
+        return elem.value;
+    } else if (elem.value != undefined) {
+      if (elem.value != '')
+        return elem.value;
+    } else {
+      var value = undefined;
+      for (var i = 0; i < elem.length; ++i) {
+        var value = getFormValue(elem[i]);
+        if (value != undefined)
+          return value;
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * sets the value of an input element
+   *
+   * @param element element (e.g. input, select)
+   * @param value new value
+   */
+  function setFormValue(element, value) {
+    if (typeof element.nodeName === 'string' && element.nodeName.toLowerCase() == 'select') {
+      for (var i = 0, sz = element.options.length; i < sz; ++i)
+        if ("" + element.options[i].value == "" + value) {
+          element.selectedIndex = i;
+          break;
+        }
+    } else if (element.getAttribute && element.getAttribute("type") != null && (element.getAttribute("type").toLowerCase() == 'radio' || element.getAttribute("type").toLowerCase() == 'checkbox')) {
+      if (element.value == value)
+        element.checked = true;
+    } else if (element.value != undefined) {
+      element.value = value;
+    } else if (element.length != undefined) {
+      for_each(element, function (child) {
+        setFormValue(child, value);
+      });
+    }
+  }
+
+  /**
+   * show an input field
+   *
+   * @param theCase case
+   * @id both the id of the surround element containing the input field and the name of the input field, e.g.
+   *		<p id="question-age"><label for="input-age">Enter your age</label> <input type="text" name="question-age" id="input-age"/></p>
+   *
+   * If a value is entered, it is stored as a case attribute in theCase.formValues
+   *
+   * @note if a case value is already set then the form value is set to this value and the question is *not* displayed
+   */
+  function showInput(theCase, id) {
+// check if the value has already been calculated
+    if (theCase.formValues[id] != undefined)
+    {
+      setFormValue(theCase.form[id], theCase.formValues[id]);
+    } else
+    {
+      show(theCase, id);
+      theCase.formValues[id] = getFormValue(theCase.form[id]);
+    }
+  }
+
+  function isHt(theCase) {
+    return theCase.htMin ? 'nee' : (theCase.formValues['huurtoeslag'] === 'ja' ? 'ja' : 'nee')
+  }
+  function isKgb(theCase) {
+    return theCase.kgbMin ? 'nee' : (theCase.formValues['kindgebonden-budget'] === 'ja' ? 'ja' : 'nee');
+  }
+  function isKot(theCase) {
+    return theCase.kotMin ? 'nee' : (theCase.formValues['kinderopvangtoeslag'] === 'ja' ? 'ja' : 'nee');
+  }
+  function isZt(theCase) {    
+    return theCase.ztMin ? 'nee' : (theCase.formValues['zorgtoeslag'] === 'ja' ? 'ja' : 'nee');
+  }
+
+  /**
+   * medebewoner subflow
+   *
+   * @return \c true if the flow is completed, otherwise \c false
+   */
+  function flowMedebewoner(theCase) {
+    var medebewonerCount = parseInt(theCase.formValues['woning-medebewoners']);
+    show(theCase, 'fsMedebewoner'); // toon blok medebewoners
+    theCase['medebewoner-aow'] = "nee";
+    theCase['medebewoner-aow-start-dit-jaar'] = "nee";
+    var medebewonerNr = 1;
+    while (medebewonerNr <= medebewonerCount) {
+      show(theCase, 'fsMedebewoner-' + medebewonerNr); // toon blok specifieke medebewoner
+
+      showInput(theCase, 'medebewoner-geboortedatum-' + medebewonerNr);
+      if (theCase.formValues['medebewoner-geboortedatum-' + medebewonerNr] === undefined || checkDatePicker($("#input-medebewoner-geboortedatum-" + medebewonerNr)[0], false)[0] === false)
+        break;
+      // leid af: aanvrager-leeftijd en aanvrager-achtien-plus
+      theCase['medebewoner-geboortejaar-' + medebewonerNr] = parseInt(theCase.formValues['medebewoner-geboortedatum-' + medebewonerNr].split("-")[2]);
+      theCase['medebewoner-leeftijd-' + medebewonerNr] = theCase.formValues.jaar - theCase['medebewoner-geboortejaar-' + medebewonerNr] - 1;
+      theCase['medebewoner-aow-datum-' + medebewonerNr] = BepaalAOW(theCase, 'medebewoner-geboortedatum-' + medebewonerNr);
+      theCase['medebewoner-aow-' + medebewonerNr] = theCase.v_selDatum >= theCase['medebewoner-aow-datum-' + medebewonerNr] ? "ja" : "nee";
+      if (theCase['medebewoner-aow'] === "nee") {
+        if (theCase['medebewoner-aow-' + medebewonerNr] == 'ja') {
+          theCase['medebewoner-aow'] = "ja";
+        }
+      }
+      if (theCase['medebewoner-aow-start-dit-jaar'] === "nee") {
+        if (theCase['medebewoner-aow-datum-' + medebewonerNr] >= theCase.v_selDatum && theCase['medebewoner-aow-datum-' + medebewonerNr] <= theCase.v_selEindDatum) {
+          theCase['medebewoner-aow-start-dit-jaar'] = "ja";
+        }
+      }
+      if (theCase['aanvrager-leeftijd'] < 23 && document.getElementById('radio-woning-23-min-ja').checked == true && theCase['medebewoner-leeftijd-' + medebewonerNr] >= 23) {
+        break; // wacht op invoer, er is een waarde ingevuld die geen keuze in de lijst meer is (n.a.v. bevinding 335).
+      }
+
+      if (theCase['medebewoner-leeftijd-' + medebewonerNr] < 23) {
+        showInput(theCase, 'medebewoner-kind-' + medebewonerNr);
+        if (theCase.formValues['medebewoner-kind-' + medebewonerNr] === undefined)
+          break; // wacht op invoer
+      }
+
+      showInput(theCase, 'medebewoner-toetsingsinkomen-' + medebewonerNr);
+      if (theCase.formValues['medebewoner-toetsingsinkomen-' + medebewonerNr] === undefined) {
+        break; // wacht op invoer geboortejaar en toetsingsinkomen
+      }
+
+      ++medebewonerNr;
+    }
+
+    if (medebewonerNr === medebewonerCount + 1) {
+      return true;
+    } else {
+      return false; // invoer van een of meer medebewoners niet compleet
+    }
+  }
+
+  /**
+   * medebewoner subflow
+   *
+   * @return \c true if the flow is completed, otherwise \c false
+   */
+  function flowVermogenstoets(theCase) {
+    do {
+      theCase.v_ztkgb_boven64 = 'nee';
+      theCase.v_ht_boven64 = 'nee';
+      var bVermZtKgb = true;
+      var antwoord = "nee";
+      if (theCase.formValues['jaar'] <= 2015 && (isZt(theCase) === 'ja' || isKgb(theCase) === 'ja') && (theCase['aanvrager-aow'] === "ja" || theCase['aanvrager-aow-start-dit-jaar'] === 'ja' || theCase['toeslagpartner-aow'] === 'ja' || theCase['toeslagpartner-aow-start-dit-jaar'] === 'ja')) {
+        antwoord = "ja";
+      }
+      if (antwoord === 'nee') {
+        if (theCase.formValues['jaar'] <= 2015 && (isHt(theCase) === 'ja') && (theCase['aanvrager-aow'] === "ja" || theCase['aanvrager-aow-start-dit-jaar'] === "ja" || theCase['toeslagpartner-aow'] === 'ja' || theCase['toeslagpartner-aow-start-dit-jaar'] === 'ja' || theCase['medebewoner-aow'] === "ja" || theCase['medebewoner-aow-start-dit-jaar'] === "ja")) {
+          theCase.v_ht_boven64 = 'ja';
+        } else {
+          if (isHt(theCase) === 'ja') {
+            show(theCase, 'fsVermogenstoets'); // toon blok vermogenstoets
+            if (theCase.formValues['aanvrager-toeslagpartner'] === 'ja' && theCase.formValues['toeslagpartner-zelfde-adres'] === 'ja') {
+              showInput(theCase, 'vt-gezamenlijk-vermogen-ht');
+              if (theCase.formValues['vt-gezamenlijk-vermogen-ht'] === undefined)
+                break; // wacht op invoer 
+              if (theCase.formValues['vt-gezamenlijk-vermogen-ht'] === 'ja') {
+                theCase.htMin = true; // HT- 
+              } else if (theCase.formValues['vt-gezamenlijk-vermogen-ht'] === 'nee') {
+                bVermZtKgb = false;
+              }
+            } else if (theCase.formValues['aanvrager-toeslagpartner'] === 'nee' || (theCase.formValues['aanvrager-toeslagpartner'] === 'ja' && theCase.formValues['toeslagpartner-zelfde-adres'] === 'nee')) {
+              showInput(theCase, 'vt-enkel-vermogen-ht');
+              if (theCase.formValues['vt-enkel-vermogen-ht'] === undefined)
+                break; // wacht op invoer 
+              if (theCase.formValues['vt-enkel-vermogen-ht'] === 'ja') {
+                theCase.htMin = true; // HT-                  
+              } else if (theCase.formValues['vt-enkel-vermogen-ht'] === 'nee') {
+                bVermZtKgb = false;
+              }
+            }
+            if (theCase.formValues["woning-medebewoners"] > 0 && (theCase.formValues['vt-gezamenlijk-vermogen-ht'] === 'nee' || theCase.formValues['vt-enkel-vermogen-ht'] === 'nee')) {
+              showInput(theCase, 'vt-enkel-vermogen-ht-medebewoner');
+              if (theCase.formValues['vt-enkel-vermogen-ht-medebewoner'] === undefined)
+                break; // wacht op invoer
+              if (theCase.formValues['vt-enkel-vermogen-ht-medebewoner'] === 'ja') {
+                theCase.htMin = true; // HT-
+              }
+              bVermZtKgb = false;
+            }
+          }
+        }
+
+        if (bVermZtKgb == true && (isZt(theCase) === 'ja' || (isKgb(theCase) === 'ja') && theCase['kind-kgb-ja'] > 0) ) {
+          show(theCase, 'fsVermogenstoets'); // toon blok vermogenstoets
+          if (theCase.formValues['aanvrager-toeslagpartner'] === 'ja') {
+            showInput(theCase, 'vt-gezamenlijk-vermogen-zt-kgb');
+            if (theCase.formValues['vt-gezamenlijk-vermogen-zt-kgb'] === undefined)
+              break; // wacht op invoer            
+          } else {
+            showInput(theCase, 'vt-enkel-vermogen-zt-kgb');
+            if (theCase.formValues['vt-enkel-vermogen-zt-kgb'] === undefined)
+              break; // wacht op invoer                      
+          }
+          if (theCase.formValues['vt-gezamenlijk-vermogen-zt-kgb'] === 'ja' || theCase.formValues['vt-enkel-vermogen-zt-kgb'] === 'ja') {
+            theCase.ztMin = true; // ZT-                  
+            theCase.kgbMin = true; // KGB-                  
+          }
+        }
+
+
+      } else {
+        theCase.v_ztkgb_boven64 = 'ja';
+        //if ((isHt(theCase) === 'ja') && (theCase['aanvrager-leeftijd'] > 64 || theCase['toeslagpartner-leeftijd'] > 64 || theCase['medebewoner-ouder-64'] === true)) {
+        if ((isHt(theCase) === 'ja') && (theCase['aanvrager-aow'] === "ja" || theCase['aanvrager-aow-start-dit-jaar'] === 'ja' || theCase['toeslagpartner-aow'] === 'ja' || theCase['toeslagpartner-aow-start-dit-jaar'] === 'ja' || theCase['medebewoner-aow'] === 'ja' || theCase['medebewoner-aow-start-dit-jaar'] === 'ja')) {
+          theCase.v_ht_boven64 = 'ja';
+        }
+      }
+      return true;
+    } while (false);
+    return false;
+  }
+
+
+
+  /**
+   * woning subflow
+   *
+   * @return \c true if the flow is completed, otherwise \c false
+   */
+  function flowWoning(theCase) {
+    do {
+      show(theCase, 'fsWoning'); // toon blok woning
+
+      // bepaal jaar.HTjaar aanwezig
+      var jaarTableAccess = new Jaar(theCase.formValues['jaar']);
+      var htjaar = jaarTableAccess.htjaar();
+// stel htjaar automatisch in want er is maar 1 optie, vraag is vervallen
+      theCase.formValues['woning-htjaar'] = htjaar;
+      document.getElementById('KwKrtGrns_1').innerHTML = formatCurrency(Tabellen.HTjaar[htjaar].KwKrtGrns, 2);
+      document.getElementById('MaxHuur_1').innerHTML = formatCurrency(Tabellen.HTjaar[htjaar].MaxHuur, 2);
+      document.getElementById('MaxHuur_2').innerHTML = document.getElementById('MaxHuur_1').innerHTML;
+      showInput(theCase, 'woning-op-kamers');
+      if (theCase.formValues['woning-op-kamers'] === undefined)
+        break; // wacht op invoer
+
+      if (theCase.formValues['woning-op-kamers'] === 'ja') {
+        showInput(theCase, 'woning-aangewezen');
+        if (theCase.formValues['woning-aangewezen'] === undefined)
+          break; // wacht op invoer
+
+        if (theCase.formValues['woning-aangewezen'] === 'nee')
+          theCase.htMin = true; // HT-
+      }
+
+      if (theCase.htMin !== true) {
+        showInput(theCase, 'woning-aangepast');
+        if (theCase.formValues['woning-aangepast'] === undefined)
+          break; // wacht op invoer
+                showInput(theCase, 'woning-medebewoners');
+        if (theCase.formValues['woning-medebewoners'] === undefined)
+          break; // wacht op invoer
+        if (theCase.formValues['woning-medebewoners'] > 0) {
+          if (theCase.formValues['woning-aangepast'] === 'nee' && theCase['aanvrager-leeftijd'] < 23 &&
+                  (theCase.formValues['aanvrager-toeslagpartner'] === 'nee'
+                          || theCase.formValues['toeslagpartner-zelfde-adres'] === 'nee'
+                          || theCase['toeslagpartner-leeftijd'] < 23)) {
+// medebewoners
+            showInput(theCase, 'woning-23-min');
+            if (theCase.formValues['woning-23-min'] === undefined)
+              break; // wacht op invoer
+            if (theCase.formValues['woning-23-min'] === 'ja') {
+              showInput(theCase, 'woning-kind');
+              if (theCase.formValues['woning-kind'] === undefined)
+                break; // wacht op invoer
+
+              if (theCase.formValues['woning-kind'] === 'nee' && jaarTableAccess.hdcp() === 'Ja') {
+                showInput(theCase, 'woning-handicap');
+                if (theCase.formValues['woning-handicap'] === undefined)
+                  break; // wacht op invoer
+              }
+            }
+          }
+        }
+        theCase.garage = false;
+        if (jaarTableAccess.garage() === true) {
+          theCase.garage = true;
+          showInput(theCase, 'woning-garage');
+          if (theCase.formValues['woning-garage'] === undefined) {
+            break; // wacht op invoer
+          }
+        }
+
+        showInput(theCase, 'woning-huur');
+        if (theCase.formValues['woning-huur'] === undefined){
+          break; // wacht op invoer
+        }
+        // bereken HuurNaGarage en Huurgrens
+        var htjaarTableAccess = new HTjaar(theCase.formValues['woning-htjaar']);
+        var htBerekening = new HtBerekening(htjaarTableAccess, new CaseInput(theCase));
+        theCase['huur-na-garage'] = htBerekening.huurNaGarage();
+        theCase['huurgrens'] = htBerekening.huurgrens();
+        if (theCase.formValues['woning-aangepast'] === 'nee' && theCase['huur-na-garage'] > theCase['huurgrens']) {
+          theCase.htMin = true; // HT-
+        } else {
+          showInput(theCase, 'woning-servicekosten');
+          if (theCase.formValues['woning-servicekosten'] === undefined)
+            break; // wacht op invoer
+
+          // bereken HuurVoorOh
+          var htjaarTableAccess = new HTjaar(theCase.formValues['woning-htjaar']);
+          var htBerekening = new HtBerekening(htjaarTableAccess, new CaseInput(theCase));
+          theCase['huur-voor-oh'] = htBerekening.huurVoorOh();
+          if (theCase.formValues['woning-aangepast'] === 'nee' && theCase['huur-voor-oh'] > theCase['huurgrens']) {
+            theCase.htMin = true;
+          } else {
+            theCase.onderhuur = false;
+            if (jaarTableAccess.onderhuur() === true) {
+              theCase.onderhuur = true;
+              showInput(theCase, 'woning-onderhuur');
+              if (theCase.formValues['woning-onderhuur'] === undefined) {
+                break; // wacht op invoer
+              }
+            }
+            theCase['woning-afgerond'] = true;
+            if (parseInt(theCase.formValues['woning-medebewoners']) > 0)
+              return flowMedebewoner(theCase);
+          }
+        }
+      }
+      theCase['woning-afgerond'] = true;
+      return true;
+    } while (false);
+    return false;
+  }
+  ;
+  /**
+   * kind B subflow
+   *
+   * @return \c true if the flow completed, otherwise \c false
+   */
+
+  function flowKindB(theCase, kindNr) {
+    do {
+      if (isKot(theCase) === 'ja') {
+        showInput(theCase, 'kind-opvang-' + kindNr);
+        if (theCase.formValues['kind-opvang-' + kindNr] === undefined)
+          break; // wacht op invoer
+
+        if (theCase.formValues['kind-opvang-' + kindNr] !== 'geen') {
+
+          // tussenresultaat tonen bij leeftijd vanaf 4 en dagopvang
+          if (theCase.formValues['kind-opvang-' + kindNr] === 'dagopvang' && (theCase['kind_leeftijd-' + kindNr] >= 4)) {
+            var id = "tussenresultaat-kind-4-of-ouder-en-dagopvang-" + kindNr;
+            var regexp = new RegExp("(^|\\s)" + id + "(\\s|$)");
+            if (theCase['tussenresultaten-negeren'].match(regexp) == null) {
+              oAlert = document.getElementById(id);
+            }
+          }
+
+          // tussenresultaat tonen bij leeftijd vanaf 12 en bo
+          if (theCase.formValues['kind-opvang-' + kindNr] === 'buitenschoolse-opvang' && (theCase['kind_leeftijd-' + kindNr] >= 12)) {
+            var id = "tussenresultaat-kind-12-of-ouder-en-bo-" + kindNr;
+            var regexp = new RegExp("(^|\\s)" + id + "(\\s|$)");
+            if (theCase['tussenresultaten-negeren'].match(regexp) == null) {
+              oAlert = document.getElementById(id);
+            }
+          }
+
+          show(theCase, 'kind-kinderopvang-' + kindNr); // make kind-kinderopvang visible
+          showInput(theCase, 'kind-kinderopvang-aantal-' + kindNr); // 1 to 3 values possible
+
+          // uren/uurprijs zitten niet in workflow vanwege de dynamische methode waarbij 
+          // opvang kan worden toegevoegd en verwijderd
+          // deze stap leest ze uit en plaats ze 'handmatig' in de formValues van de case
+          var aantal = theCase.formValues['kind-kinderopvang-aantal-' + kindNr];
+          if (aantal) {
+            for (var i = 0; i < aantal; ++i) {
+              var opvangNr = i + 1;
+              theCase.formValues['kind-soortopvanginstelling-' + kindNr + '-' + opvangNr] = document.getElementById("Berekening")['select-opvang-vorm-' + kindNr + '-' + opvangNr].value;
+              theCase.formValues['kind-uren-' + kindNr + '-' + opvangNr] = document.getElementById("Berekening")['kind-uren-' + kindNr + '-' + opvangNr].value;
+              theCase.formValues['kind-uurprijs-' + kindNr + '-' + opvangNr] = document.getElementById("Berekening")['kind-uurprijs-' + kindNr + '-' + opvangNr].value.replace(/,/, ".");
+            }
+          }
+
+          // maximum uren ophalen
+          var jaarTableAccess = new Jaar(theCase.formValues['jaar']);
+          var jaar = theCase.formValues['jaar'];
+          var maxuren = jaarTableAccess.maxUren();
+          theCase['maxuren'] = maxuren;
+          // wacht tot uren/uurprijs compleet is
+          var rowAmount = parseInt(theCase.formValues['kind-kinderopvang-aantal-' + kindNr])
+          var incomplete = false; // assume complete
+          var urenGO = 0;
+          var urenKC = 0;
+          var urenKtot = 0;
+          var iRijBovenMax;
+          for (var i = 0; i < rowAmount && iRijBovenMax == undefined; ++i) {
+            var opvangNr = i + 1;
+            var soortopvanginstelling = theCase.formValues['kind-soortopvanginstelling-' + kindNr + '-' + opvangNr];
+            var uren = theCase.formValues['kind-uren-' + kindNr + "-" + opvangNr];
+            var uurprijs = theCase.formValues['kind-uurprijs-' + kindNr + "-" + opvangNr]
+
+            if (soortopvanginstelling != "" && uren != "" && uren != undefined) {
+              //het totaal aantal uren bijhouden
+              if (soortopvanginstelling == "gastouderopvang") {
+                urenGO += parseInt(uren);
+                urenKtot += parseInt(uren);
+              }
+              if (soortopvanginstelling == "kindercentrum") {
+                urenKC += parseInt(uren);
+                urenKtot += parseInt(uren);
+              }
+              if (maxuren != null && (urenGO > maxuren || urenKC > maxuren)) {
+                iRijBovenMax = i + 1;
+              }
+            }
+
+            if (uren === undefined || uren === "" || uurprijs === undefined || uurprijs === "" || soortopvanginstelling === "") {
+              incomplete = true;
+            }
+          }
+
+          theCase['toturengo'] = urenGO;
+          theCase['toturenkc'] = urenKC;
+          var wisuren = false;
+          if (maxuren != null) {
+            //1e validatie
+
+            // validatie Werk           
+            if (theCase['v_doelgroeper_tekst'] === "nee" && parseInt(theCase.formValues['jaar']) !== 2020) {
+              var recht_op_bso_uren = parseInt(theCase['Recht_op_bso_uren']);
+              var recht_op_dagopvang_uren = parseInt(theCase['Recht_op_dagopvang_uren']);
+              // validatie voor bso
+              if (urenKtot > recht_op_bso_uren && theCase.formValues['kind-opvang-' + kindNr] === 'buitenschoolse-opvang') {
+                alert("U hebt recht op maximaal " + recht_op_bso_uren + " uur buitenschoolse opvang per kind per maand.");
+                wisuren = true;
+              }
+              // validatie voor dagopvang
+              else if (urenKtot > recht_op_dagopvang_uren && theCase.formValues['kind-opvang-' + kindNr] === 'dagopvang') {
+                alert("U hebt recht op maximaal " + recht_op_dagopvang_uren + " uur dagopvang per kind per maand.");
+                wisuren = true;
+              }
+            }
+            //2e validatie
+            else if (urenKtot > maxuren) {
+              alert("Per kind mag u niet meer dan " + maxuren + " uur opgeven.");
+              wisuren = true;
+            }
+          }
+
+          if (wisuren) {
+            var aantal = theCase.formValues['kind-kinderopvang-aantal-' + kindNr];
+            if (aantal) {
+              for (var i = 0; i < aantal; ++i) {
+                var opvangNr = i + 1;
+                document.getElementById("Berekening")['kind-uren-' + kindNr + '-' + opvangNr].value = "";
+              }
+            }
+            //het 1e veld de focus geven
+            SetFocus("input-kind-uren-" + kindNr + "-" + 1);
+            break; // stop flow, want niet alle waarden zijn compleet							
+          }
+
+          if (incomplete) {
+            break; // stop flow, want niet alle waarden zijn compleet
+          }          
+        }
+      }
+      theCase['kind-b-' + kindNr + '-afgerond'] = true;
+      return true;
+    } while (false);
+    return false;    
+  }
+
+  /**
+   * kind A subflow
+   *
+   * @return \c true if the flow completed, otherwise \c false
+   */
+
+
+  function flowKindA(theCase, kindNr) {
+    do {
+      if (isKgb(theCase) === 'ja') {
+        showInput(theCase, 'kind-geboortejaar-' + kindNr);
+        if (theCase.formValues['kind-geboortejaar-' + kindNr] === undefined)
+          break; // wacht op invoer			
+
+        var jaar = theCase.formValues['jaar'];
+        var jaarTableHelper = new Jaar(jaar);
+        var kind_leeftijd = parseInt(jaar) - parseInt(theCase.formValues['kind-geboortejaar-' + kindNr]) - 1;
+        theCase['kind_leeftijd-' + kindNr] = kind_leeftijd;
+        if (jaarTableHelper.wtos() === true) {
+          // tussenresultaat tonen bij leeftijd 11 of 15
+          if (kind_leeftijd === 11 || kind_leeftijd === 15) {
+            var id = "tussenresultaat-kind-" + kind_leeftijd + "-bij-kgb-" + kindNr;
+            var regexp = new RegExp("(^|\\s)" + id + "(\\s|$)");
+            if (theCase['tussenresultaten-negeren'].match(regexp) == null) {
+              doTussenresultaat(id);
+              theCase.tussenresultaat = id;
+            }
+
+            if (theCase.tussenresultaat !== undefined)
+              break; // wacht op 'verder'			
+          }
+        }
+
+        showInput(theCase, 'kind-kb-aanvr-' + kindNr);
+        if (theCase.formValues['kind-kb-aanvr-' + kindNr] === undefined)
+          break; // wacht op invoer
+
+        if (theCase.formValues['kind-kb-aanvr-' + kindNr] == 'ja') {
+          theCase['kgb-voor-kind-' + kindNr] = 'ja'; // wel kgb voor kind
+        } else {
+          showInput(theCase, 'kind-kb-kind-' + kindNr);
+          if (theCase.formValues['kind-kb-kind-' + kindNr] === undefined)
+            break; // wacht op invoer
+
+          if (theCase.formValues['kind-kb-kind-' + kindNr] === 'ja') {
+            theCase['kgb-voor-kind-' + kindNr] = 'nee'; // geen kgb voor kind
+          } else if (theCase.formValues['kind-kb-kind-' + kindNr] === 'nee') {
+            if ((kind_leeftijd === 16 || kind_leeftijd === 17)) {
+              showInput(theCase, 'kind-onderhoud-' + kindNr);
+              if (theCase.formValues['kind-onderhoud-' + kindNr] === undefined)
+                break; // wacht op invoer
+
+              if (theCase.formValues['kind-onderhoud-' + kindNr] === 'ja') {
+
+                if (parseInt(theCase.formValues['jaar']) >= 2020) {
+                  theCase['kgb-voor-kind-' + kindNr] = 'ja'; // wel kgb voor kind
+                } else {
+                  showInput(theCase, 'kind-studiefinanciering-' + kindNr);
+                  if (theCase.formValues['kind-studiefinanciering-' + kindNr] === undefined)
+                    break; // wacht op invoer
+
+                  if (theCase.formValues['kind-studiefinanciering-' + kindNr] === 'nee') {
+                    showInput(theCase, 'kind-inkomensgrens-' + kindNr);
+                    if (theCase.formValues['kind-inkomensgrens-' + kindNr] === undefined)
+                      break; // wacht op invoer
+
+                    if (theCase.formValues['kind-inkomensgrens-' + kindNr] === 'ja') {
+                      theCase['kgb-voor-kind-' + kindNr] = 'ja'; // wel kgb voor kind
+                    } else {
+                      theCase['kgb-voor-kind-' + kindNr] = 'nee'; // geen kgb voor kind
+                    }
+                  } else {
+                    theCase['kgb-voor-kind-' + kindNr] = 'nee';
+                  }
+                }
+              } else {
+                theCase['kgb-voor-kind-' + kindNr] = 'nee'; // geen kgb voor kind
+              }
+            } else {
+              theCase['kgb-voor-kind-' + kindNr] = 'nee'; // geen kgb voor kind							
+            }
+          }
+        }
+        //Telling verhoging 12+ en 16+
+        if (theCase['kgb-voor-kind-' + kindNr] == 'ja' && jaarTableHelper.wtos() == true) {
+          if (kind_leeftijd >= 12 && kind_leeftijd < 16) {
+            theCase['12plus']++;
+          } else if (kind_leeftijd >= 16) {
+            theCase['16plus']++;
+          }
+        }
+        if (theCase['kgb-voor-kind-' + kindNr] == 'ja') {
+          theCase['kind-kgb-ja']++;
+        }
+      }
+      theCase['kind-a-' + kindNr + '-afgerond'] = true;
+      return true; // afgerond
+    } while (false);
+    return false; // niet afgerond
+  }
+
+  /**
+   * kinderen subflow
+   *
+   * @return \c true if the flow completed, otherwise \c false
+   */
+  function flowKinderen(theCase) {
+
+    var afgerond = true; // assume all completed
+    var kinderen = theCase.formValues['aanvrager-kinderen'];
+    theCase['12plus'] = 0;
+    theCase['16plus'] = 0;
+    theCase['kind-kgb-ja'] = 0;
+    if (kinderen !== undefined && parseInt(kinderen) > 0
+            && (isKgb(theCase) === 'ja' || isKot(theCase) === 'ja'))
+    {
+      show(theCase, 'fsKinderen') // toon blok kinderen
+      for (var i = 0; i < kinderen && afgerond === true; ++i) {
+        var kindNr = i + 1;
+        show(theCase, 'fsKind-' + kindNr); // toon blok kind
+        var kindA = flowKindA(theCase, kindNr);
+        var kindB = kindA ? flowKindB(theCase, kindNr) : false;
+        afgerond = afgerond && kindA && kindB;
+      }
+
+      if (!afgerond)
+        return false; // niet alle gegevens van kinderen zijn ingevuld
+    }
+
+    // geen kinderen of invoer gegevens alle kinderen afgerond
+    if (isHt(theCase) === 'ja')
+      return flowWoning(theCase);
+    else
+      return true;
+  }
+
+  /**
+   * gezamenlijk subflow
+   *
+   */  
+  function flowGezamenlijk(theCase) {
+    if (isKot(theCase) === 'ja') {
+    var jaar = theCase.formValues['jaar'];   
+    var jaarTableAccess = new Jaar(theCase.formValues['jaar']);
+    var maxuren = jaarTableAccess.maxUren();
+
+    // reset
+    removeClass_utils(document.getElementById("tussenresultaat-k-1"), "visible");
+    removeClass_utils(document.getElementById("tussenresultaat-k-1-doelgroeper"), "visible");
+    removeClass_utils(document.getElementById("tussenresultaat-k-2"), "visible")
+    removeClass_utils(document.getElementById("legend_fsGezamenlijk"), "invisible"); 
+
+    if (parseInt(jaar) > 2050) {
+      addClass_utils(document.getElementById("tussenresultaat-k-2"), "visible"); // Alleen tussenresultaat tonen
+      show(theCase, "fsGezamenlijk"); // toon blok waarin k-2 staat
+      addClass_utils(document.getElementById("legend_fsGezamenlijk"), "invisible"); // Verberg kop Gewerkte uren (er is geen uitvraag van aantal gewerkte uren)
+      return flowKinderen(theCase); // Vervolg: Kinderen
+    } else {
+      do {                   
+        theCase['v_doelgroeper_tekst'] = "nee";
+        theCase['v_alleen_doelgroepers'] = "nee";
+        var v_recht_aanvrager = 0;
+        var v_recht_toeslagpartner = 0;
+        // Alleen doelgroeper(s)?
+        if ((theCase.formValues['aanvrager-doelgroeper'] === 'ja' && theCase.formValues['aanvrager-toeslagpartner'] === 'nee') ||
+           (theCase.formValues['aanvrager-doelgroeper'] === 'ja' && theCase.formValues['toeslagpartner-doelgroeper'] === 'ja' && 
+           theCase.formValues['aanvrager-toeslagpartner'] === 'ja')) {
+           var v_recht_aanvrager = maxuren;
+           if (theCase.formValues['aanvrager-toeslagpartner'] === 'ja') {
+              v_recht_toeslagpartner = maxuren;
+           }
+           theCase['v_alleen_doelgroepers'] = "ja";
+         }
+         // Beide werkuren uitvragen? 
+         else if (theCase.formValues['aanvrager-doelgroeper'] === 'nee' && theCase.formValues['toeslagpartner-doelgroeper'] === 'nee' 
+         && theCase.formValues['aanvrager-toeslagpartner'] === 'ja') {         
+           show(theCase, "fsGezamenlijk"); // toon blok
+           showInput(theCase, 'gezamenlijk-minst-werkende'); //toon vraag
+              if (theCase.formValues['gezamenlijk-minst-werkende'] === undefined)
+                break; // wacht op invoer
+              // kot keuze
+              if (theCase.formValues['gezamenlijk-minst-werkende'] === 'mijn-toeslagpartner') {
+                // kot invoer werkuren p/wk toeslagpartner
+                showInput(theCase, 'gezamenlijk-werkuren-toeslagpartner'); //toon vraag
+                if (theCase.formValues['gezamenlijk-werkuren-toeslagpartner'] === undefined)
+                  break; // wacht op invoer
+              } else {
+                // kot invoer werk uren p/wk invuller
+                showInput(theCase, 'gezamenlijk-werkuren-aanvrager'); // toon vraag
+                if (theCase.formValues['gezamenlijk-werkuren-aanvrager'] === undefined)
+                  break; // wacht op invoer					
+              }
+            } 
+            // van wie werkuren uitvragen?
+            else if (theCase.formValues['aanvrager-doelgroeper'] === 'ja') {
+              // toeslagpartner
+              v_recht_aanvrager = maxuren;
+              show(theCase, "fsGezamenlijk"); // toon blok
+              showInput(theCase, 'gezamenlijk-werkuren-toeslagpartner'); //toon vraag
+              if (theCase.formValues['gezamenlijk-werkuren-toeslagpartner'] === undefined)
+                break; // wacht op invoer
+            } 
+            // aanvrager  ?
+            else if (theCase.formValues['aanvrager-doelgroeper'] === 'nee' && theCase.formValues['aanvrager-toeslagpartner'] === 'nee') {
+              show(theCase, "fsGezamenlijk"); // toon blok
+              showInput(theCase, 'gezamenlijk-werkuren-aanvrager'); // toon vraag
+              if (theCase.formValues['gezamenlijk-werkuren-aanvrager'] === undefined)
+                break; // wacht op invoer	          
+            } 
+            else if (theCase.formValues['toeslagpartner-doelgroeper'] === 'ja') {
+              v_recht_toeslagpartner = maxuren;
+              show(theCase, "fsGezamenlijk"); // toon blok
+              showInput(theCase, 'gezamenlijk-werkuren-aanvrager'); // toon vraag
+              if (theCase.formValues['gezamenlijk-werkuren-aanvrager'] === undefined)
+                break; // wacht op invoer	
+            }
+            var v_recht_doelgroeper = 0;
+            if (v_recht_aanvrager != 0) {
+              var v_recht_doelgroeper = v_recht_aanvrager;
+            } else if (v_recht_toeslagpartner != 0) {
+              var v_recht_doelgroeper = v_recht_toeslagpartner;
+            }
+            var v_werkuren = 0;
+            if (theCase.formValues['gezamenlijk-werkuren-aanvrager']) {
+              v_werkuren = theCase.formValues['gezamenlijk-werkuren-aanvrager'];
+            } else if (theCase.formValues['gezamenlijk-werkuren-toeslagpartner']) {
+              v_werkuren = theCase.formValues['gezamenlijk-werkuren-toeslagpartner'];
+            }
+            if (v_recht_aanvrager != 0 && v_werkuren != 0) {
+              var v_werkuren_maand = (v_werkuren * 52.14) / 12;
+              var v_recht_maand = Math.min(v_werkuren_maand, v_recht_doelgroeper);
+            } else if (v_werkuren != 0) {
+              var v_recht_maand = (v_werkuren * 52.14) / 12;
+            } else {
+              var v_recht_maand = v_recht_doelgroeper;
+            }
+            var Recht_op_bso_uren = Math.floor((v_recht_maand * 0.7) + 0.99);
+            var Recht_op_dagopvang_uren = Math.floor((v_recht_maand * 1.4) + 0.99);
+            theCase['Recht_op_bso_uren'] = Recht_op_bso_uren > maxuren ? maxuren : Recht_op_bso_uren;
+            theCase['Recht_op_dagopvang_uren'] = Recht_op_dagopvang_uren > maxuren ? maxuren : Recht_op_dagopvang_uren;
+            if (!isNaN(v_werkuren)) {
+              // tussenresultaat tonen                          
+              if (theCase['v_alleen_doelgroepers'] === "ja") {
+                addClass_utils(document.getElementById("legend_fsGezamenlijk"), "invisible");
+                theCase['v_doelgroeper_tekst'] = "ja"
+              } else if (theCase.formValues['aanvrager-werk'] === 'ja' && theCase.formValues['aanvrager-doelgroeper'] === 'nee' && v_werkuren >= 38 && theCase.formValues['aanvrager-toeslagpartner'] === 'ja' && theCase.formValues['toeslagpartner-werk'] === 'nee' && theCase.formValues['toeslagpartner-doelgroeper'] === 'ja') {
+                theCase['v_doelgroeper_tekst'] = "ja"
+              } else if (theCase.formValues['aanvrager-werk'] === 'nee' && theCase.formValues['aanvrager-doelgroeper'] === 'ja' && theCase.formValues['aanvrager-toeslagpartner'] === 'ja' && theCase.formValues['toeslagpartner-werk'] === 'ja' && theCase.formValues['toeslagpartner-doelgroeper'] === 'nee' && v_werkuren >= 38) {
+                theCase['v_doelgroeper_tekst'] = "ja"
+              } else if (theCase.formValues['aanvrager-werk'] === 'ja' && theCase.formValues['aanvrager-doelgroeper'] === 'ja' && theCase.formValues['aanvrager-toeslagpartner'] === 'ja' && theCase.formValues['toeslagpartner-werk'] === 'ja' && theCase.formValues['toeslagpartner-doelgroeper'] === 'nee' && v_werkuren >= 38) {
+                theCase['v_doelgroeper_tekst'] = "ja"
+              } else if (theCase.formValues['aanvrager-werk'] === 'ja' && theCase.formValues['aanvrager-doelgroeper'] === 'nee' && theCase.formValues['aanvrager-toeslagpartner'] === 'ja' && theCase.formValues['toeslagpartner-werk'] === 'ja' && theCase.formValues['toeslagpartner-doelgroeper'] === 'ja' && v_werkuren >= 38) {
+                theCase['v_doelgroeper_tekst'] = "ja"
+              }
+
+              if (theCase['v_doelgroeper_tekst'] === "ja") {
+                theCase['Recht_op_bso_uren'] = 230;
+                theCase['Recht_op_dagopvang_uren'] = 230;
+                addClass_utils(document.getElementById("tussenresultaat-k-1-doelgroeper"), "visible");
+              } else {
+                document.getElementById('recht_op_dagopvang_uren').innerHTML = theCase['Recht_op_dagopvang_uren'];
+                document.getElementById('recht_op_bso_uren').innerHTML = theCase['Recht_op_bso_uren'];
+                addClass_utils(document.getElementById("tussenresultaat-k-1"), "visible");
+              }
+
+              show(theCase, "fsGezamenlijk");
+            }
+        return flowKinderen(theCase);
+        }
+     while (false);   
+    // flow niet afgerond
+      }
+    }
+    return flowKinderen(theCase);      
+  }
+  
+
+  /**
+   * keuze toeslagen subflow
+   *
+   * @return \c true if the flow completed, otherwise \c false
+   */
+  function flowKeuzeToeslagen(theCase) {
+    show(theCase, "keuze-toeslagen"); // toon vraag    
+    iAantalToeslagen = 0;
+    // bepaal toegestane keuzes op basis van jaar
+    var jaar = new Jaar(theCase.formValues['jaar']);
+    if (!(jaar.ht() == true)) {
+      theCase.htMin = true;
+    }
+    if (!(jaar.kgb() == true)) {
+      theCase.kgbMin = true;
+    }
+    if (!(jaar.kot() == true)) {
+      theCase.kotMin = true;
+    }
+    if (!(jaar.zt() == true)) {
+      theCase.ztMin = true;
+    }
+
+    // toon toeslagkeuzes
+    if (!theCase.htMin)
+      showInput(theCase, "huurtoeslag");
+    if (!theCase.kgbMin)
+      showInput(theCase, "kindgebonden-budget");
+    if (!theCase.kotMin)
+      showInput(theCase, "kinderopvangtoeslag");
+    if (!theCase.ztMin)
+      showInput(theCase, "zorgtoeslag");
+
+    // keuze afgerond 
+    if (checkAttentie(theCase) != true) {      
+      return false;
+    }
+    if (theCase.formValues['huurtoeslag'] !== 'ja'
+            && theCase.formValues['kindgebonden-budget'] !== 'ja'
+            && theCase.formValues['kinderopvangtoeslag'] !== 'ja'
+            && theCase.formValues['zorgtoeslag'] !== 'ja') {
+      return false; // geen keuze gemaakt
+    } else {
+      iAantalToeslagen = 0;
+      if (theCase.formValues['huurtoeslag'] === 'ja') {
+        iAantalToeslagen++;
+      }
+      if (theCase.formValues['kindgebonden-budget'] === 'ja') {
+        iAantalToeslagen++;
+      }
+      if (theCase.formValues['kinderopvangtoeslag'] === 'ja') {
+        iAantalToeslagen++;
+      }
+      if (theCase.formValues['zorgtoeslag'] === 'ja') {
+        iAantalToeslagen++;
+      }    
+      var introVervolg = flowIntroVervolgZT(theCase);
+      if (introVervolg === true) {
+        theCase.introV2 === true; // daal niet verder af in de rekenhulp en ga direct naar de eindclusie      
+      }      
+      return true;          
+    } 
+  }
+
+  function flowIntroVervolgZT(theCase) {
+    theCase.showConclusie1_1 = false;    
+    var jaar = theCase.formValues['jaar'];    
+    if (Tabellen.Jaar[jaar].ZT_norm_geldig !== 'Ja'){      
+      if (theCase.formValues['zorgtoeslag'] === 'ja'){ 
+        if (theCase.formValues['huurtoeslag'] !== 'ja' && theCase.formValues['kindgebonden-budget'] !== 'ja' && theCase.formValues['kinderopvangtoeslag'] !== 'ja') {
+          theCase.showConclusie1_1 = true;          // wordt gebruikt in end-result.js en flowbepaling
+          return true;
+         }
+         else {          
+           $('#fsAanvrager').removeClass('visible');
+           theCase.showConclusie1_1 = false;         
+           var id = "tussenresultaat-zt-niet-berekenen";
+           if (theCase['tussenresultaten-negeren'].match(/(^|\s)tussenresultaat-zt-niet-berekenen(\s|$)/) == null) {
+             $('#fsAanvrager').removeClass('visible');                           
+              theCase.formValues['zorgtoeslag'] = 'nee';
+              doTussenresultaat(id);
+             theCase.tussenresultaat = id;
+            }
+            else {
+              $('#fsAanvrager').addClass('visible');
+            }             
+            if (theCase["tussenresultaat"] !== undefined) {
+              $('#fsAanvrager').removeClass('visible');
+              return false; // wacht op verder
+            }                                         
+            theCase.ztMin = true; // ZT-                      
+        }      
+      } else {       
+        return false;
+      }         
+    } else {
+      return false;
+    }
+  }
+
+  function checkAttentie(theCase) {
+    var now = new Date();
+    var d_1_12 = new Date(parseInt(theCase.formValues['jaar']), 11, 1);
+    var d_1_9 = new Date(parseInt(theCase.formValues['jaar']) + 1, 8, 1);
+    var aAttentie = [];
+    var jaar = parseInt(theCase.formValues['jaar']);    
+
+      if (now >= d_1_9 && (isHt(theCase) === 'ja' || isZt(theCase) === 'ja' || isKgb(theCase) === 'ja')) {
+        aAttentie[aAttentie.length] = "aanvraagdatum-na-1-9-volgend-jaar";
+      } else if (now >= d_1_12 && now < d_1_9 && (isHt(theCase) === 'ja' || isZt(theCase) === 'ja' || isKgb(theCase) === 'ja')) {
+        aAttentie[aAttentie.length] = "aanvraagdatum-tussen-1-9-en-1-12-dit-jaar";
+      }
+      if (jaar >= 2014 && isKot(theCase) === 'ja') {
+        var d_temp = new Date();
+        var d_year_now = d_temp.getFullYear();       
+        d_temp.setMonth(d_temp.getMonth() - 3);       
+        var d_year_now_min_3months = d_temp.getFullYear();       
+         // Celine 27-10-2016 d_year_now < jaar toegevoerd, zodat je ook voor een aankomend jaar een berekening kunt doen.  
+        if (d_year_now_min_3months === jaar || d_year_now === jaar || d_year_now < jaar ) {
+          aAttentie[aAttentie.length] = "attentie-kot";         
+        } else {
+          aAttentie[aAttentie.length] = "attentie-kot-niet-meer-mogelijk";           
+        }
+
+      }
+
+
+    if (aAttentie.length > 0) {
+      $("#tussenresultaat-attentie_aanvragen .sub").hide();
+      for (var i = 0; i < aAttentie.length; i++) {
+        $("#" + aAttentie[i]).show();
+      }
+      var id = "tussenresultaat-attentie_aanvragen";
+      if (theCase['tussenresultaten-negeren'].match(/(^|\s)tussenresultaat-attentie_aanvragen(\s|$)/) == null) {
+        doTussenresultaat(id);
+        $("#fsUitvoerTussenresultaat legend").hide();
+        theCase.tussenresultaat = id;
+      }
+      if (theCase["tussenresultaat"] !== undefined)
+        return false;
+    }
+    return true;
+  }
+
+
+
+  /**
+   * introductie subflow
+   *
+   * @return \c true if the flow completed, otherwise \c false
+   */
+  function flowIntroductie(theCase) {
+    show(theCase, "fsIntroductie"); // toon blok v1_1
+    showInput(theCase, "jaar"); 
+    if (theCase.formValues['jaar'] === undefined)
+      return false; // wacht op jaar
+
+    // bepaal uiterste aanvraagdatum P1-2
+    var jaar = theCase.formValues['jaar'];
+    var jaarTableHelper = new Jaar(jaar);
+    var aanvraagdatum = jaarTableHelper.aanvraagdatum().split(/-/);
+    // omzetten naar Date
+    var aanvraagdatum_date = new Date();
+    // set time to midnight on aanvraagdatum
+    aanvraagdatum_date.setHours(0);
+    aanvraagdatum_date.setMinutes(0);
+    aanvraagdatum_date.setSeconds(0);
+    aanvraagdatum_date.setFullYear(aanvraagdatum[2], aanvraagdatum[1] - 1, aanvraagdatum[0]);
+      wtos = jaarTableHelper.wtos();
+
+    // Ga naar V1-3 
+    return flowKeuzeToeslagen(theCase);     
+  }
+
+
+  /*
+   * toeslagpartner subflow
+   *
+   * @return \c true if the flow completed, otherwise \c false
+   */
+  function flowToeslagpartner(theCase) {
+    do {
+      show(theCase, "fsToeslagpartner"); // toon blok
+      if (isHt(theCase) === 'ja') {
+        showInput(theCase, 'toeslagpartner-zelfde-adres');
+        if (theCase.formValues['toeslagpartner-zelfde-adres'] === undefined) {
+          break; // wacht op invoer
+        }
+        if (theCase.formValues['toeslagpartner-zelfde-adres'] === 'ja') {
+          theCase.formValues['toeslagpartner-woonland'] = theCase.formValues['aanvrager-woonland']
+        }
+      }
+      if ((isHt(theCase) === 'ja' && theCase.formValues['toeslagpartner-zelfde-adres'] === 'ja') ||
+              isZt(theCase) === 'ja' || isKgb(theCase) === 'ja') {
+        showInput(theCase, 'toeslagpartner-geboortedatum');
+        if (theCase.formValues['toeslagpartner-geboortedatum'] === undefined || checkDatePicker($("#input-toeslagpartner-geboortedatum")[0], false)[0] === false)
+          break; // wacht op invoer
+
+        // leid af: leeftijd en 18+
+        theCase['toeslagpartner-geboortejaar'] = parseInt(theCase.formValues['toeslagpartner-geboortedatum'].split("-")[2]);
+        theCase['toeslagpartner-leeftijd'] = theCase.formValues['jaar'] - theCase['toeslagpartner-geboortejaar'] - 1;
+        theCase['toeslagpartner-achtien-plus'] = theCase['toeslagpartner-leeftijd'] >= 18 ? 'ja' : 'nee';
+        theCase['toeslagpartner-aow-datum'] = BepaalAOW(theCase, 'toeslagpartner-geboortedatum');
+        theCase['toeslagpartner-aow'] = theCase.v_selDatum >= theCase['toeslagpartner-aow-datum'] ? "ja" : "nee";
+        theCase['toeslagpartner-aow-start-dit-jaar'] = theCase['toeslagpartner-aow-datum'] >= theCase.v_selDatum && theCase['toeslagpartner-aow-datum'] <= theCase.v_selEindDatum ? "ja" : "nee";
+        theCase.formValues['toeslagpartner-achtien-plus'] = theCase['toeslagpartner-achtien-plus'];
+        // leeftijd=17 bij zt
+        if (theCase['toeslagpartner-leeftijd'] === 17 && isZt(theCase) === 'ja')
+        {
+          // registreer tussenresultaat
+          var id = "tussenresultaat-toeslagpartner-17-bij-zt";
+          if (theCase['tussenresultaten-negeren'].match(/(^|\s)tussenresultaat-toeslagpartner-17-bij-zt(\s|$)/) == null) {
+            doTussenresultaat(id);
+            theCase.tussenresultaat = id;
+          }
+
+          if (theCase["tussenresultaat"] !== undefined) 
+            break; // wacht op 'verder'
+        }
+      }
+
+      if (isZt(theCase) === 'ja') {
+        var jaarTableAccess = new Jaar(theCase.formValues['jaar']);
+        if (jaarTableAccess.wlf() === 'Ja') {
+          // ZT en Jaar.WLF=Ja
+          showInput(theCase, 'toeslagpartner-woonland');
+          if (theCase.formValues['toeslagpartner-woonland'] === undefined)
+            break; // wacht op invoer
+
+          if (theCase.formValues['toeslagpartner-woonland'] !== 'Nederland' && theCase.formValues['toeslagpartner-woonland'] !== '- Ander land -') {
+            showInput(theCase, 'toeslagpartner-inkomen-nl');
+            if (theCase.formValues['toeslagpartner-inkomen-nl'] === undefined)
+              break; // wacht op invoer
+
+            // leid af: werk
+            var toeslagpartnerInkomenNlTableAccess = new ToeslagpartnerInkomenNl(theCase.formValues['toeslagpartner-inkomen-nl']);
+            var werk = toeslagpartnerInkomenNlTableAccess.werk();
+            if (werk == 'Ja')
+              theCase['toeslagpartner-werk'] = 'ja';
+            else if (werk == 'Nee')
+              theCase['toeslagpartner-werk'] = 'nee';
+            var inkomenNl = theCase.formValues['toeslagpartner-inkomen-nl'];
+            if (inkomenNl === 'Nee, mijn toeslagpartner werkt niet.' || inkomenNl === 
+            'Ja, mijn toeslagpartner heeft alleen een pensioen of uitkering uit Nederland.') {
+              showInput(theCase, 'toeslagpartner-cvz')
+              if (theCase.formValues['toeslagpartner-cvz'] === undefined) {
+                break; // wacht op invoer
+              }
+            }
+          }
+        }
+      }
+      // KOT invoer werk toeslagpartner
+      if (isKot(theCase) === 'ja') {
+        showInput(theCase, 'toeslagpartner-werk');
+        if (theCase.formValues['toeslagpartner-werk'] === undefined) {
+          break; // wacht op invoer			
+        }
+        // kot invoer doelgroeper toeslagpartner
+        showInput(theCase, 'toeslagpartner-doelgroeper');
+        if (theCase.formValues['toeslagpartner-doelgroeper'] === undefined) {
+          break; // wacht op invoer
+        }  
+        // werk = ja of doelgroeper = ja
+        if (!(theCase.formValues['toeslagpartner-werk'] === 'ja' || theCase.formValues['toeslagpartner-doelgroeper'] === 'ja')) {
+          theCase.kotMin = true; // KOT-
+        }
+      }
+      // invoer toetsingsinkomen
+      if ((isHt(theCase) === 'ja' && theCase.formValues['toeslagpartner-zelfde-adres'] === 'ja') ||
+              isKgb(theCase) === 'ja' || isKot(theCase) === 'ja' || isZt(theCase) === 'ja') {
+        showInput(theCase, 'toeslagpartner-toetsingsinkomen');
+        if (theCase.formValues['toeslagpartner-toetsingsinkomen'] === undefined)
+          break; // wacht op invoer
+
+        // bepaal mxInk2 
+        var caseInput = new CaseInput(theCase);
+        var jaarTableAccess = new Jaar(caseInput.getJaar());
+        var algemeenBerekening = new AlgemeenBerekening(jaarTableAccess, caseInput);
+        var algemeenInkomen = algemeenBerekening.inkomen();
+        var mxInk2 = jaarTableAccess.mxInk2();
+        // store as attributes for debugging
+        theCase['algemeen-inkomen'] = algemeenInkomen;
+        theCase['mxInk2'] = mxInk2;
+        if (algemeenInkomen > mxInk2)
+          theCase.ztMin = true; // ZT-
+      }            
+      if (isKgb(theCase) === 'ja' || isKot(theCase) === 'ja') {
+        // KT of KGB of KOT => kinderen
+        return flowGezamenlijk(theCase);
+      } else if (isHt(theCase) === 'ja') {
+        // HT? => woning
+        return flowWoning(theCase);
+      } else {
+        // einde
+        return true;
+      }
+    } while (false);
+    // flow niet afgerond
+    return false;
+  }
+
+  /**
+   * aanvrager
+   *
+   * @return \c true if the flow completed, otherwise \c false
+   */
+  var flowAanvragerHtZt = function (theCase) {
+
+    do {
+      if (isHt(theCase) === 'ja' || isZt(theCase) === 'ja' || isKgb(theCase) === 'ja') {
+        showInput(theCase, "aanvrager-geboortedatum");
+        if (theCase.formValues['aanvrager-geboortedatum'] === undefined || checkDatePicker($("#input-aanvrager-geboortedatum")[0], false)[0] === false)
+          break;
+        // leid af: aanvrager-leeftijd en aanvrager-achtien-plus
+        theCase['aanvrager-geboortejaar'] = parseInt(theCase.formValues['aanvrager-geboortedatum'].split("-")[2]);
+        theCase['aanvrager-leeftijd'] = theCase.formValues.jaar - theCase['aanvrager-geboortejaar'] - 1;
+        theCase['aanvrager-achtien-plus'] = theCase['aanvrager-leeftijd'] >= 18 ? 'ja' : 'nee';
+        theCase.formValues['aanvrager-achtien-plus'] = theCase['aanvrager-achtien-plus'];
+        theCase['aanvrager-aow-datum'] = BepaalAOW(theCase, 'aanvrager-geboortedatum');
+        theCase['aanvrager-aow'] = theCase.v_selDatum >= theCase['aanvrager-aow-datum'] ? "ja" : "nee";
+        theCase['aanvrager-aow-start-dit-jaar'] = theCase['aanvrager-aow-datum'] >= theCase.v_selDatum && theCase['aanvrager-aow-datum'] <= theCase.v_selEindDatum ? "ja" : "nee";
+        // leeftijd 17 bij HT/ZT of 64 bij HT?
+        if ((theCase['aanvrager-leeftijd'] === 17 && (isHt(theCase) === 'ja' || isZt(theCase) === 'ja'))) {
+          // toon tussenresultaat
+          var id = "tussenresultaat-aanvrager-17-bij-ht-zt";
+          if (theCase['tussenresultaten-negeren'].match(/(^|\s)tussenresultaat-aanvrager-17-bij-ht-zt(\s|$)/) == null)
+          {
+            doTussenresultaat(id);
+            theCase.tussenresultaat = id;
+          }
+
+          if (theCase['tussenresultaat'] !== undefined) {
+            break; // wacht op 'verder'
+          }  
+        }
+        else {
+          if (theCase['aanvrager-leeftijd'] === 22 && isHt(theCase) === 'ja' ){
+            // toon tussenresultaat-22jaar-bij-zt 
+            var id = "tussenresultaat-22jaar-bij-zt";
+            if (theCase['tussenresultaten-negeren'].match(/(^|\s)tussenresultaat-22jaar-bij-zt(\s|$)/) == null){
+              doTussenresultaat(id);
+              theCase.tussenresultaat = id;
+            }
+            if (theCase['tussenresultaat'] !== undefined) {
+              break; // wacht op 'verder'
+            } // einde toontussenresultaat
+          }
+        }
+        if (theCase['aanvrager-leeftijd'] >= 18) {
+          // bepaal jaar.wlf
+          var jaar = theCase.formValues.jaar;
+          var jaarTableAccess = new Jaar(jaar);
+          var isjaarWlf = (jaarTableAccess.wlf() == 'Ja' ? 'ja' : 'nee');
+          // HT en ZT en Jaar.WLF?
+          if ((isHt(theCase) === 'ja' || isZt(theCase) === 'ja') && isjaarWlf === 'ja') {
+            showInput(theCase, 'aanvrager-woonland');
+            if (theCase.formValues['aanvrager-woonland'] === undefined)
+              break; // wacht op invoer woonland
+
+            if (theCase.formValues['aanvrager-woonland'] === 'Nederland') {
+              // niets te doen
+            } else if (theCase.formValues['aanvrager-woonland'] == '- Ander land -') {
+              theCase.htMin = true; // HT-
+              theCase.ztMin = true; // ZT-
+            } else {
+              theCase.htMin = true; // HT-
+              if (isZt(theCase) === 'ja') {
+                showInput(theCase, 'aanvrager-inkomen-nl');
+              }
+              // leid af: aanvrager werk
+              var aanvragerInkomenNlTableAccess = new AanvragerInkomenNl(theCase.formValues['aanvrager-inkomen-nl']);
+              if (aanvragerInkomenNlTableAccess.werk() == 'Ja')
+                theCase['aanvrager-werk'] = 'ja';
+              else
+                theCase['aanvrager-werk'] = 'nee';
+              if (theCase['aanvrager-werk'] == 'nee')
+                theCase.ztMin = true; // ZT-  
+            }
+          }
+        } else {
+          theCase.ztMin = true; // ZT-
+          if (isHt(theCase) === 'ja') {
+            if (theCase.formValues['jaar'] < 2016) {
+              showInput(theCase, 'aanvrager-getrouwd');
+              if (theCase.formValues['aanvrager-getrouwd'] === undefined)
+                break; // wacht op invoer
+            }
+            if (theCase.formValues['jaar'] >= 2016 || (theCase.formValues['aanvrager-getrouwd'] && theCase.formValues['aanvrager-getrouwd'] === 'nee') ) {
+              showInput(theCase, 'aanvrager-kind');
+              if (theCase.formValues['aanvrager-kind'] === undefined)
+                break; // wacht op invoer
+
+              if (theCase.formValues['aanvrager-kind'] === 'nee') {
+                // geen kinderen, dus stel aantal kinderen in op 0 om deze vraag in het vervolg te voorkomen
+                theCase.formValues['aanvrager-kinderen'] = 0;
+                showInput(theCase, 'aanvrager-wees');
+                if (theCase.formValues['aanvrager-wees'] === undefined)
+                  break; // wacht op invoer
+
+                if (theCase.formValues['aanvrager-wees'] === 'nee')
+                  theCase.htMin = true; // HT-
+              }
+            }
+          }
+        }
+      }
+
+      // flow afgerond
+      return true;
+    } while (false);
+    // flow niet afgerond.
+    return false;
+  };
+  /**
+   * aanvrager (deel 2)
+   *
+   * @return \c true if the flow completed, otherwise \c false
+   */
+  function flowAanvragerKotKgb(theCase) {
+    do {
+      if (isHt(theCase) === 'ja' || isKgb(theCase) === 'ja' || isKot(theCase) === 'ja' || isZt(theCase) === 'ja') {
+        showInput(theCase, 'aanvrager-toeslagpartner');
+        if (theCase.formValues['aanvrager-toeslagpartner'] === undefined)
+          break; // wacht op invoer
+      }
+
+      if (isKgb(theCase) === 'ja' || isKot(theCase) === 'ja') {
+        showInput(theCase, 'aanvrager-kinderen');
+        if (theCase.formValues['aanvrager-kinderen'] === undefined)
+          break; // wacht op invoer
+
+        if (parseInt(theCase.formValues['aanvrager-kinderen']) === 0)
+        {
+          theCase.kgbMin = true; // KGB-
+          theCase.kotMin = true; // KOT-
+        } else {
+          if (isKot(theCase) === 'ja') {
+            showInput(theCase, 'aanvrager-werk');
+            if (theCase.formValues['aanvrager-werk'] === undefined){
+              break; // wacht op invoer
+            }
+            showInput(theCase, 'aanvrager-doelgroeper');
+            if (theCase.formValues['aanvrager-doelgroeper'] === undefined){
+                break; // wacht op invoer
+            }      
+            if (!(theCase.formValues['aanvrager-werk'] === 'ja' || theCase.formValues['aanvrager-doelgroeper'] === 'ja')) {
+              theCase.kotMin = true; // KOT-
+            }
+          }
+        }
+      }
+
+      if (isHt(theCase) === 'ja' || isKgb(theCase) === 'ja' || isKot(theCase) === 'ja' || isZt(theCase) === 'ja') {
+        showInput(theCase, 'aanvrager-toetsingsinkomen');
+        if (theCase.formValues['aanvrager-toetsingsinkomen'] === undefined)
+          break; // wacht op invoer
+
+        if (theCase.formValues['aanvrager-toeslagpartner'] === 'nee') {
+          // bepaal inkomen 
+          var jaarAccessTable = new Jaar(theCase.formValues['jaar']);
+          var algemeenBerekening = new AlgemeenBerekening(jaarAccessTable, new CaseInput(theCase));
+          theCase['algemeen-inkomen'] = algemeenBerekening.inkomen();
+          // bepaal jaar,mxInk1
+          var jaarAccessTable = new Jaar(theCase.formValues['jaar']);
+          theCase.mxInk1 = jaarAccessTable.mxInk1();
+          if (theCase['algemeen-inkomen'] > theCase.mxInk1) {
+            theCase.ztMin = true; // ZT-
+          }
+        }
+      }
+
+      theCase['aanvrager-kot-kgb-afgerond'] = true;
+      if (theCase.formValues['aanvrager-toeslagpartner'] === 'ja' && (isKgb(theCase) === 'ja' || isKot(theCase) === 'ja' || isHt(theCase) === 'ja' || isZt(theCase) === 'ja')) {
+        return flowToeslagpartner(theCase);
+      } else if (isKgb(theCase) === 'ja' || isKot(theCase) === 'ja') {
+        return flowGezamenlijk(theCase);
+      } else if (isHt(theCase) === 'ja') {
+        return flowWoning(theCase);
+      } else {
+        return true;
+      }
+
+    } while (false);
+    // niet afgerond
+    return false;
+  }
+
+  /**
+   * aanvrager mainflow
+   *
+   * @return \c true if the flow completed, otherwise \c false
+   */
+  function flowAanvrager(theCase) {
+    show(theCase, "fsAanvrager"); // toon blok
+
+    return flowAanvragerHtZt(theCase) && flowAanvragerKotKgb(theCase) && flowVermogenstoets(theCase);
+  }
+
+  /**
+   * hoofdflow
+   *
+   * @param theCase casus object waarin casus attributen worden opgeslagen
+   * 
+   * @return \c true if the flow completed, otherwise \c false
+   */
+  function flowMain(theCase) {
+    oAlert = "";
+    var flow_intro = flowIntroductie(theCase);     
+    if (flow_intro === true && theCase.showConclusie1_1 === true){      
+      theCase.eindconclusie = true;       
+    } 
+    else if (theCase.showConclusie1_1 === false){
+      var flow_aanvrager = flowAanvrager(theCase);
+      if (flow_aanvrager && flow_intro){
+        theCase.eindconclusie = true;
+      }      
+    }     
+  }
+  return {
+    flowMain: flowMain
+  };
+}();

@@ -1,0 +1,445 @@
+///<reference types="arcgis-js-api" />
+/*
+  Copyright 2019 Esri
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+
+  you may not use this file except in compliance with the License.
+
+  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+
+  distributed under the License is distributed on an "AS IS" BASIS,
+
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+  See the License for the specific language governing permissions and
+
+  limitations under the License.​
+*/
+define(["require", "exports", "tslib", "./utils/esriWidgetUtils", "TemplatesCommonLib/baseClasses/support/itemUtils", "TemplatesCommonLib/baseClasses/support/domHelper", "TemplatesCommonLib/structuralFunctionality/telemetry/telemetry", "./ConfigurationSettings", "esri/core/Handles", "./ui/Layout", "esri/core/promiseUtils", "esri/core/watchUtils", "esri/geometry/support/jsonUtils"], function (require, exports, tslib_1, esriWidgetUtils_1, itemUtils_1, domHelper_1, telemetry_1, ConfigurationSettings_1, Handles_1, Layout_1, promiseUtils_1, watchUtils_1, jsonUtils_1) {
+    "use strict";
+    telemetry_1 = tslib_1.__importDefault(telemetry_1);
+    ConfigurationSettings_1 = tslib_1.__importDefault(ConfigurationSettings_1);
+    Handles_1 = tslib_1.__importDefault(Handles_1);
+    Layout_1 = tslib_1.__importDefault(Layout_1);
+    var CalciteWebpackConfigApp = /** @class */ (function () {
+        function CalciteWebpackConfigApp() {
+            this._handles = null;
+            this._appConfig = null;
+            this._mobilePanel = null;
+            this._panel = null;
+            this._telemetry = null;
+            this._initialExtent = null;
+        }
+        //--------------------------------------------------------------------------
+        //
+        //  Public Methods
+        //
+        //--------------------------------------------------------------------------
+        CalciteWebpackConfigApp.prototype.init = function (base) {
+            var _a;
+            return tslib_1.__awaiter(this, void 0, void 0, function () {
+                var config, results, webMapItems, item, layout;
+                var _this = this;
+                return tslib_1.__generator(this, function (_b) {
+                    if (!base) {
+                        console.error("ApplicationBase is not defined");
+                        return [2 /*return*/];
+                    }
+                    this._handles = new Handles_1.default();
+                    domHelper_1.setPageLocale(base.locale);
+                    domHelper_1.setPageDirection(base.direction);
+                    this._base = base;
+                    config = base.config, results = base.results;
+                    this._appConfig = new ConfigurationSettings_1.default(config);
+                    this.createTelemetry();
+                    webMapItems = results.webMapItems;
+                    if (config.legend && !this._appConfig.legend) {
+                        this._appConfig.legend = config.legend;
+                    }
+                    this.handleThemeUpdates();
+                    item = null;
+                    webMapItems.forEach(function (response) {
+                        var _a, _b, _c;
+                        if (((_a = response === null || response === void 0 ? void 0 : response.value) === null || _a === void 0 ? void 0 : _a.id) === ((_b = _this._appConfig) === null || _b === void 0 ? void 0 : _b.webmap)) {
+                            item = response.value;
+                        }
+                        else if (((_c = _this._appConfig) === null || _c === void 0 ? void 0 : _c.webmap) === "default") {
+                            item = response.value;
+                        }
+                    });
+                    if (!item) {
+                        // show error page 
+                        document.location.href = "../../shared/unavailable/index.html?appid=" + ((_a = config === null || config === void 0 ? void 0 : config.appid) !== null && _a !== void 0 ? _a : null);
+                        return [2 /*return*/];
+                    }
+                    else {
+                        this._appConfig.title = this._appConfig.title
+                            ? this._appConfig.title
+                            : itemUtils_1.getItemTitle(item);
+                        this._handles.add(watchUtils_1.init(this._appConfig, "title", domHelper_1.setPageTitle), "configuration");
+                    }
+                    layout = new Layout_1.default({
+                        applicationBase: base,
+                        applicationConfig: this._appConfig,
+                        item: item,
+                        container: document.getElementById("appContainer")
+                    });
+                    layout.watch("view", function () {
+                        var _a;
+                        var view = layout.view;
+                        var find = config.find, marker = config.marker;
+                        _this._handlePopupBehavior(view);
+                        //this.createPanel(view);
+                        itemUtils_1.findQuery(find, view);
+                        itemUtils_1.goToMarker(marker, view);
+                        // Add widgets and side panel 
+                        var widgetProps = { view: view, config: _this._appConfig, portal: base.portal, telemetry: _this._telemetry };
+                        _this._initialExtent = (_a = view === null || view === void 0 ? void 0 : view.extent) === null || _a === void 0 ? void 0 : _a.clone();
+                        // "configure" handles are cleared if we are outside of the config experience
+                        _this._handles.add([
+                            watchUtils_1.init(_this._appConfig, "disableScroll", function (newValue, oldValue, propertyName) {
+                                widgetProps.propertyName = propertyName;
+                                esriWidgetUtils_1.addOverlay(widgetProps);
+                            }),
+                            watchUtils_1.init(_this._appConfig, "extentSelector, extentSelectorConfig", function () {
+                                var _a;
+                                if (((_a = _this._appConfig) === null || _a === void 0 ? void 0 : _a.extentSelector) && _this._appConfig.extentSelectorConfig) {
+                                    var _b = _this._appConfig.extentSelectorConfig, constraints = _b.constraints, mapRotation = _b.mapRotation;
+                                    var geometry = constraints === null || constraints === void 0 ? void 0 : constraints.geometry;
+                                    if (geometry) {
+                                        var extent = jsonUtils_1.fromJSON(geometry);
+                                        if (extent && ((extent === null || extent === void 0 ? void 0 : extent.type) === "extent" || (extent === null || extent === void 0 ? void 0 : extent.type) === "polygon")) {
+                                            constraints.geometry = extent;
+                                            view.goTo(extent, { animate: false }).catch(function () { });
+                                        }
+                                        else {
+                                            constraints.geometry = null;
+                                        }
+                                    }
+                                    // sets rotation and geometry 
+                                    if (view) {
+                                        constraints.minScale = +constraints.minScale;
+                                        constraints.maxScale = +constraints.maxScale;
+                                        view.constraints = constraints;
+                                    }
+                                    _this._setMapViewRotation(view);
+                                }
+                                else {
+                                    if (view) {
+                                        view.rotation = 0;
+                                        view.constraints.geometry = null;
+                                        view.constraints.minZoom = -1;
+                                        view.constraints.maxZoom = -1;
+                                        view.constraints.minScale = 0;
+                                        view.constraints.maxScale = 0;
+                                    }
+                                    if (_this._initialExtent) {
+                                        view.goTo(_this._initialExtent).catch(function () { });
+                                    }
+                                }
+                            }),
+                            watchUtils_1.init(_this._appConfig, "mapZoom, mapZoomPosition", function (newValue, oldValue, propertyName) {
+                                widgetProps.propertyName = propertyName;
+                                esriWidgetUtils_1.addZoom(widgetProps);
+                            }),
+                            watchUtils_1.init(_this._appConfig, "home, homePosition", function (newValue, oldValue, propertyName) {
+                                widgetProps.propertyName = propertyName;
+                                esriWidgetUtils_1.addHome(widgetProps);
+                            }),
+                            watchUtils_1.init(_this._appConfig, "scalebar, scalebarPosition", function (newValue, oldValue, propertyName) {
+                                widgetProps.propertyName = propertyName;
+                                esriWidgetUtils_1.addScaleBar(widgetProps);
+                            }),
+                            watchUtils_1.init(_this._appConfig, "bookmarks, bookmarksEditable, bookmarksPosition", function (newValue, oldValue, propertyName) {
+                                widgetProps.propertyName = propertyName;
+                                esriWidgetUtils_1.addBookmarks(widgetProps);
+                            }),
+                            watchUtils_1.init(_this._appConfig, "legend, legendPosition", function (newValue, oldValue, propertyName) {
+                                widgetProps.propertyName = propertyName;
+                                esriWidgetUtils_1.addLegend(widgetProps);
+                            }),
+                            watchUtils_1.init(_this._appConfig, "search, searchOpenAtStart, searchPosition,searchConfiguration", function (newValue, oldValue, propertyName) {
+                                widgetProps.propertyName = propertyName;
+                                esriWidgetUtils_1.addSearch(widgetProps);
+                            }),
+                            watchUtils_1.init(_this._appConfig, "basemapToggle, basemapTogglePosition, basemapSelector, nextBasemap", function (newValue, oldValue, propertyName) {
+                                widgetProps.propertyName = propertyName;
+                                esriWidgetUtils_1.addBasemap(widgetProps);
+                            }),
+                            watchUtils_1.init(_this._appConfig, "share, sharePosition, theme, header", function (newValue, oldValue, propertyName) {
+                                widgetProps.propertyName = propertyName;
+                                esriWidgetUtils_1.addShare(widgetProps);
+                            }),
+                            watchUtils_1.init(_this._appConfig, "featureLayerList, featureLayerListPosition", function (newValue, oldValue, propertyName) {
+                                widgetProps.propertyName = propertyName;
+                                esriWidgetUtils_1.addLayerList(widgetProps);
+                            }),
+                            watchUtils_1.init(_this._appConfig, "coordinates, coordinatesPosition", function (newValue, oldValue, propertyName) {
+                                widgetProps.propertyName = propertyName;
+                                esriWidgetUtils_1.addCoordinates(widgetProps);
+                            }),
+                            watchUtils_1.init(_this._appConfig, "imageDate, header", function (newValue, oldValue, propertyName) {
+                                widgetProps.propertyName = propertyName;
+                                esriWidgetUtils_1.addImageDate(widgetProps);
+                            }),
+                            watchUtils_1.init(_this._appConfig, "detailsTool, detailsToolPosition, detailsContent, detailsTitle, detailsOpenAtStart", function (newValue, oldValue, propertyName) {
+                                widgetProps.propertyName = propertyName;
+                                esriWidgetUtils_1.addInfoPanel(widgetProps);
+                            }),
+                            watchUtils_1.init(_this._appConfig, "imageMeasurement, imageMeasurementPosition, areaUnit, linearUnit, angularUnit", function (newValue, oldValue, propertyName) {
+                                widgetProps.propertyName = propertyName;
+                                esriWidgetUtils_1.addImageMeasurement(widgetProps);
+                            }),
+                            watchUtils_1.init(_this._appConfig, "exportImagery, exportImageryPosition", function (newValue, oldValue, propertyName) {
+                                widgetProps.propertyName = propertyName;
+                                esriWidgetUtils_1.addImageExport(widgetProps);
+                            }),
+                            watchUtils_1.init(_this._appConfig, "shareWithOrg, shareWithOrgPosition", function (newValue, oldValue, propertyName) {
+                                widgetProps.propertyName = propertyName;
+                                esriWidgetUtils_1.addSharetoOrg(widgetProps);
+                            }),
+                            watchUtils_1.init(_this._appConfig, "locateWidget, locateWidgetPosition", function (newValue, oldValue, propertyName) {
+                                widgetProps.propertyName = propertyName;
+                                esriWidgetUtils_1.addLocateWidget(widgetProps);
+                            }),
+                            watchUtils_1.init(_this._appConfig, "editPanel, editPanelPosition, editLayers, allowedWorkflows", function (newValue, oldValue, propertyName) {
+                                widgetProps.propertyName = propertyName;
+                                esriWidgetUtils_1.addEditTool(widgetProps);
+                            }),
+                            watchUtils_1.init(_this._appConfig, "imageryViewerPosition, swipe, swipeDirection, swipePercentage", function (newValue, oldValue, propertyName) {
+                                widgetProps.propertyName = propertyName;
+                                esriWidgetUtils_1.addImageryViewer(widgetProps);
+                            }),
+                            watchUtils_1.init(_this._appConfig, "headerColor, headerBackground", function (newValue, oldValue, propertyName) {
+                                widgetProps.propertyName = propertyName;
+                                _this._applyHeaderColors(widgetProps);
+                            }),
+                            watchUtils_1.init(_this._appConfig, "customCSS", function (newValue, oldValue, propertyName) {
+                                widgetProps.propertyName = propertyName;
+                                _this._handleCustomCSS(widgetProps);
+                            }),
+                            watchUtils_1.init(_this._appConfig, "mapA11yDesc", function (newValue, oldValue, propertyName) {
+                                var _a;
+                                if (_this._appConfig.mapA11yDesc) {
+                                    if (!document.getElementById("mapDescription")) {
+                                        var mapA11yDescContainer = document.createElement("div");
+                                        mapA11yDescContainer.id = "mapDescription";
+                                        mapA11yDescContainer.classList.add("sr-only");
+                                        mapA11yDescContainer.innerHTML = _this._appConfig.mapA11yDesc;
+                                        view.container.appendChild(mapA11yDescContainer);
+                                        var rootNode = document.getElementsByClassName("esri-view-surface");
+                                        view.container.setAttribute("aria-describedby", "mapDescription");
+                                        for (var k = 0; k < rootNode.length; k++) {
+                                            rootNode[k].setAttribute("aria-describedby", "mapDescription");
+                                        }
+                                    }
+                                    else {
+                                        document.getElementById("mapDescription").innerHTML = _this._appConfig.mapA11yDesc;
+                                    }
+                                }
+                                else {
+                                    var portalItem = (_a = view === null || view === void 0 ? void 0 : view.map) === null || _a === void 0 ? void 0 : _a.portalItem;
+                                    var mapA11yDescVal = (portalItem === null || portalItem === void 0 ? void 0 : portalItem.snippet) || (portalItem === null || portalItem === void 0 ? void 0 : portalItem.description);
+                                    if (!document.getElementById("mapDescription")) {
+                                        var mapA11yDescContainer = document.createElement("div");
+                                        mapA11yDescContainer.id = "mapDescription";
+                                        mapA11yDescContainer.classList.add("sr-only");
+                                        mapA11yDescContainer.innerHTML = mapA11yDescVal;
+                                        view.container.appendChild(mapA11yDescContainer);
+                                        var rootNode = document.getElementsByClassName("esri-view-surface");
+                                        view.container.setAttribute("aria-describedby", "mapDescription");
+                                        for (var k = 0; k < rootNode.length; k++) {
+                                            rootNode[k].setAttribute("aria-describedby", "mapDescription");
+                                        }
+                                    }
+                                    else {
+                                        document.getElementById("mapDescription").innerHTML = mapA11yDescVal;
+                                    }
+                                }
+                            })
+                        ], "configuration");
+                        // These handles are needed inside and outside the config panel
+                        _this._handles.add(watchUtils_1.init(view, "widthBreakpoint", promiseUtils_1.debounce(function () {
+                            //this.updatePanel(view, layout.calciteShell);
+                        })));
+                        // cleanup when outside config panel 
+                        _this._cleanUpHandles();
+                    });
+                    return [2 /*return*/];
+                });
+            });
+        };
+        CalciteWebpackConfigApp.prototype._applyHeaderColors = function (props) {
+            var config = props.config;
+            var headerColor = config.headerColor, headerBackground = config.headerBackground;
+            var headerStyles = document.getElementById("headerStyles");
+            if (headerStyles) {
+                headerStyles.remove();
+            }
+            var headerColorConfig = headerColor
+                ? typeof headerColor === "string"
+                    ? headerColor
+                    : JSON.parse(headerColor)
+                : null;
+            var headerBackgroundConfig = headerBackground
+                ? typeof headerBackground === "string"
+                    ? headerBackground
+                    : JSON.parse(headerBackground)
+                : null;
+            var styles = [];
+            var headerB = config.headerBackground &&
+                !isNaN(headerBackgroundConfig.r) &&
+                !isNaN(headerBackgroundConfig.g) &&
+                !isNaN(headerBackgroundConfig.b) &&
+                !isNaN(headerBackgroundConfig.a)
+                ? "rgba(" + headerBackgroundConfig.r + ", " + headerBackgroundConfig.g + ", " + headerBackgroundConfig.b + ", " + headerBackgroundConfig.a + ")"
+                : config.headerBackground === "no-color"
+                    ? "transparent"
+                    : config.headerBackground;
+            var headerC = config.headerColor &&
+                !isNaN(headerColorConfig.r) &&
+                !isNaN(headerColorConfig.g) &&
+                !isNaN(headerColorConfig.b) &&
+                !isNaN(headerColorConfig.a)
+                ? "rgba(" + headerColorConfig.r + ", " + headerColorConfig.g + ", " + headerColorConfig.b + ", " + headerColorConfig.a + ")"
+                : config.headerColor === "no-color"
+                    ? "transparent"
+                    : config.headerColor;
+            styles.push(config.headerBackground
+                ? ".embed-app__header{background:" + headerB + ";}"
+                : null);
+            styles.push(config.headerColor
+                ? ".embed-app__header__title-area{color:" + headerC + ";}\n\t\t\t\t.date-color{color:" + headerC + ";}"
+                : null);
+            var style = document.createElement("style");
+            style.id = "headerStyles";
+            style.appendChild(document.createTextNode(styles.join("")));
+            document.getElementsByTagName("head")[0].appendChild(style);
+        };
+        CalciteWebpackConfigApp.prototype._handleCustomCSS = function (props) {
+            var config = props.config;
+            var customCSS = config.customCSS;
+            var customCSSStyleSheet = document.getElementById("customCSS");
+            if (customCSSStyleSheet) {
+                customCSSStyleSheet.remove();
+            }
+            var styles = document.createElement("style");
+            styles.id = "customCSS";
+            styles.type = "text/css";
+            var styleTextNode = document.createTextNode(customCSS);
+            styles.appendChild(styleTextNode);
+            document.head.appendChild(styles);
+        };
+        CalciteWebpackConfigApp.prototype._handlePopupBehavior = function (view) {
+            var _this = this;
+            view.popup.autoCloseEnabled = true;
+            var handle = null;
+            this._handles.add(watchUtils_1.init(this._appConfig, ["popupHover", "popupPanel"], function (value, oldVal, propertyName) {
+                var _a = _this._appConfig, popupHover = _a.popupHover, popupPanel = _a.popupPanel;
+                if (propertyName === "popupHover" && popupHover === true && popupPanel === false) {
+                    // setup popup on hover 
+                    handle && handle.remove();
+                    var lastHitTest_1;
+                    // create the handle 
+                    handle = view.on("pointer-move", promiseUtils_1.debounce(function (e) {
+                        if (lastHitTest_1)
+                            clearTimeout(lastHitTest_1);
+                        lastHitTest_1 = setTimeout(function () {
+                            view.popup.fetchFeatures(e).then(function (response) {
+                                var location = view.toMap(e);
+                                response.allGraphicsPromise.then(function (graphics) {
+                                    if (graphics && graphics.length && graphics.length > 0) {
+                                        view.popup.open({
+                                            location: location,
+                                            features: graphics,
+                                            updateLocationEnabled: false
+                                        });
+                                    }
+                                });
+                            });
+                        }, 85);
+                    }));
+                }
+                else if (popupPanel === true || popupHover === false) {
+                    // disconnect click 
+                    handle && handle.remove();
+                }
+            }), "configuration");
+        };
+        CalciteWebpackConfigApp.prototype.updateAppTheme = function (theme) {
+            return tslib_1.__awaiter(this, void 0, void 0, function () {
+                var style;
+                return tslib_1.__generator(this, function (_a) {
+                    style = document.getElementById("esri-stylesheet");
+                    style.href = style.href.indexOf("light") !== -1 ? style.href.replace(/light/g, theme) : style.href.replace(/dark/g, theme);
+                    return [2 /*return*/];
+                });
+            });
+        };
+        CalciteWebpackConfigApp.prototype.handleThemeUpdates = function () {
+            // Check for a preferred color scheme and then
+            // monitor updates to that color scheme and the
+            // configuration panel updates.
+            // Also todo on app name info going to GA
+            if (!this._appConfig.theme) {
+                this._appConfig.theme = window.matchMedia("(prefers-color-scheme: dark)") ? "dark" : "light";
+            }
+            this._handles.add(watchUtils_1.init(this._appConfig, "theme", this.updateAppTheme), "configuration");
+        };
+        CalciteWebpackConfigApp.prototype.createTelemetry = function () {
+            var _a, _b;
+            return tslib_1.__awaiter(this, void 0, void 0, function () {
+                var portal, appName, telemTS;
+                var _this = this;
+                return tslib_1.__generator(this, function (_c) {
+                    portal = this._base.portal;
+                    appName = (_b = (_a = this._base.config) === null || _a === void 0 ? void 0 : _a.telemetry) === null || _b === void 0 ? void 0 : _b.name;
+                    telemTS = new telemetry_1.default({
+                        portal: portal,
+                        config: this._appConfig,
+                        appName: appName
+                    });
+                    watchUtils_1.whenDefinedOnce(telemTS, "instance", function (telemInstance) {
+                        var _a;
+                        if (telemInstance != null) {
+                            _this._telemetry = telemInstance;
+                            (_a = _this._telemetry) === null || _a === void 0 ? void 0 : _a.logPageView("" + window.location.pathname + window.location.search);
+                        }
+                    });
+                    return [2 /*return*/];
+                });
+            });
+        };
+        CalciteWebpackConfigApp.prototype._cleanUpHandles = function () {
+            // if we aren't in the config experience remove all handlers after load
+            if (!this._appConfig.withinConfigurationExperience) {
+                this._handles.remove("configuration");
+            }
+        };
+        CalciteWebpackConfigApp.prototype._setMapViewRotation = function (view) {
+            var _a, _b;
+            var mapRotation = ((_b = (_a = this._appConfig) === null || _a === void 0 ? void 0 : _a.extentSelectorConfig) === null || _b === void 0 ? void 0 : _b.mapRotation) || null;
+            if (!mapRotation) {
+                view.rotation = 0;
+                return;
+            }
+            ;
+            if (view && view.constraints && !view.constraints.rotationEnabled) { // if rotation is disabled
+                view.constraints.rotationEnabled = true; // set rotation to enabled
+                view.rotation = mapRotation; // set rotation value
+                view.constraints.rotationEnabled = false; // set rotation back to disabled
+            }
+            else {
+                view.rotation = mapRotation;
+            }
+        };
+        return CalciteWebpackConfigApp;
+    }());
+    return CalciteWebpackConfigApp;
+});
+//# sourceMappingURL=Main.js.map

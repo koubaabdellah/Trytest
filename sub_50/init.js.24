@@ -1,0 +1,85 @@
+define(["require", "exports", "tslib", "dojo/text!./config/appConfig.json", "./app/App", "esri/intl", "./app/focusTrap/index"], function (require, exports, tslib_1, appConfig, App, intl_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    (function init() {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var messages, appConfigJSON, browserSupport, isUnsupported, browserIsSupported, url;
+            return tslib_1.__generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4, createMessages()];
+                    case 1:
+                        messages = _a.sent();
+                        createAppLoader(messages);
+                        appConfigJSON = JSON.parse(appConfig);
+                        browserSupport = checkUnsupportedBrowser();
+                        isUnsupported = browserSupport.isUnsupported;
+                        browserIsSupported = isUnsupported === null;
+                        if (!browserIsSupported) {
+                            url = new URL(window.location.href);
+                            window.location.href = url.origin + "/apps/shared/unsupported/index.html";
+                            return [2];
+                        }
+                        new App({
+                            appConfig: appConfigJSON,
+                            messages: messages
+                        });
+                        return [2];
+                }
+            });
+        });
+    })();
+    function createMessages() {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var messages;
+            return tslib_1.__generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        intl_1.registerMessageBundleLoader(intl_1.createJSONLoader({
+                            pattern: "dist/",
+                            base: "dist",
+                            location: new URL("./", window.location.href)
+                        }));
+                        return [4, intl_1.fetchMessageBundle("dist/assets/t9n/ui/main/ConfigPanel/resources")];
+                    case 1:
+                        messages = _a.sent();
+                        return [2, messages];
+                }
+            });
+        });
+    }
+    function createAppLoader(messages) {
+        var calciteLoader = document.createElement("calcite-loader");
+        calciteLoader.setAttribute("scale", "l");
+        calciteLoader.setAttribute("active", "");
+        calciteLoader.id = "appLoader";
+        var loadingT9n = messages.loading + "...";
+        calciteLoader.label = loadingT9n;
+        calciteLoader.text = loadingT9n;
+        document.body.classList.add("loading");
+        document.body.appendChild(calciteLoader);
+    }
+    function checkUnsupportedBrowser() {
+        var isUnsupported = null;
+        var userAgent = window.navigator.userAgent;
+        var msie = userAgent.indexOf("MSIE ");
+        var trident = userAgent.indexOf("Trident/");
+        var edge = userAgent.indexOf("Edge/");
+        var isIE = false;
+        if (msie > 0) {
+            isUnsupported = parseInt(userAgent.substring(msie + 5, userAgent.indexOf(".", msie)), 10);
+            isIE = true;
+        }
+        if (trident > 0) {
+            var rvIndex = userAgent.indexOf("rv:");
+            isUnsupported = parseInt(userAgent.substring(rvIndex + 3, userAgent.indexOf(".", rvIndex)), 10);
+            isIE = true;
+        }
+        if (edge > 0) {
+            isUnsupported = parseInt(userAgent.substring(edge + 5, userAgent.indexOf(".", edge)), 10);
+        }
+        return {
+            isUnsupported: isUnsupported,
+            isIE: isIE
+        };
+    }
+});

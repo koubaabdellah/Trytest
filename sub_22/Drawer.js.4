@@ -1,0 +1,214 @@
+define(["require", "exports", "tslib", "esri/core/accessorSupport/decorators", "esri/widgets/Widget", "esri/widgets/support/widget", "../../icons/icons", "esri/core/watchUtils"], function (require, exports, tslib_1, decorators_1, Widget_1, widget_1, icons_1, watchUtils) {
+    "use strict";
+    Widget_1 = tslib_1.__importDefault(Widget_1);
+    icons_1 = tslib_1.__importDefault(icons_1);
+    var CSS = {
+        viewsTipText: "esri-config-panel-drawer__views-tips-text",
+        viewsIconButton: "esri-config-panel-drawer__views-icon-button",
+        buttonTextColor: "esri-config-panel-drawer__button-text-color",
+        viewsIcon: "esri-config-panel-drawer__views-icon",
+        viewsIconSelected: "esri-config-panel-drawer__views-icon--selected",
+        tipsContainer: "esri-config-panel-drawer__tips-container",
+        tipsText: "esri-config-panel-drawer__tips-text",
+        moreLessText: "esri-config-panel-drawer__more-less-text",
+        expandCollapseButton: "esri-config-panel-drawer__expand-collapse-button",
+        previewBottomDrawer: "esri-config-panel-drawer__preview-bottom-drawer",
+        previewBottomDrawerContent: "esri-config-panel-drawer__preview-bottom-drawer-content",
+        previewBottomDrawerViews: "esri-config-panel-drawer__preview-bottom-drawer-views",
+        previewBottomDrawerTip: "esri-config-panel-drawer__preview-bottom-drawer-tip",
+        previewBottomDrawerPublish: "esri-config-panel-drawer__preview-bottom-drawer-publish-container",
+        previewBottomDrawerDarkMode: "esri-config-panel-drawer__preview-bottom-drawer--dark",
+        viewsIconDark: "esri-config-panel-drawer__views-icon--dark",
+        tipsTextDark: "esri-config-panel-drawer__tips-text--dark",
+        buttonTextColorDark: "esri-config-panel-drawer__button-text-color--dark",
+        landscape: "esri-config-panel-drawer__view-icon--landscape",
+        placeholder: "esri-config-panel-drawer__placeholder"
+    };
+    var MEDIA_QUERY_STRING = "(max-width: 1300px)";
+    var Drawer = (function (_super) {
+        tslib_1.__extends(Drawer, _super);
+        function Drawer(params) {
+            var _this = _super.call(this, params) || this;
+            _this._matchMedia = window.matchMedia(MEDIA_QUERY_STRING);
+            _this.viewMode = "desktop";
+            _this.expanded = false;
+            _this.darkModeEnabled = false;
+            _this.tip = null;
+            _this.drawerMessages = null;
+            return _this;
+        }
+        Drawer.prototype.postInitialize = function () {
+            var _this = this;
+            if (this._matchMedia.matches) {
+                this.set("expanded", true);
+            }
+            this._matchMedia.addListener(function (event) {
+                if (event.matches) {
+                    _this.set("expanded", true);
+                }
+            });
+            this.own([
+                watchUtils.watch(this, "tip", function () {
+                    if (!_this._matchMedia.matches) {
+                        _this.set("expanded", false);
+                    }
+                })
+            ]);
+        };
+        Drawer.prototype.render = function () {
+            var _a;
+            var _b;
+            var viewToggle = this._renderViewToggle();
+            var tips = this._renderTips();
+            var expandCollapseButton = this._renderExpandCollapseButton();
+            var darkMode = (_a = {},
+                _a[CSS.previewBottomDrawerDarkMode] = this.darkModeEnabled,
+                _a);
+            return (widget_1.tsx("div", { class: this.classes(CSS.previewBottomDrawer, darkMode) },
+                viewToggle,
+                tips,
+                ((_b = this.tip) === null || _b === void 0 ? void 0 : _b.length) > 150 ? (expandCollapseButton) : (widget_1.tsx("button", { tabIndex: -1, key: "placeholder-button-key", class: CSS.placeholder }))));
+        };
+        Drawer.prototype._renderViewToggle = function () {
+            var desktopIcon = this._renderDesktopButton();
+            var mobileIcon = this._renderMobileButton();
+            var landScapeIcon = this._renderLandscapeButton();
+            return (widget_1.tsx("div", { class: this.classes(CSS.previewBottomDrawerContent, CSS.previewBottomDrawerViews) },
+                desktopIcon,
+                mobileIcon,
+                landScapeIcon));
+        };
+        Drawer.prototype._renderTips = function () {
+            var tipsContainer = this._renderTipsContainer();
+            var tipsText = this._renderTipsText();
+            return (widget_1.tsx("div", { class: this.classes(CSS.previewBottomDrawerContent, CSS.previewBottomDrawerTip) },
+                tipsContainer,
+                tipsText));
+        };
+        Drawer.prototype._renderTipsContainer = function () {
+            var _a;
+            var darkModeEnabled = this.darkModeEnabled;
+            var viewsIconDark = (_a = {},
+                _a[CSS.viewsIconDark] = darkModeEnabled,
+                _a);
+            return (widget_1.tsx("div", { class: CSS.tipsContainer },
+                widget_1.tsx("calcite-icon", { class: this.classes(viewsIconDark), icon: icons_1.default.lightbulb, scale: "m" })));
+        };
+        Drawer.prototype._renderTipsText = function () {
+            var _a;
+            var darkModeEnabled = this.darkModeEnabled;
+            var tipsTextDark = (_a = {},
+                _a[CSS.tipsTextDark] = darkModeEnabled,
+                _a);
+            var tip = this._getTip();
+            var moreLess = this._renderMoreLess();
+            return (widget_1.tsx("span", { class: this.classes(CSS.tipsText, tipsTextDark) },
+                tip,
+                (tip === null || tip === void 0 ? void 0 : tip.length) > 150 ? moreLess : null));
+        };
+        Drawer.prototype._renderMoreLess = function () {
+            if (this.expanded) {
+                return (widget_1.tsx("button", { bind: this, onclick: this._collapseDrawer, class: CSS.moreLessText }, this.drawerMessages.less));
+            }
+            else {
+                return (widget_1.tsx("button", { bind: this, onclick: this._expandDrawer, class: CSS.moreLessText }, this.drawerMessages.more));
+            }
+        };
+        Drawer.prototype._renderDesktopButton = function () {
+            var _a, _b;
+            var _c = this, darkModeEnabled = _c.darkModeEnabled, viewMode = _c.viewMode;
+            var buttonTextColor = (_a = {},
+                _a[CSS.buttonTextColorDark] = darkModeEnabled,
+                _a[CSS.buttonTextColor] = !darkModeEnabled,
+                _a);
+            var selected = (_b = {},
+                _b[CSS.viewsIconSelected] = viewMode === "desktop",
+                _b);
+            return (widget_1.tsx("button", { bind: this, onclick: this._toggleView, class: this.classes(CSS.viewsIconButton, buttonTextColor, selected), "data-view-mode": "desktop" },
+                widget_1.tsx("calcite-icon", { class: CSS.viewsIcon, icon: icons_1.default.monitor, scale: "l" })));
+        };
+        Drawer.prototype._renderMobileButton = function () {
+            var _a, _b;
+            var _c = this, darkModeEnabled = _c.darkModeEnabled, viewMode = _c.viewMode;
+            var buttonTextColor = (_a = {},
+                _a[CSS.buttonTextColorDark] = darkModeEnabled,
+                _a[CSS.buttonTextColor] = !darkModeEnabled,
+                _a);
+            var selected = (_b = {},
+                _b[CSS.viewsIconSelected] = viewMode === "mobile",
+                _b);
+            return (widget_1.tsx("button", { bind: this, onclick: this._toggleView, class: this.classes(CSS.viewsIconButton, buttonTextColor, selected), "data-view-mode": "mobile" },
+                widget_1.tsx("calcite-icon", { class: CSS.viewsIcon, icon: icons_1.default.mobile, scale: "l" })));
+        };
+        Drawer.prototype._renderLandscapeButton = function () {
+            var _a, _b;
+            var _c = this, darkModeEnabled = _c.darkModeEnabled, viewMode = _c.viewMode;
+            var buttonTextColor = (_a = {},
+                _a[CSS.buttonTextColorDark] = darkModeEnabled,
+                _a[CSS.buttonTextColor] = !darkModeEnabled,
+                _a);
+            var selected = (_b = {},
+                _b[CSS.viewsIconSelected] = viewMode === "landscape",
+                _b);
+            return (widget_1.tsx("button", { bind: this, onclick: this._toggleView, class: this.classes(CSS.viewsIconButton, buttonTextColor, selected), "data-view-mode": "landscape" },
+                widget_1.tsx("calcite-icon", { class: this.classes(CSS.viewsIcon, CSS.landscape), icon: icons_1.default.mobile, scale: "l" })));
+        };
+        Drawer.prototype._renderExpandCollapseButton = function () {
+            var _a;
+            var _b = this, darkModeEnabled = _b.darkModeEnabled, expanded = _b.expanded;
+            var buttonTextColor = (_a = {},
+                _a[CSS.buttonTextColorDark] = darkModeEnabled,
+                _a[CSS.buttonTextColor] = !darkModeEnabled,
+                _a);
+            var chevronsUp = icons_1.default.chevronsUp, chevronsDown = icons_1.default.chevronsDown;
+            return (widget_1.tsx("button", { key: "expand-collapse-button-key", bind: this, onclick: this._toggleExpand, class: this.classes(CSS.expandCollapseButton, buttonTextColor) },
+                widget_1.tsx("calcite-icon", { icon: expanded ? chevronsDown : chevronsUp, scale: "s" })));
+        };
+        Drawer.prototype._expandDrawer = function () {
+            this.set("expanded", true);
+        };
+        Drawer.prototype._collapseDrawer = function () {
+            this.set("expanded", false);
+        };
+        Drawer.prototype._toggleView = function (event) {
+            var node = event.currentTarget;
+            var viewMode = node.getAttribute("data-view-mode");
+            this.viewMode = viewMode;
+            this.scheduleRender();
+        };
+        Drawer.prototype._toggleExpand = function () {
+            this.set("expanded", !this.expanded);
+        };
+        Drawer.prototype._getTip = function () {
+            var tip = this.tip;
+            var updatedTip = (tip === null || tip === void 0 ? void 0 : tip.length) > 150 && !this.expanded
+                ? tip
+                    .split("")
+                    .slice(0, 150)
+                    .join("") + "..."
+                : tip;
+            return updatedTip;
+        };
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], Drawer.prototype, "viewMode", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], Drawer.prototype, "expanded", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], Drawer.prototype, "darkModeEnabled", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], Drawer.prototype, "tip", void 0);
+        tslib_1.__decorate([
+            decorators_1.property(),
+            widget_1.messageBundle("dist/assets/t9n/widgets/Drawer/resources")
+        ], Drawer.prototype, "drawerMessages", void 0);
+        Drawer = tslib_1.__decorate([
+            decorators_1.subclass("Drawer")
+        ], Drawer);
+        return Drawer;
+    }(Widget_1.default));
+    return Drawer;
+});

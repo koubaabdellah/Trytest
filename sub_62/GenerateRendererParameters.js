@@ -1,0 +1,2 @@
+//>>built
+define("esri/tasks/GenerateRendererParameters",["dojo/_base/declare","dojo/_base/lang","dojo/_base/json","dojo/has","../kernel"],function(a,b,c,e,d){a=a(null,{declaredClass:"esri.tasks.GenerateRendererParameters",classificationDefinition:null,where:null,precision:null,prefix:null,unitLabel:null,formatLabel:null,toJson:function(){return{classificationDef:c.toJson(this.classificationDefinition.toJson()),where:this.where}}});b.setObject("tasks.GenerateRendererParameters",a,d);return a});

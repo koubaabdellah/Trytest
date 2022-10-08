@@ -1,0 +1,427 @@
+(function($) {
+    var themeBase = "../";
+    var $_window = $(window);
+    var $_document = $(document);
+    var $_body = $("body");
+
+    if (
+        typeof Drupal != "undefined" &&
+        typeof Drupal.settings != "undefined" &&
+        typeof Drupal.settings.theme_base_path != "undefined"
+    ) {
+        themeBase = Drupal.settings.theme_base_path;
+    }
+
+    equalheight = function(container) {
+        var currentTallest = 0,
+            currentRowStart = 0,
+            rowDivs = new Array(),
+            $el,
+            topPosition = 0;
+        $(container).each(function() {
+            $el = $(this);
+            $($el).height("auto");
+            topPostion = $el.position().top;
+
+            if (currentRowStart != topPostion) {
+                for (currentDiv = 0; currentDiv < rowDivs.length; currentDiv++) {
+                    rowDivs[currentDiv].height(currentTallest);
+                }
+                rowDivs.length = 0; // empty the array
+                currentRowStart = topPostion;
+                currentTallest = $el.height();
+                rowDivs.push($el);
+            } else {
+                rowDivs.push($el);
+                currentTallest =
+                    currentTallest < $el.height() ? $el.height() : currentTallest;
+            }
+            for (currentDiv = 0; currentDiv < rowDivs.length; currentDiv++) {
+                rowDivs[currentDiv].height(currentTallest);
+            }
+        });
+    };
+
+    /**
+     *
+     * @returns {jQuery}
+     */
+    $.fn.goTo = function(extraOffset) {
+        var offset = $(this).offset().top;
+        var pushed_menu = $(".pushed-menu");
+        if (pushed_menu.length) {
+            if (extraOffset) {
+                offset -= pushed_menu.height() - 20 + extraOffset;
+            } else {
+                offset -= pushed_menu.height() - 20;
+            }
+        }
+
+        $("html, body").animate({
+                scrollTop: offset + "px",
+            },
+            "slow",
+            function() {
+                $("body").removeClass("animating");
+            }
+        );
+
+        return this; // for chaining...
+    };
+
+    /**
+     * Animate menu with modernizr
+     */
+
+    var animating;
+    var perspective = $(".perspective");
+    $(".mobile-menu__toggle").on("click", function() {
+
+            $_body.toggleClass("nav-visible");
+            $(this).toggleClass("active");
+            if ($(this).hasClass("active")) {
+                $("body")
+                    .find("ul.mobile-menu__ul li:eq(0) a.mobile-menu__parent")
+                    .focus();
+            }
+            if ($("body").hasClass("nav-visible")) {
+                $(this).find(".menu-text-toggle").text(Drupal.t("Close"));
+            } else {
+                $(this).find(".menu-text-toggle").text(Drupal.t("Open"));
+            }
+            var aria_control = $(".mobile-menu__toggle");
+
+            var isAriaExp = aria_control.attr("aria-expanded");
+            var newAriaExp = isAriaExp === "false" ? "true" : "false";
+            $(".mobile-menu__toggle").attr("aria-expanded", newAriaExp);
+
+            animating = true;
+            perspective.one(
+                "webkitTransitionEnd otransitionend oTransitionEnd msTransitionEnd transitionend",
+                function(e) {
+                    // code to execute after transition ends
+                    animating = false;
+                }
+            );
+
+        return false;
+    });
+    $(this).find(".menu-text-toggle").text("Sluit");
+
+    Drupal.behaviors.tabLoop = {
+        //if mobile menu is open, keep focus within expanded mobile menu.
+        attach: function(context, settings) {
+            $("ul.mobile-menu__ul li:eq(0) a.mobile-menu__parent").keydown(function(
+                e
+            ) {
+                if (e.which == 9 && e.shiftKey) {
+                    e.preventDefault();
+                    $(".mobile-menu__toggle").focus();
+                }
+            });
+            $(
+                "ul.mobile-menu__ul li:last-child div.mobile-menu__submenu li:last-child"
+            ).keydown(function(e) {
+                if (e.which == 9 && e.shiftKey == false) {
+                    e.preventDefault();
+                    $(".mobile-menu__toggle").focus();
+                }
+            });
+            $(".mobile-menu__toggle").keydown(function(e) {
+                if ($(".mobile-menu__toggle").hasClass("active")) {
+                    if (e.which == 9 && e.shiftKey) {
+                        e.preventDefault();
+                        $(
+                            "ul.mobile-menu__ul li:last-child div.mobile-menu__submenu li:last-child a"
+                        ).focus();
+                    } else if (e.which == 9) {
+                        e.preventDefault();
+                        $("ul.mobile-menu__ul li:eq(0) a.mobile-menu__parent").focus();
+                    }
+                }
+            });
+        },
+    };
+
+    var t = function(default_text) {
+        if (typeof Drupal != "undefined" && typeof Drupal.t != "undefined") {
+            return Drupal.t(default_text);
+        }
+        return default_text;
+    };
+
+    /**
+     * Resize header image on scale
+     * @param el
+     */
+    var resizeHeader = function(el) {
+        if (el.length) {
+            var maxHeight = 0;
+
+            // Iterate trough both columns. Check which one is the highest.
+            $(el)
+                .find(".hero-background-video, .hero-custom-content-wrapper")
+                .each(function(i, element) {
+                    maxHeight = Math.max(maxHeight, $(element).outerHeight(true));
+                });
+
+            el.css("height", maxHeight);
+        }
+    };
+
+    // onresize
+    var onResize = function() {
+        resizeHeader($(".hero-wrapper"));
+        // var $windowWidth = $_window.width();
+        // var $windowHeight = $_window.height();
+    };
+
+    $("a.mobile_submenu_toggle").each(function(i, elem) {
+        if ($(elem).parent().hasClass("menu--opened")) {
+            $(elem).attr("data-content", Drupal.t("Open"));
+        } else {
+            $(elem).attr("data-content", Drupal.t("Closed"));
+        }
+    });
+
+    // Set onresize and execute it one time to run on load.
+    $(window).resize(onResize);
+    var imgLoad = imagesLoaded($("body"));
+    imgLoad.on("always", function(instance) {
+        onResize();
+    });
+
+    $("a.mobile_submenu_toggle").on("click", function(e) {
+        $(this).parent().toggleClass("menu--opened");
+        return false;
+    });
+
+    // Wrap the search filter in a new div for mobile devices,
+    // but only if they are in the col-2-3 region
+    if (
+        $(
+            ".col-2-2 .views-exposed-form.filter-search-wrapper, .col-2-3 .views-exposed-form.filter-search-wrapper"
+        ).length > 0
+    ) {
+        $(
+            '<a href="#" class="jquery-added mobile_search_toggle">Filters</a>'
+        ).prependTo('.col-2-2 .views-exposed-form.filter-search-wrapper, .col-2-3 .views-exposed-form.filter-search-wrapper form');
+    }
+
+    $("a.mobile_search_toggle").on("click", function(e) {
+        $(this).closest(".filter-search-wrapper").toggleClass("menu--opened");
+        return false;
+    });
+
+    function getInternetExplorerVersion() {
+        var rv = -1;
+        if (navigator.appName == "Microsoft Internet Explorer") {
+            var ua = navigator.userAgent;
+            var re = new RegExp("MSIE ([0-9]{1,}[.0-9]{0,})");
+            if (re.exec(ua) != null) rv = parseFloat(RegExp.$1);
+        } else if (navigator.appName == "Netscape") {
+            var ua = navigator.userAgent;
+            var re = new RegExp("Trident/.*rv:([0-9]{1,}[.0-9]{0,})");
+            if (re.exec(ua) != null) rv = parseFloat(RegExp.$1);
+        }
+        if (rv == "10" || rv == "11") {
+            console.log("flex-fix");
+            $("body").addClass("flex-fix-needed");
+            if ($("#breadcrumbs").length > 0 && $(".hero-wrapper").length > 0) {
+                $(".hero-wrapper").css("margin-top", "20px");
+            }
+        }
+        return rv;
+    }
+    getInternetExplorerVersion();
+
+    // scrollToTop
+    $(".scroll-to-top").scrollToTop({
+        speed: 1000,
+        ease: "easeInBack",
+        start: 300,
+    });
+
+    /**
+     * //Focus for dropdown main menu
+     * @param e
+     */
+    function set_focus(e) {
+        if ($(e).length > 0) {
+            $(e).on("focusin", function() {
+                $(this).addClass("focus");
+            });
+
+            $(e).on("focusout", function() {
+                $(this).removeClass("focus");
+            });
+        }
+    }
+    set_focus("#main-menu li");
+
+    $("#delen").on("click", function(e) {
+        let dropdownItems = $("#delen .dropdown ul li a");
+        let parent = $(this);
+        let firstChild = parent.find(".dropdown a").first();
+
+        firstChild.focus();
+        $(this).addClass("focus");
+
+        dropdownItems.each(function() {
+            let tabindex = $(this).attr("tabindex");
+            if (typeof tabindex !== "undefined" && tabindex !== false) {
+                if ($(this).length > 0) {
+                    set_focus(parent);
+                    $(this).removeAttr("tabindex");
+                }
+            }
+        });
+    });
+    $("#delen a").on("focusout", function(e) {
+        let dropdownItems = $("#delen .dropdown ul li a");
+
+        if (
+            e.target == dropdownItems[dropdownItems.length - 1] ||
+            e.target == $("#delen > a")
+        ) {
+            dropdownItems.each(function() {
+                if ($(this) !== null) {
+                    $(this).attr("tabindex", "-1");
+                }
+            });
+        }
+    });
+
+    function addHighlightBlockWrapper() {
+        var $wrapper;
+
+        var needs_wrapper;
+
+        if ($(".col-2-3").length) {
+            $(".col-2-3")
+                .children()
+                .each(function(i, elm) {
+                    needs_wrapper = false;
+
+                    // Add wrappers around highlight paragraphs.
+                    if ($(elm).hasClass("paragraph--highlight")) {
+                        needs_wrapper = true;
+                    }
+
+                    // Fix for reusable blocks with highlight blocks.
+                    if ($(elm).hasClass("reusable-block--paragraph")) {
+                        if ($(elm).find("paragraph--highlight")) {
+                            needs_wrapper = true;
+                        }
+                    }
+
+                    if (needs_wrapper === true) {
+                        if (!$wrapper) {
+                            $(elm).wrap('<div class="highlight-blocks-wrapper clearfix"/>');
+                            $wrapper = $(elm).parent();
+                        } else {
+                            $(elm).appendTo($wrapper);
+                        }
+                    } else {
+                        $wrapper = undefined;
+                    }
+                });
+        }
+    }
+    addHighlightBlockWrapper();
+
+    function setBackgroundImage() {
+        var elms = document.querySelectorAll("[data-background-image]");
+
+        for (var i = 0; i < elms.length; i++) {
+            var // We only want the first class.
+                classname = "." + $(elms[i]).attr("class").split(" ")[0];
+            $(classname).css(
+                "background-image",
+                "url(" + $(classname).data("background-image") + ")"
+            );
+        }
+    }
+    setBackgroundImage();
+
+    function setBackgroundColor() {
+        var elms = document.querySelectorAll("[data-background-color]");
+
+        for (var i = 0; i < elms.length; i++) {
+            // We only want the first class.
+            var classname = "." + $(elms[i]).attr("class");
+            $(classname).css(
+                "background-color",
+                $(classname).data("background-color")
+            );
+        }
+    }
+    setBackgroundColor();
+
+    //Overwrite external link to add a visually hidden tekst.
+    $("span.external").html(
+        '<span class="visually-hidden">' + Drupal.t("External Link") + "</span>"
+    );
+
+    //Adds aria label to active menu item in the submenu.
+    $("#sub-menu")
+        .find(".active")
+        .find("a")
+        .attr("aria-current", Drupal.t("page"));
+
+    //turns autocomplete on for every type email.
+    //$("input[type='email']").attr('autocomplete', 'on');
+
+    /** Hover on mouseover for main menu */
+
+    $("#main-menu")
+        .find(">li")
+        .hover(
+            function(e) {
+                $(this).addClass("focus");
+            },
+            function(e) {
+                $(this).removeClass("focus");
+            }
+        );
+
+    $(document).keyup(function(e) {
+        if (e.keyCode === 27) {
+            if ($("#main-menu").find(">li").hasClass("focus")) {
+                $("#main-menu").find(">li").removeClass("focus");
+            }
+        }
+    });
+
+    $(".cookiemessage")
+        .find("span")
+        .find("#closeCookieMessage")
+        .attr("role", "button");
+
+    $("a.explanation-toggle").on("click", function() {
+        if ($("#explanationA").hasClass("show")) {
+            $("a.explanation-toggle").attr("aria-expanded", "false");
+        } else {
+            $("a.explanation-toggle").attr("aria-expanded", "true");
+        }
+    });
+
+    $("button.mobile_sidemenu_toggle.regelhulp").on("click", function() {
+        $("ul.sub-menu.regelhulp-menu").toggleClass("menu-visible");
+        $(this).toggleClass("active");
+        if ($(this).hasClass("active")) {
+            $("ul.sub-menu.regelhulp-menu")
+                .find("ul.sub-menu.regelhulp-menu li:eq(0) a")
+                .focus();
+        }
+        var aria_control = $("button.mobile_sidemenu_toggle.regelhulp");
+
+        var isAriaExp = aria_control.attr("aria-expanded");
+        var newAriaExp = isAriaExp === "false" ? "true" : "false";
+        $("button.mobile_sidemenu_toggle.regelhulp").attr(
+            "aria-expanded",
+            newAriaExp
+        );
+    });
+
+})(jQuery);

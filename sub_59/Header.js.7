@@ -1,0 +1,42 @@
+define(["require", "exports", "esri/widgets/support/widget"], function (require, exports, widget_1) {
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.default = (function (props) {
+        var buttonClasses = "top-nav-link btn btn-transparent";
+        var toggleButtonClasses = "top-nav-link btn btn-transparent dropdown-btn js-dropdown-toggle";
+        var hamburgerToggleButtonClasses = "btn btn-transparent top-nav-link";
+        var mapMenu = (widget_1.tsx("span", null,
+            widget_1.tsx("button", { class: hamburgerToggleButtonClasses, onclick: props.onOpenDrawer, title: props.i18n.header.menu, style: "color: " + props.config.headerTextColor },
+                widget_1.tsx("svg", { xmlns: "http://www.w3.org/2000/svg", width: "32", height: "32", viewBox: "0 0 32 32", class: "svg-icon" },
+                    widget_1.tsx("path", { d: "M28 8H4c-1.1 0-2-.9-2-2s.9-2 2-2h24c1.1 0 2 .9 2 2s-.9 2-2 2zm0 10H4c-1.1 0-2-.9-2-2s.9-2 2-2h24c1.1 0 2 .9 2 2s-.9 2-2 2zm0 10H4c-1.1 0-2-.9-2-2s.9-2 2-2h24c1.1 0 2 .9 2 2s-.9 2-2 2z" })))));
+        var headAuthentication = (props.portal.user && props.portal.user.username) ? (widget_1.tsx("div", { class: "dropdown js-dropdown right top-nav-list" },
+            widget_1.tsx("button", { class: toggleButtonClasses, style: "color: " + props.config.headerTextColor, "aria-haspopup": "true", "aria-expanded": "false" },
+                widget_1.tsx("svg", { xmlns: "http://www.w3.org/2000/svg", width: "32", height: "32", viewBox: "0 0 32 32", class: "svg-icon" },
+                    widget_1.tsx("path", { d: "M16.005 15.871a5.872 5.872 0 0 0 0-11.742 5.87 5.87 0 1 0 0 11.742zm11.567 7.188C27.27 19.036 20.023 18 16 18c-4.012 0-11.271 1.039-11.573 5.059C4.203 26.11 4.068 28.18 4.02 30h23.96c-.047-1.82-.184-3.891-.407-6.941z" })),
+                widget_1.tsx("svg", { xmlns: "http://www.w3.org/2000/svg", width: "18", height: "18", viewBox: "0 0 32 32", class: "svg-icon" },
+                    widget_1.tsx("path", { d: "M28 9v5L16 26 4 14V9l12 12L28 9z" }))),
+            widget_1.tsx("nav", { class: "dropdown-menu dropdown-right dropdown-menu-tight", role: "menu" },
+                widget_1.tsx("span", { class: "dropdown-title" },
+                    props.portal.user.fullName,
+                    widget_1.tsx("div", { class: "text-light-gray" }, props.portal.user.username)),
+                widget_1.tsx("button", { role: "menu-item", class: "btn-transparent dropdown-link text-left btn btn-fill", onclick: props.onAuthenticate }, props.i18n.header.signOut)))) : (widget_1.tsx("nav", { class: "top-nav-list", role: "navigation", title: props.i18n.header.signIn },
+            widget_1.tsx("button", { class: buttonClasses, style: "color: " + props.config.headerTextColor, title: props.i18n.header.signIn, onclick: props.onAuthenticate },
+                widget_1.tsx("svg", { xmlns: "http://www.w3.org/2000/svg", width: "32", height: "32", viewBox: "0 0 32 32", class: "svg-icon" },
+                    widget_1.tsx("path", { d: "M16.005 15.871a5.872 5.872 0 0 0 0-11.742 5.87 5.87 0 1 0 0 11.742zm11.567 7.188C27.27 19.036 20.023 18 16 18c-4.012 0-11.271 1.039-11.573 5.059C4.203 26.11 4.068 28.18 4.02 30h23.96c-.047-1.82-.184-3.891-.407-6.941z" })))));
+        //   }
+        // Display org name 
+        var headerText = props.portal.name ? props.portal.name : props.i18n.header.agol;
+        return {
+            render: function () {
+                window.calcite.init();
+                return (widget_1.tsx("header", { afterCreate: props.onUpdate, class: "top-nav app-header", style: "background-color: " + props.config.headColor },
+                    widget_1.tsx("div", { class: "grid-container" },
+                        widget_1.tsx("div", { class: "column-24", key: "column" },
+                            widget_1.tsx("div", { title: props.i18n.header.menu, class: "left menu-button margin-right-1", key: "menu" }, mapMenu),
+                            widget_1.tsx("div", { class: "nav-header-title", key: "title" },
+                                widget_1.tsx("span", { class: "top-nav-title header-text font-size--1", style: "color: " + props.config.headerTextColor }, headerText)),
+                            widget_1.tsx("div", { class: "right auth-button margin-left-1", key: "auth" }, headAuthentication)))));
+            }
+        };
+    });
+});
+//# sourceMappingURL=Header.js.map

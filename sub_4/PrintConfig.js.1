@@ -1,0 +1,104 @@
+define(["require", "exports", "tslib", "esri/core/accessorSupport/decorators", "esri/widgets/support/widget", "../BaseComponent", "./PrintConfig/PrintConfigViewModel"], function (require, exports, tslib_1, decorators_1, widget_1, BaseComponent, PrintConfigViewModel) {
+    "use strict";
+    var CSS = {
+        base: "esri-print-config",
+        header: "esri-print-config__header",
+        input: "esri-print-config__input"
+    };
+    var PrintConfig = (function (_super) {
+        tslib_1.__extends(PrintConfig, _super);
+        function PrintConfig(params) {
+            var _this = _super.call(this, params) || this;
+            _this.viewModel = new PrintConfigViewModel();
+            _this.printMessages = null;
+            return _this;
+        }
+        PrintConfig.prototype.postInitialize = function () {
+            this.viewModel.setupMaps();
+        };
+        PrintConfig.prototype.render = function () {
+            var header = this._renderHeader();
+            var formats = this._renderAllowedFormats();
+            var layout = this._renderAllowedLayouts();
+            return (widget_1.tsx("section", { class: CSS.base },
+                header,
+                formats,
+                layout));
+        };
+        PrintConfig.prototype._renderHeader = function () {
+            var _a;
+            var widgetInfoToolTip = (_a = this === null || this === void 0 ? void 0 : this.tipItem) === null || _a === void 0 ? void 0 : _a.renderTipCalciteIcon();
+            return (widget_1.tsx("header", { class: CSS.header },
+                widget_1.tsx("h3", null,
+                    this.printMessages.printConfig,
+                    " ",
+                    widgetInfoToolTip)));
+        };
+        PrintConfig.prototype._renderAllowedFormats = function () {
+            return (widget_1.tsx("calcite-accordion", null,
+                widget_1.tsx("calcite-accordion-item", { "item-title": this.printMessages.allowedFormats, "icon-position": "start" },
+                    widget_1.tsx("calcite-pick-list", { multiple: true }, this._renderPickListItems(this._formatsList, "format")))));
+        };
+        PrintConfig.prototype._renderPickListItems = function (list, type) {
+            var _this = this;
+            return list.map(function (item) {
+                return (widget_1.tsx("calcite-pick-list-item", { label: item.text || item.value.toUpperCase(), value: item.value, selected: item.isSelected, afterCreate: function (element) {
+                        if (type === "format") {
+                            element.addEventListener("calciteListItemChange", _this._handleFormatsList.bind(_this));
+                        }
+                        else if (type === "layout") {
+                            element.addEventListener("calciteListItemChange", _this._handleLayoutsList.bind(_this));
+                        }
+                    } }));
+            });
+        };
+        PrintConfig.prototype._renderAllowedLayouts = function () {
+            return (widget_1.tsx("calcite-accordion", null,
+                widget_1.tsx("calcite-accordion-item", { "item-title": this.printMessages.allowedLayouts, "icon-position": "start" },
+                    widget_1.tsx("calcite-pick-list", { multiple: true }, this._renderPickListItems(this._layoutsList, "layout")))));
+        };
+        PrintConfig.prototype._handleFormatsList = function (event) {
+            this.viewModel.handleFormatsList(event);
+        };
+        PrintConfig.prototype._handleLayoutsList = function (event) {
+            this.viewModel.handleLayoutsList(event);
+        };
+        tslib_1.__decorate([
+            decorators_1.property(),
+            decorators_1.aliasOf("viewModel.possibleAllowedFormats")
+        ], PrintConfig.prototype, "possibleAllowedFormats", void 0);
+        tslib_1.__decorate([
+            decorators_1.property(),
+            decorators_1.aliasOf("viewModel.possibleAllowedLayout")
+        ], PrintConfig.prototype, "possibleAllowedLayout", void 0);
+        tslib_1.__decorate([
+            decorators_1.property(),
+            decorators_1.aliasOf("viewModel.allowedFormats")
+        ], PrintConfig.prototype, "allowedFormats", void 0);
+        tslib_1.__decorate([
+            decorators_1.property(),
+            decorators_1.aliasOf("viewModel.allowedLayouts")
+        ], PrintConfig.prototype, "allowedLayouts", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], PrintConfig.prototype, "viewModel", void 0);
+        tslib_1.__decorate([
+            decorators_1.aliasOf("viewModel.outputJSON")
+        ], PrintConfig.prototype, "outputJSON", void 0);
+        tslib_1.__decorate([
+            decorators_1.property(),
+            widget_1.messageBundle("dist/assets/t9n/configWidgets/PrintConfig/resources")
+        ], PrintConfig.prototype, "printMessages", void 0);
+        tslib_1.__decorate([
+            decorators_1.aliasOf("viewModel.formatsList")
+        ], PrintConfig.prototype, "_formatsList", void 0);
+        tslib_1.__decorate([
+            decorators_1.aliasOf("viewModel.layoutsList")
+        ], PrintConfig.prototype, "_layoutsList", void 0);
+        PrintConfig = tslib_1.__decorate([
+            decorators_1.subclass("PrintConfig")
+        ], PrintConfig);
+        return PrintConfig;
+    }(BaseComponent));
+    return PrintConfig;
+});

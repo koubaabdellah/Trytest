@@ -1,0 +1,1 @@
+(function($){$('form').validate();$('.warning').hide();$(function(){$('.warning').slideDown().animate({color:'#c00'});});})(jQuery);

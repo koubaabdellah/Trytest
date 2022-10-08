@@ -1,0 +1,19 @@
+﻿$.fn.preventDoubleSubmission = function () {
+    $(this).on('submit', function (e) {
+        var $form = $(this);
+        var $submitbtn = $form.find('button[type="submit"]');
+
+        if ($form.data('submitted') === true) {
+            e.preventDefault();
+        } else {
+            if ($form.valid()) {
+                $form.data('submitted', true);
+                $submitbtn.addClass('btn-loading').attr('disabled', true);
+            }
+            else {
+                $submitbtn.removeClass('btn-loading').attr('disabled', false);
+            }
+        }
+    });
+    return this;
+};

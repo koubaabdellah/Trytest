@@ -1,0 +1,10 @@
+/*!
+ * All material copyright ESRI, All Rights Reserved, unless otherwise specified.
+ * See LICENSE.md for details.
+ * v1.0.0-beta.304
+ */
+import{f as t,h as e}from"./p-07000a47.js";import{b as o}from"./p-9510b839.js";import{S as n}from"./p-0e9c177b.js";import{S as a}from"./p-0e43e6e7.js";
+/*!
+ * All material copyright ESRI, All Rights Reserved, unless otherwise specified.
+ * See https://github.com/Esri/calcite-components/blob/master/LICENSE.md for details.
+ */const i=150,c=({actionCount:t,actionHeight:e,height:o,groupCount:n})=>Math.max(t-(({height:t,actionHeight:e,groupCount:o})=>Math.floor((t-2*o)/e))({height:o,actionHeight:e,groupCount:n}),0),l=t=>Array.from(t.querySelectorAll("calcite-action")).filter((t=>!t.closest("calcite-action-menu")||t.slot===n.trigger)),r=({actionGroups:e,expanded:o,overflowCount:n})=>{let i=n;e.reverse().forEach((e=>{let n=0;const c=l(e).reverse();c.forEach((t=>{t.slot===a.menuActions&&(t.removeAttribute("slot"),t.textEnabled=o)})),i>0&&c.some((t=>(c.filter((t=>!t.slot)).length>1&&c.length>2&&!t.closest("calcite-action-menu")&&(t.textEnabled=!0,t.setAttribute("slot",a.menuActions),n++,n>1&&i--),i<1))),t(e)}))};function s({parent:t,expanded:e}){l(t).filter((t=>t.slot!==a.menuActions)).forEach((t=>t.textEnabled=e)),t.querySelectorAll("calcite-action-group").forEach((t=>t.expanded=e))}const p=({expanded:t,intlExpand:n,intlCollapse:a,toggle:i,el:c,position:l,tooltip:r,ref:s,scale:p})=>{const u="rtl"===o(c),d=t?a:n,f=["chevrons-left","chevrons-right"];u&&f.reverse();const g="end"===function(t,e){var o;return t||(null===(o=e.closest("calcite-shell-panel"))||void 0===o?void 0:o.position)||"start"}(l,c),h=e("calcite-action",{icon:t?g?f[1]:f[0]:g?f[0]:f[1],onClick:i,ref:e=>(({tooltip:t,referenceElement:e,expanded:o,ref:n})=>(t&&(t.referenceElement=!o&&e),n&&n(e),e))({tooltip:r,referenceElement:e,expanded:t,ref:s}),scale:p,text:d,textEnabled:t});return r?e("calcite-tooltip-manager",null,h):h};export{p as E,r as a,c as g,i as o,l as q,s as t}

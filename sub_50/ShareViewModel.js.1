@@ -1,0 +1,50 @@
+define(["require", "exports", "tslib", "esri/core/Accessor", "esri/core/Handles", "esri/core/watchUtils", "esri/core/accessorSupport/decorators", "esri/intl"], function (require, exports, tslib_1, Accessor, Handles, watchUtils, decorators_1, intl_1) {
+    "use strict";
+    var ShareViewModel = (function (_super) {
+        tslib_1.__extends(ShareViewModel, _super);
+        function ShareViewModel(params) {
+            var _this = _super.call(this, params) || this;
+            _this._handles = new Handles();
+            _this.configPanelViewModel = null;
+            _this.datePublished = null;
+            _this.shareUrl = null;
+            _this.messages = null;
+            return _this;
+        }
+        ShareViewModel.prototype.initialize = function () {
+            var _this = this;
+            this._handles.add(watchUtils.when(this, "configPanelViewModel.templateAppItem.portal.url", function () {
+                var appUrl = _this.configPanelViewModel.getAppUrl();
+                _this._set("shareUrl", appUrl);
+            }), watchUtils.when(this, "configPanelViewModel.templateAppData", function () {
+                var _a, _b;
+                var datePublished = (_b = (_a = _this.configPanelViewModel.templateAppData) === null || _a === void 0 ? void 0 : _a.values) === null || _b === void 0 ? void 0 : _b.datePublished;
+                if (datePublished) {
+                    _this._set("datePublished", intl_1.formatDate(datePublished));
+                }
+            }));
+        };
+        ShareViewModel.prototype.destroy = function () {
+            this._handles.removeAll();
+            this._handles.destroy();
+            this._handles = null;
+        };
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], ShareViewModel.prototype, "configPanelViewModel", void 0);
+        tslib_1.__decorate([
+            decorators_1.property({ readOnly: true })
+        ], ShareViewModel.prototype, "datePublished", void 0);
+        tslib_1.__decorate([
+            decorators_1.property({ readOnly: true })
+        ], ShareViewModel.prototype, "shareUrl", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], ShareViewModel.prototype, "messages", void 0);
+        ShareViewModel = tslib_1.__decorate([
+            decorators_1.subclass("ShareViewModel")
+        ], ShareViewModel);
+        return ShareViewModel;
+    }(Accessor));
+    return ShareViewModel;
+});

@@ -1,0 +1,138 @@
+/*
+ *   Copyright (c) 2022 Esri
+ *   All rights reserved.
+
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+
+ *   http://www.apache.org/licenses/LICENSE-2.0
+
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ */
+define(["require", "exports", "tslib", "esri/core/accessorSupport/decorators", "esri/core/watchUtils", "esri/widgets/support/widget", "esri/widgets/Widget", "../utils/printUtils"], function (require, exports, tslib_1, decorators_1, watchUtils_1, widget_1, Widget_1, printUtils_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    Widget_1 = tslib_1.__importDefault(Widget_1);
+    var CSS = {
+        base: "embed-app__header",
+        logo: "embed-app__header__logo",
+        heading: "heading"
+    };
+    var Header = /** @class */ (function (_super) {
+        tslib_1.__extends(Header, _super);
+        function Header(props) {
+            var _this = _super.call(this, props) || this;
+            _this.bundle = null;
+            _this.sharedTheme = null;
+            _this.portal = null;
+            return _this;
+        }
+        Header.prototype.initialize = function () {
+            var _this = this;
+            this.own([(0, watchUtils_1.whenOnce)(this, "view.ready", function () { return tslib_1.__awaiter(_this, void 0, void 0, function () {
+                    return tslib_1.__generator(this, function (_a) {
+                        return [2 /*return*/];
+                    });
+                }); }), (0, watchUtils_1.whenDefinedOnce)(this, "applicationConfig.title", function () {
+                    _this.render();
+                })]);
+        };
+        Header.prototype.render = function () {
+            var _a;
+            var _b = this.applicationConfig, title = _b.title, header = _b.header, applySharedTheme = _b.applySharedTheme, customTheme = _b.customTheme, applyCustomTheme = _b.applyCustomTheme, share = _b.share;
+            var headerLogo = this.renderHeaderLogo();
+            var addCustomTheme = (applyCustomTheme || (customTheme === null || customTheme === void 0 ? void 0 : customTheme.applyPresetTheme));
+            var headerStyle = (applySharedTheme && (this === null || this === void 0 ? void 0 : this.sharedTheme) && !applyCustomTheme) ? this.sharedTheme : null;
+            var pdfAction = this.renderPDFAction();
+            var titleArea = title ? ((0, widget_1.tsx)("h1", { class: this.classes(CSS.heading) },
+                (0, widget_1.tsx)("span", null, title))) : null;
+            var socialShare = this.renderShare();
+            var showHeader = header ? "" : "hide";
+            var displayShare = share && ((_a = this === null || this === void 0 ? void 0 : this.view) === null || _a === void 0 ? void 0 : _a.widthBreakpoint) !== "xsmall" ? true : false;
+            return ((0, widget_1.tsx)("div", { class: this.classes("site-header", showHeader), key: "app-header", style: headerStyle, slot: "header" }, header ? (0, widget_1.tsx)("header", { class: this.classes("site-header__wrapper", (applySharedTheme && !addCustomTheme) ? "shared-theme" : null) },
+                headerLogo,
+                titleArea,
+                displayShare ? (0, widget_1.tsx)("div", { class: "header-tool-section" }, socialShare) : null,
+                pdfAction) : null));
+        };
+        Header.prototype.renderHeaderLogo = function () {
+            var _a, _b, _c, _d;
+            var customTheme = this.applicationConfig.customTheme;
+            var logo = (_a = this.applicationConfig) === null || _a === void 0 ? void 0 : _a.logo;
+            var token = (this === null || this === void 0 ? void 0 : this.portal.get("credential.token")) || null;
+            if ((customTheme === null || customTheme === void 0 ? void 0 : customTheme.applySharedTheme) && ((_b = this === null || this === void 0 ? void 0 : this.sharedTheme) === null || _b === void 0 ? void 0 : _b.logo)) {
+                logo = this.sharedTheme.logo;
+            }
+            else if (customTheme === null || customTheme === void 0 ? void 0 : customTheme.logo) {
+                logo = customTheme.logo;
+            }
+            if (token && logo) {
+                logo = "".concat(logo, "?token=").concat(token);
+            }
+            var logoLink = (_c = this === null || this === void 0 ? void 0 : this.applicationConfig) === null || _c === void 0 ? void 0 : _c.logoLink;
+            if ((customTheme === null || customTheme === void 0 ? void 0 : customTheme.applySharedTheme) && ((_d = this === null || this === void 0 ? void 0 : this.sharedTheme) === null || _d === void 0 ? void 0 : _d.logoLink)) {
+                logoLink = this.sharedTheme.logoLink;
+            }
+            else if (customTheme === null || customTheme === void 0 ? void 0 : customTheme.logoLink) {
+                logoLink = customTheme.logoLink;
+            }
+            var logoImg = logo ? ((0, widget_1.tsx)("img", { class: this.classes(CSS.logo), src: logo, alt: "" })) : null;
+            if (logoImg) {
+                return logoLink ? ((0, widget_1.tsx)("a", { rel: "noreferrer noopener", target: "_blank", href: logoLink }, logoImg)) : (logoImg);
+            }
+            else {
+                return null;
+            }
+        };
+        Header.prototype.renderPDFAction = function () {
+            var _a = this.applicationConfig, exportToPDF = _a.exportToPDF, header = _a.header;
+            return (exportToPDF && header ? (0, widget_1.tsx)("calcite-button", { title: this.bundle.tools.exportTip, class: this.classes("pdf-share"), bind: this, afterCreate: this.handleClick, alignment: "end", appearance: "transparent", color: "neutral", label: this.bundle.tools.export },
+                (0, widget_1.tsx)("calcite-icon", { class: "pdf-share", icon: "file-pdf" })) : null);
+        };
+        Header.prototype.getTokenForUrl = function () {
+            var _a;
+            return (_a = this === null || this === void 0 ? void 0 : this.portal) === null || _a === void 0 ? void 0 : _a.get("credential.token");
+        };
+        Header.prototype.renderShare = function () {
+            var shareIncludeSocial = this.applicationConfig.shareIncludeSocial;
+            return (0, widget_1.tsx)("div", null,
+                (0, widget_1.tsx)("instant-apps-social-share", { bind: this, view: this.view, "social-share": shareIncludeSocial, "display-tip-text": "false" }));
+        };
+        Header.prototype.handleClick = function (element) {
+            var _this = this;
+            element.addEventListener("click", function () {
+                (0, printUtils_1.takeScreenshotAndPrint)({ config: _this.applicationConfig, view: _this.view, portal: null }).then(function () {
+                    setTimeout(function () {
+                        window.print();
+                    }, 1000);
+                });
+            });
+        };
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], Header.prototype, "applicationConfig", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)(),
+            (0, widget_1.messageBundle)("sidebar/app/t9n/common")
+        ], Header.prototype, "bundle", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], Header.prototype, "view", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], Header.prototype, "sharedTheme", void 0);
+        tslib_1.__decorate([
+            (0, decorators_1.property)()
+        ], Header.prototype, "portal", void 0);
+        Header = tslib_1.__decorate([
+            (0, decorators_1.subclass)("Header")
+        ], Header);
+        return Header;
+    }((Widget_1.default)));
+    exports.default = Header;
+});

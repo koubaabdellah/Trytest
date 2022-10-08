@@ -1,0 +1,3 @@
+//>>built
+define("esri/dijit/analysis/mixins/browselayers/configs/AGOLBrowseItem",["dojo/_base/lang","dojo/has","../../../../../kernel","./EnterpriseBrowseItem","../../../ItemTypes"],function(e,b,f,g,d){b={getConfig:function(c){var a=g.getConfig(c);a.baseSections.push("all");a.baseSections.push("subscription");(-1<c.allowedItemTypes.indexOf(d.RFT)||-1<c.allowedItemTypes.indexOf(d.DLPK))&&a.baseSections.push("livingAtlas");return a}};e.setObject("dijit.analysis.mixins.browselayers.configs.AGOLBrowseItem",b,
+f);return b});

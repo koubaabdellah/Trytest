@@ -1,0 +1,1077 @@
+
+var MarkerWithLabel = require('markerwithlabel');
+var InfoBox = require('google-maps-infobox');
+require('./vendor/markerclusterer.js');
+
+function GMMap() {
+
+	return {
+		init: function () {
+			var defaultOptions = {
+				zoom: 8,
+				maxZoom: 15,
+				center: new google.maps.LatLng(52.370000, 4.893123), // Amsterdam
+				disableDefaultUI: true,
+				zoomControl: true,
+				scrollwheel: false,
+				styles: [{ "featureType": "landscape", "stylers": [{ "hue": "#FFBB00" }, { "saturation": 43.400000000000006 }, { "lightness": 37.599999999999994 }, { "gamma": 1 }] }, { "featureType": "road.highway", "stylers": [{ "hue": "#FFC200" }, { "saturation": -61.8 }, { "lightness": 45.599999999999994 }, { "gamma": 1 }] }, { "featureType": "road.arterial", "stylers": [{ "hue": "#FF0300" }, { "saturation": -100 }, { "lightness": 51.19999999999999 }, { "gamma": 1 }] }, { "featureType": "road.local", "stylers": [{ "hue": "#FF0300" }, { "saturation": -100 }, { "lightness": 52 }, { "gamma": 1 }] }, { "featureType": "water", "stylers": [{ "hue": "#0078FF" }, { "saturation": -13.200000000000003 }, { "lightness": 2.4000000000000057 }, { "gamma": 1 }] }, { "featureType": "poi", "stylers": [{ "hue": "#00FF6A" }, { "saturation": -1.0989010989011234 }, { "lightness": 11.200000000000017 }, { "gamma": 1 }] }]
+			};
+
+			var map = this;
+
+			window.map = map;
+
+			map.markers = Array();
+			map.popups = Array();
+			map.latLngList = Array();
+
+			map.icons = {
+				markerDeal: {
+					url: '/content/themes/agendastad/images/marker.png',
+					scaledSize: new google.maps.Size(32, 32),
+					origin: new google.maps.Point(0, 0),
+					anchor: new google.maps.Point(16, 16)
+				},
+				markerConcept: {
+					url: '/content/themes/agendastad/images/marker-blue.png',
+					scaledSize: new google.maps.Size(22, 31),
+					origin: new google.maps.Point(0, 0),
+					anchor: new google.maps.Point(11, 31)
+				},
+				normalMarker: {
+					url: '/content/themes/agendastad/images/normal-marker.png',
+					scaledSize: new google.maps.Size(22, 31),
+					origin: new google.maps.Point(0, 0),
+					anchor: new google.maps.Point(11, 31)
+				},
+			};
+
+			map.initialize = function (mapElement, callback, small, center, zoom) {
+				map.containerObj = mapElement;
+				map.center = center;
+				if (small) {
+					map.setSize(small);
+				} else {
+					map.setSize();
+				}
+
+				var mapOptions = defaultOptions;
+				if (center) {
+					mapOptions.center = new google.maps.LatLng(center[0], center[1]);
+				}
+				if (zoom) {
+					mapOptions.zoom = zoom;
+				}
+				map.gmObj = new google.maps.Map(mapElement, mapOptions);
+				callback();
+
+				$('.zoomControl .in').click(map.zoomIn);
+				$('.zoomControl .out').click(map.zoomOut);
+				$('.close-map').click(function () {
+					window.location.href = window.location.href.replace('?map=true&', '?').replace('&map=true', '').replace('?map=true', '');
+				})
+			};
+
+			map.drawConnectingLines = function (markers) {
+
+				var c = { x: 0, y: 0 }
+
+				var _projection = map.gmObj.getProjection();
+
+				var _topRight = _projection.fromLatLngToPoint(map.gmObj.getBounds().getNorthEast());
+				var _bottomLeft = _projection.fromLatLngToPoint(map.gmObj.getBounds().getSouthWest());
+
+				var _scale = Math.pow(2, map.gmObj.getZoom());
+
+				var points = [];
+
+				var markers = markers ? markers : map.markers;
+
+				$(markers).each(function (index, marker) {
+
+					// console.log(marker);
+
+					var _point = _projection.fromLatLngToPoint(
+						new google.maps.LatLng(parseFloat(marker.position.lat()), parseFloat(marker.position.lng()))
+					);
+
+					var _posLeft = (_point.x - _bottomLeft.x) * _scale;
+					var _posTop = ((_bottomLeft.y - _topRight.y) - (_point.y - _topRight.y)) * _scale;
+
+					points.push({
+						cor: {
+							x: _posLeft,
+							y: _posTop,
+						},
+						latLng: {
+							lat: parseFloat(marker.position.lat()),
+							lng: parseFloat(marker.position.lng())
+						}
+					});
+
+					c.x += _posLeft;
+					c.y += _posTop;
+
+				});
+
+				c.y = c.y / points.length;
+				c.x = c.x / points.length;
+
+				points.sort(function (p1, p2) {
+					var dx1 = p1.cor.x - c.x;
+					var dy1 = p1.cor.y - c.y;
+					var a1 = Math.atan2(dy1, dx1);
+
+
+					var dx2 = p2.cor.x - c.x;
+					var dy2 = p2.cor.y - c.y;
+					var a2 = Math.atan2(dy2, dx2);
+
+					//If angles are the same, sort by length
+					if (a1 === a2) {
+						var d1 = dx1 * dx1 + dy1 * dy1;
+						var d2 = dx2 * dx2 + dy2 * dy2;
+
+						return d1 - d2;
+					}
+
+					//otherwise sort by angle
+					// console.log(p1, p2, a1, a2);
+					// console.log(a1-a2);
+					return a1 - a2;
+				});
+
+				var lineCoordinates = [];
+
+				for (point in points) {
+					lineCoordinates.push({
+						lat: points[point].latLng.lat,
+						lng: points[point].latLng.lng
+					})
+				};
+
+				lineCoordinates.push({
+					lat: points[0].latLng.lat,
+					lng: points[0].latLng.lng
+				})
+
+				map.paths = new google.maps.Polyline({
+					path: lineCoordinates,
+					geodesic: true,
+					strokeColor: '#FF0000',
+					strokeOpacity: 0.5,
+					strokeWeight: 3
+				});
+
+				map.paths.setMap(map.gmObj);
+
+			}
+
+
+
+
+			map.setSize = function (small) {
+				if (small) {
+					$(map.containerObj).css('height', $(window).height() / 2 + 'px');
+				} else {
+					$(map.containerObj).css('height', $(window).height() - 152 + 'px');
+				}
+
+			}
+
+			map.zoomIn = function () {
+				var currentZoomLevel = parseInt(map.gmObj.getZoom());
+				setTimeout(function () {
+					map.gmObj.setZoom((currentZoomLevel + 1));
+				}, 10);
+			};
+
+			map.zoomOut = function () {
+				var currentZoomLevel = parseInt(map.gmObj.getZoom());
+				setTimeout(function () {
+					map.gmObj.setZoom((currentZoomLevel - 1));
+				}, 10);
+			};
+
+
+			map.returnPopupHtml = function (mapItem) {
+				var location = "";
+				if (mapItem.meta.citydeal_location) {
+					location = mapItem.meta.citydeal_location;
+				} else {
+					$(mapItem.meta.citydeal_initiativetax).each(function (index, el) {
+						location += (index == 0 ? el.name : ', ' + el.name);
+					});
+				}
+				var phase = "";
+				if (mapItem.meta.citydeal_phase == 'a-nieuwvoorstel') {
+					phase = 'nieuw voorstel';
+				} else if (mapItem.meta.citydeal_phase == 'b-inontwikkeling') {
+					phase = 'in ontwikkeling';
+				} else {
+					phase = 'in uitvoering';
+				}
+
+				return '<div class="mappopup">' +
+					'<a class="close" href="javascript:void(0)">✕</a>' +
+					'<div class="citydeal-item">' +
+					'<div class="citydeal-item-header">' +
+					'<h3 class="title">' + mapItem.title.rendered + '</h3>' +
+					'<div class="citydeal-phase ' + mapItem.meta.citydeal_phase + '">' + phase + '</div>' +
+					'</div>' +
+					'<div class="meta">' +
+					'<div class="popup-location locatie">' + location + '</div>' +
+					'<div class="popup-theme theme black ' + mapItem.meta.citydeal_theme.slug + '">' + mapItem.meta.citydeal_theme.name + '</div>' +
+					'</div>' +
+					'</div>' +
+					'<a href="' + mapItem.link + '" class="map-read-more">Lees meer</a>' +
+					'</div>'
+			}
+
+			map.createPopup = function (mapItem) {
+				var popupContent = document.createElement("div");
+				$(popupContent).html(map.returnPopupHtml(mapItem));
+
+				$(popupContent).find('.close').click(function () {
+					map.closePopups();
+				});
+
+				var popupOptions = {
+					content: popupContent,
+					disableAutoPan: false,
+					maxWidth: 0,
+					pixelOffset: new google.maps.Size(-200, -40),
+					zIndex: null,
+					boxStyle: {
+						width: "400px"
+					},
+					closeBoxMargin: "0 0 0 0",
+					closeBoxURL: "about:blank",
+					infoBoxClearance: new google.maps.Size(1, 1),
+					isHidden: false,
+					pane: "floatPane",
+					alignBottom: true,
+					enableEventPropagation: false
+				};
+				var returnObj = new InfoBox(popupOptions);
+				returnObj.link = mapItem.item;
+				return returnObj;
+			};
+
+			map.addMarkers = function (markersObj, normalMarkers) {
+				map.markersObj = markersObj;
+
+				$(markersObj).each(function (index, citydeal) {
+					$(citydeal.meta.citydeal_initiativetax).each(function (index, location) {
+
+						if (location.geodata) {
+
+							var lat, lng;
+
+							if (!location.geodata.hasOwnProperty('lng')) {
+								unserialized = unserialize(location.geodata);
+								lat = unserialized.lat;
+								lng = unserialized.lng;
+							} else {
+								lat = location.geodata.lat;
+								lng = location.geodata.lng;
+							}
+
+							var latLngObj = new google.maps.LatLng(lat, lng);
+							var markerType;
+							if (citydeal.meta.citydeal_phase === 'concept') {
+								markerType = 'markerConcept';
+							} else if (normalMarkers) {
+								markerType = 'normalMarker';
+							}
+							else {
+								markerType = 'markerDeal';
+							}
+
+							// var tags = Array();
+
+							// $(citydeal.meta.citydeal_initiativetax).each(function () {
+							// 	tags.push(this.term_id);
+							// });
+
+							if (typeof this.label != 'undefined') {
+								var labelContent = this.label;
+							} else {
+								var labelContent = "";
+							}
+
+							var newMarker = new MarkerWithLabel({
+								position: latLngObj,
+								icon: map.icons[markerType],
+								tags: location.term_id,
+								type: citydeal.meta.citydeal_theme.slug,
+								citydeal: citydeal.slug,
+								originalContext: citydeal,
+								labelContent: labelContent,
+								labelAnchor: new google.maps.Point(100, 0),
+								labelClass: "markerLabel", // the CSS class for the label
+								labelStyle: {}
+							});
+
+							// console.log('newMarker', newMarker);
+							if (typeof mapClustering == 'undefined' || !mapClustering) {
+								// console.log('map.gmObj', map.gmObj);
+								newMarker.setMap(map.gmObj);
+							}
+
+							if (!noPopups) {
+								var popup = map.createPopup(citydeal);
+								map.popups.push(popup);
+								google.maps.event.addListener(newMarker, 'click', function () {
+
+									map.closePopups();
+
+									$(map.containerObj).unbind('click.popup');
+									popup.open(map.gmObj, newMarker);
+
+									setTimeout(function () {
+										$(map.containerObj).bind('click.popup', function () {
+											map.closePopups();
+										});
+										//doTruncate();
+									}, 10);
+
+								});
+
+							}
+
+							map.latLngList.push(latLngObj);
+							// console.log('push newMarker', newMarker);
+							map.markers.push(newMarker);
+						}
+					});
+
+				}
+				);
+
+				if (typeof mapClustering !== 'undefined' && mapClustering) {
+
+					map.markerCluster = new MarkerClusterer(map.gmObj, map.markers, {
+						enableRetinaIcons: true,
+						zoomOnClick: false,
+						averageCenter: false,
+						styles: [{
+							'fontFamily': "RijksoverheidSansText-Regular",
+							'height': 32,
+							'url': "/content/themes/agendastad/images/cluster-icon.png",
+							'width': 32,
+							'textColor': 'white',
+							'color': 'white',
+							ignoreHidden: true
+						}]
+					});
+
+					google.maps.event.addListener(map.markerCluster, 'click', map.markerClusterClick);
+
+				}
+
+				map.fitOnMarkers();
+				// if (!map.center && markersObj.length > 1) {
+
+				// } else {
+				// 	map.gmObj.setCenter(map.latLngList[0]);
+				// 	map.gmObj.setZoom(15);
+				// }
+			};
+
+			map.markerClusterClick = function (event) {
+				var currentZoomLevel = map.gmObj.getZoom();
+				if (currentZoomLevel < 11) {
+					map.gmObj.setZoom((currentZoomLevel + 2));
+					var center = event.getCenter();
+					map.gmObj.setCenter(center);
+				} else {
+					var clusterMarkers = event.getMarkers();
+					google.maps.event.trigger(clusterMarkers[0], 'click');
+					map.initPopupSwitcher(clusterMarkers);
+				}
+			}
+
+			map.initPopupSwitcher = function (clusterMarkers) {
+
+
+				var popupIndex = 0;
+
+				var switcher = document.createElement('DIV');
+				switcher.className = 'popup-switcher';
+
+				switcher.innerHTML = "<a class='prev' href='javascript:void(0);'></a>";
+				switcher.innerHTML = switcher.innerHTML + "<div class='indicator'><span class='curr'>1</span>/<span class='total'>" + clusterMarkers.length + "</span></div>";
+				switcher.innerHTML = switcher.innerHTML + "<a class='next' href='javascript:void(0);'></a>";
+
+				setTimeout(function () {
+
+					var theInfoBox = $('.infoBox');
+
+					$(theInfoBox).addClass('multiple')
+					theInfoBox.append(switcher);
+
+					$(switcher).find('.next').click(function () {
+						if (popupIndex < clusterMarkers.length - 1) {
+							theInfoBox.find('.mappopup')[0].outerHTML = map.returnPopupHtml(clusterMarkers[++popupIndex].originalContext);
+							$(switcher).find('.curr').html(popupIndex + 1);
+							$(theInfoBox).find('.close').click(function () {
+								map.closePopups();
+							});
+
+						}
+					});
+
+					$(switcher).find('.prev').click(function () {
+						if (popupIndex > 0) {
+							theInfoBox.find('.mappopup')[0].outerHTML = map.returnPopupHtml(clusterMarkers[--popupIndex].originalContext);
+							$(switcher).find('.curr').html(popupIndex + 1);
+							$(theInfoBox).find('.close').click(function () {
+								map.closePopups();
+							});
+						}
+					});
+
+				}, 10);
+
+			}
+
+			map.initTypeFilter = function () {
+
+				map.typeList = Array();
+				map.typeFilterObject = document.getElementsByClassName('theme-map-filter')[0];
+
+				if (typeof map.markersObj === 'undefined') return false;
+
+				$(map.markersObj).each(function () {
+					map.typeList[this.meta.citydeal_theme.term_id] = this.meta.citydeal_theme;
+				});
+
+				$(map.typeList).each(function () {
+					if (this.name) {
+						$(map.typeFilterObject).find('select').append('<option value="' + this.slug + '" id="type-' + this.slug + '" data-type="' + this.slug + '" >' + this.name + '</option>');
+					}
+				});
+
+				$(map.typeFilterObject).find('select').on('change', function () {
+					var selectedOption = $(this).find('option[value=' + $(this).val() + ']')[0];
+					map.selectType(selectedOption);
+				});
+
+				map.sortThisBy("type-results");
+
+			}
+
+			map.initCitydealFilter = function () {
+				map.citydealList = Array();
+				map.citydealFilterObject = document.getElementsByClassName('citydeals-map-filter')[0];
+				if (typeof map.markersObj === 'undefined') return false;
+
+				$(map.markersObj).each(function () {
+					map.citydealList[this.id] = this;
+				});
+
+				$(map.citydealList).each(function () {
+					if (this.title) {
+						$(map.citydealFilterObject).find('select').append('<option value="' + this.slug + '" id="citydeal-' + this.slug + '" data-citydeal="' + this.slug + '">' + this.title.rendered + '</option>');
+					}
+				});
+
+				$(map.citydealFilterObject).find('select').on('change', function () {
+					var selectedOption = $(this).find('option[value=' + $(this).val() + ']')[0];
+					map.selectCitydeal(selectedOption);
+				});
+
+				map.sortThisBy("city-results");
+			}
+
+			map.sortThisBy = function (target) {
+				var list, i, switching, b, shouldSwitch;
+				list = document.getElementById(target);
+				switching = true;
+				/* Make a loop that will continue until
+				no switching has been done: */
+				while (switching) {
+					// Start by saying: no switching is done:
+					switching = false;
+					b = list.getElementsByTagName("option");
+					// Loop through all list items:
+					for (i = 0; i < (b.length - 1); i++) {
+						// Start by saying there should be no switching:
+						shouldSwitch = false;
+						/* Check if the next item should
+						switch place with the current item: */
+						if (b[i].innerHTML.toLowerCase() > b[i + 1].innerHTML.toLowerCase()) {
+							/* If next item is alphabetically lower than current item,
+							mark as a switch and break the loop: */
+							shouldSwitch = true;
+							break;
+						}
+					}
+					if (shouldSwitch) {
+						/* If a switch has been marked, make the switch
+						and mark the switch as done: */
+						b[i].parentNode.insertBefore(b[i + 1], b[i]);
+						switching = true;
+					}
+				}
+			}
+
+			function ucFirst(string) {
+				return string.substring(0, 1).toUpperCase() + string.substring(1).toLowerCase();
+			}
+
+			map.initTagFilter = function () {
+
+				map.tagsList = {};
+				map.tagFilterObject = document.getElementsByClassName('city-map-filter')[0];
+
+				if (typeof map.markersObj === 'undefined') return false;
+
+				$(map.markersObj).each(function () {
+					$(this.meta.citydeal_initiativetax).each(function () {
+						if (this.is_city) map.tagsList[this.term_id] = this;
+					})
+				});
+
+				var filterListItems = [];
+
+				$.each(map.tagsList, function (key, tagItem) {
+
+					filterListItems.push({
+						name: tagItem.name,
+						html: '<option value="' + tagItem.term_id + '" id="tag-' + tagItem.term_id + '" data-tag-id="' + tagItem.term_id + '">' + tagItem.name + '</option>'
+					});
+
+				});
+
+				filterListItems.sort(function (a, b) {
+					if (a.name < b.name) return -1;
+					if (a.name > b.name) return 1;
+				});
+
+				$.each(filterListItems, function (key, val) {
+					$(map.tagFilterObject).find('select').append(val.html);
+				});
+
+				$(map.tagFilterObject).find('select').on('change', function () {
+					var selectedOption = $(this).find('option[value=' + $(this).val() + ']')[0];
+					map.selectTag(selectedOption);
+				});
+
+			};
+
+			map.selectType = function (elem) {
+
+				map.activeTypes = Array();
+				map.activeCitydeals = Array();
+				map.activeTags = Array();
+
+				$('.city-map-filter select')[0].selectedIndex = 0;
+				$('.citydeals-map-filter select')[0].selectedIndex = 0;
+
+				var type = elem.getAttribute('data-type');
+
+				if (type == '0') {
+					map.filter();
+					return;
+				}
+
+				if (elem.className.indexOf('active') === -1) {
+					map.activeTypes.push(type);
+				} else {
+					map.activeTypes.splice(map.activeTypes.indexOf(type), 1);
+				}
+
+				map.filter();
+			}
+
+			map.selectCitydeal = function (elem) {
+
+				map.activeTypes = Array();
+				map.activeCitydeals = Array();
+				map.activeTags = Array();
+
+				$('.theme-map-filter select')[0].selectedIndex = 0;
+				$('.city-map-filter select')[0].selectedIndex = 0;
+
+				var citydeal = elem.getAttribute('data-citydeal');
+
+				if (citydeal == '0') {
+					map.filter();
+					return;
+				}
+
+				if (elem.className.indexOf('active') === -1) {
+					map.activeCitydeals.push(citydeal);
+
+				} else {
+					map.activeCitydeals.splice(map.activeCitydeals.indexOf(citydeal), 1);
+				}
+
+				map.filter();
+			}
+
+			map.selectTag = function (elem) {
+
+				map.activeTypes = Array();
+				map.activeCitydeals = Array();
+				map.activeTags = Array();
+
+				$('.theme-map-filter select')[0].selectedIndex = 0;
+				$('.citydeals-map-filter select')[0].selectedIndex = 0;
+
+				var tagID = parseInt(elem.getAttribute('data-tag-id'));
+
+				if (tagID == '0') {
+					delete map.activeTags;
+					map.filter();
+					return;
+				}
+
+				if (elem.className.indexOf('active') === -1) {
+					map.activeTags.push(tagID);
+
+				} else {
+					map.activeTags.splice(map.activeTags.indexOf(tagID), 1);
+				}
+
+				map.filter();
+
+			};
+
+			map.filter = function () {
+
+				var visibleMarkers = Array();
+
+				var filterOnTags = (typeof map.activeTags === 'undefined' || map.activeTags.length === 0) ? false : true;
+				var filterOnType = (typeof map.activeTypes === 'undefined' || map.activeTypes.length === 0) ? false : true;
+				var filterOnCitydeal = (typeof map.activeCitydeals === 'undefined' || map.activeCitydeals.length === 0) ? false : true;
+
+
+				if (filterOnTags) {
+					$(map.tagFilterObject).find('#all-tags').removeClass('active');
+				} else {
+					$(map.tagFilterObject).find('#all-tags').addClass('active');
+				}
+
+
+				if (filterOnType) {
+					$(map.typeFilterObject).find('#all-types').removeClass('active');
+
+				} else {
+					$(map.typeFilterObject).find('#all-types').addClass('active');
+				}
+
+				if (filterOnCitydeal) {
+					$(map.citydealFilterObject).find('#all-citydeals').removeClass('active');
+
+				} else {
+					$(map.citydealFilterObject).find('#all-citydeals').addClass('active');
+				}
+
+
+
+				$(map.markers).each(function () {
+					var marker = this;
+
+					var tagHide = true;
+					//var tagHide = false;
+					var typeHide = true;
+					var citydealHide = true;
+
+
+					if (!filterOnTags || map.activeTags.indexOf(marker.tags) !== -1) {
+						tagHide = false;
+					}
+
+					if (!filterOnType || map.activeTypes.indexOf(marker.type) !== -1) {
+						typeHide = false;
+					}
+
+					if (!filterOnCitydeal || map.activeCitydeals.indexOf(marker.citydeal) !== -1) {
+						citydealHide = false;
+					}
+
+					if (!tagHide && !typeHide && !citydealHide) {
+						visibleMarkers.push(marker);
+					}
+
+				});
+
+				map.markerCluster.clearMarkers();
+
+				map.markerCluster.addMarkers(visibleMarkers);
+
+				if (typeof map.paths != 'undefined') {
+					map.paths.setMap(null);
+				}
+
+				if (filterOnCitydeal) {
+					map.drawConnectingLines(visibleMarkers);
+				}
+
+				map.fitOnMarkers(visibleMarkers);
+
+			}
+
+			map.closePopups = function () {
+				$(map.popups).each(function () {
+					this.close();
+				});
+			};
+
+			map.centerOnLatLng = function (lat, lng) {
+				var latLngObj = new google.maps.LatLng(lat, lng);
+				map.gmObj.setCenter(latLngObj);
+			};
+
+			map.lock = function () {
+				if ($('.map-locker').length == 0) {
+					$(map.containerObj).append('<div class="map-locker"></div>');
+				} else {
+					$('.map-locker').show();
+				}
+				$('.map-locker').css({
+					'position': 'absolute',
+					'top': 0,
+					'right': 0,
+					'left': 0,
+					'bottom': 0,
+					'z-index': 1
+				});
+			};
+
+			map.unlock = function () {
+				$('.map-locker').hide();
+			};
+
+			map.fitOnMarkers = function (markersBase) {
+
+				if (markersBase) {
+
+					var LatLngList = []
+
+					$(markersBase).each(function () {
+						LatLngList.push(
+							new google.maps.LatLng(this.position.lat(), this.position.lng())
+						)
+					});
+				} else {
+					var LatLngList = map.latLngList;
+				}
+
+				var bounds = new google.maps.LatLngBounds();
+				for (var i = 0, LtLgLen = LatLngList.length; i < LtLgLen; i++) {
+					//  And increase the bounds to take this point
+					bounds.extend(LatLngList[i]);
+				}
+				if (LatLngList.length > 0) {
+					map.gmObj.fitBounds(bounds);
+				}
+			}
+
+			map.toggleSize = function () {
+				if (!$('#map').hasClass('expanded')) {
+					map.enlarge();
+				} else {
+					map.shrink();
+				}
+			}
+
+			map.shrink = function () {
+
+				map.closePopups();
+
+				$(map.containerObj).fadeTo(200, 0, function () {
+					var widthToResize = $(window).width() - 275;
+					var heightToResize = $(window).height() - 100;
+
+
+					if (map.positionedObject.pos == 'bottom') {
+						var contentWrapperAnimateMap = {}
+						var mapAnimateMap = {
+							'height': 100
+						}
+					} else {
+						var contentWrapperAnimateMap = {
+							'left': '+=' + widthToResize
+						}
+						var mapAnimateMap = {
+							'width': 275
+						}
+					}
+
+					$('#map').removeClass('expanded');
+
+					$('body').animate(contentWrapperAnimateMap, 500);
+					$('#map').animate(mapAnimateMap, 500, function () {
+						map.lock();
+
+						$('body').removeClass('map-open');
+
+						$(map.positionedObject).css('width', '');
+						$(map.positionedObject).css('height', '');
+
+						google.maps.event.trigger(map.gmObj, "resize");
+						$(map.containerObj).fadeTo(200, 1);
+						if (mapCenter) {
+							map.gmObj.setCenter(new google.maps.LatLng(mapCenter[0], mapCenter[1]));
+							if (typeof mapZoom != 'undefined') {
+								map.gmObj.setZoom(mapZoom);
+							}
+						} else {
+							setTimeout(map.fitOnMarkers, 10);
+						}
+					});
+				});
+			}
+
+			map.enlarge = function () {
+				$('body').addClass('map-open');
+				$(map.containerObj).fadeTo(200, 0, function () {
+					var widthToResize = $(window).width() - 275;
+					var heightToResize = $(window).height() - 100;
+
+					if (map.positionedObject.pos == 'bottom') {
+						var contentWrapperAnimateMap = {}
+						var mapAnimateMap = {
+							'height': $(window).height()
+						}
+					} else {
+						var contentWrapperAnimateMap = {
+							'left': '-=' + widthToResize
+						}
+						var mapAnimateMap = {
+							'width': $(window).width()
+						}
+					}
+
+					$('body').animate(contentWrapperAnimateMap, 500);
+					$('#map').animate(mapAnimateMap, 500, function () {
+						map.unlock();
+						google.maps.event.trigger(map.gmObj, "resize");
+						setTimeout(map.fitOnMarkers, 10);
+						$(map.containerObj).fadeTo(200, 1);
+						$('#map').addClass('expanded');
+						if ($('.nano .nano-pane').length == 0) {
+							if (ie !== 8) {
+								$('.nano').nanoScroller({ preventPageScrolling: true });
+							}
+						}
+					});
+				});
+			}
+
+			// if ($('#gm-map').length > 0) {
+			// 	map.init($('#gm-map')[0], function () {
+			// 		map.addMarkers(mapItems);
+			// 		console.log('done');
+			// 	});
+			// }
+		}
+	}
+}
+module.exports = GMMap();
+
+function unserialize(data) {
+	//  discuss at: http://locutus.io/php/unserialize/
+	// original by: Arpad Ray (mailto:arpad@php.net)
+	// improved by: Pedro Tainha (http://www.pedrotainha.com)
+	// improved by: Kevin van Zonneveld (http://kvz.io)
+	// improved by: Kevin van Zonneveld (http://kvz.io)
+	// improved by: Chris
+	// improved by: James
+	// improved by: Le Torbi
+	// improved by: Eli Skeggs
+	// bugfixed by: dptr1988
+	// bugfixed by: Kevin van Zonneveld (http://kvz.io)
+	// bugfixed by: Brett Zamir (http://brett-zamir.me)
+	// bugfixed by: philippsimon (https://github.com/philippsimon/)
+	//  revised by: d3x
+	//    input by: Brett Zamir (http://brett-zamir.me)
+	//    input by: Martin (http://www.erlenwiese.de/)
+	//    input by: kilops
+	//    input by: Jaroslaw Czarniak
+	//    input by: lovasoa (https://github.com/lovasoa/)
+	//      note 1: We feel the main purpose of this function should be
+	//      note 1: to ease the transport of data between php & js
+	//      note 1: Aiming for PHP-compatibility, we have to translate objects to arrays
+	//   example 1: unserialize('a:3:{i:0;s:5:"Kevin";i:1;s:3:"van";i:2;s:9:"Zonneveld";}')
+	//   returns 1: ['Kevin', 'van', 'Zonneveld']
+	//   example 2: unserialize('a:2:{s:9:"firstName";s:5:"Kevin";s:7:"midName";s:3:"van";}')
+	//   returns 2: {firstName: 'Kevin', midName: 'van'}
+	//   example 3: unserialize('a:3:{s:2:"ü";s:2:"ü";s:3:"四";s:3:"四";s:4:"𠜎";s:4:"𠜎";}')
+	//   returns 3: {'ü': 'ü', '四': '四', '𠜎': '𠜎'}
+
+	var $global = (typeof window !== 'undefined' ? window : global)
+
+	var utf8Overhead = function (str) {
+		var s = str.length
+		for (var i = str.length - 1; i >= 0; i--) {
+			var code = str.charCodeAt(i)
+			if (code > 0x7f && code <= 0x7ff) {
+				s++
+			} else if (code > 0x7ff && code <= 0xffff) {
+				s += 2
+			}
+			// trail surrogate
+			if (code >= 0xDC00 && code <= 0xDFFF) {
+				i--
+			}
+		}
+		return s - 1
+	}
+	var error = function (type,
+		msg, filename, line) {
+		throw new $global[type](msg, filename, line)
+	}
+	var readUntil = function (data, offset, stopchr) {
+		var i = 2
+		var buf = []
+		var chr = data.slice(offset, offset + 1)
+
+		while (chr !== stopchr) {
+			if ((i + offset) > data.length) {
+				error('Error', 'Invalid')
+			}
+			buf.push(chr)
+			chr = data.slice(offset + (i - 1), offset + i)
+			i += 1
+		}
+		return [buf.length, buf.join('')]
+	}
+	var readChrs = function (data, offset, length) {
+		var i, chr, buf
+
+		buf = []
+		for (i = 0; i < length; i++) {
+			chr = data.slice(offset + (i - 1), offset + i)
+			buf.push(chr)
+			length -= utf8Overhead(chr)
+		}
+		return [buf.length, buf.join('')]
+	}
+	function _unserialize(data, offset) {
+		var dtype
+		var dataoffset
+		var keyandchrs
+		var keys
+		var contig
+		var length
+		var array
+		var readdata
+		var readData
+		var ccount
+		var stringlength
+		var i
+		var key
+		var kprops
+		var kchrs
+		var vprops
+		var vchrs
+		var value
+		var chrs = 0
+		var typeconvert = function (x) {
+			return x
+		}
+
+		if (!offset) {
+			offset = 0
+		}
+		dtype = (data.slice(offset, offset + 1)).toLowerCase()
+
+		dataoffset = offset + 2
+		switch (dtype) {
+			case 'i':
+				typeconvert = function (x) {
+					return parseInt(x, 10)
+				}
+				readData = readUntil(data, dataoffset, ';')
+				chrs = readData[0]
+				readdata = readData[1]
+				dataoffset += chrs + 1
+				break
+			case 'b':
+				typeconvert = function (x) {
+					return parseInt(x, 10) !== 0
+				}
+				readData = readUntil(data, dataoffset, ';')
+				chrs = readData[0]
+				readdata = readData[1]
+				dataoffset += chrs + 1
+				break
+			case 'd':
+				typeconvert = function (x) {
+					return parseFloat(x)
+				}
+				readData = readUntil(data, dataoffset, ';')
+				chrs = readData[0]
+				readdata = readData[1]
+				dataoffset += chrs + 1
+				break
+			case 'n':
+				readdata = null
+				break
+			case 's':
+				ccount = readUntil(data, dataoffset, ':')
+				chrs = ccount[0]
+				stringlength = ccount[1]
+				dataoffset += chrs + 2
+
+				readData = readChrs(data, dataoffset + 1, parseInt(stringlength, 10))
+				chrs = readData[0]
+				readdata = readData[1]
+				dataoffset += chrs + 2
+				if (chrs !== parseInt(stringlength, 10) && chrs !== readdata.length) {
+					error('SyntaxError', 'String length mismatch')
+				}
+				break
+			case 'a':
+				readdata = {}
+
+				keyandchrs = readUntil(data, dataoffset, ':')
+				chrs = keyandchrs[0]
+				keys = keyandchrs[1]
+				dataoffset += chrs + 2
+
+				length = parseInt(keys, 10)
+				contig = true
+
+				for (i = 0; i < length; i++) {
+					kprops = _unserialize(data, dataoffset)
+					kchrs = kprops[1]
+					key = kprops[2]
+					dataoffset += kchrs
+
+					vprops = _unserialize(data, dataoffset)
+					vchrs = vprops[1]
+					value = vprops[2]
+					dataoffset += vchrs
+
+					if (key !== i) {
+						contig = false
+					}
+
+					readdata[key] = value
+				}
+
+				if (contig) {
+					array = new Array(length)
+					for (i = 0; i < length; i++) {
+						array[i] = readdata[i]
+					}
+					readdata = array
+				}
+
+				dataoffset += 1
+				break
+			default:
+				error('SyntaxError', 'Unknown / Unhandled data type(s): ' + dtype)
+				break
+		}
+		return [dtype, dataoffset - offset, typeconvert(readdata)]
+	}
+
+	return _unserialize((data + ''), 0)[2]
+}

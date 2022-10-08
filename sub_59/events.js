@@ -1,0 +1,2 @@
+//>>built
+define("esri/core/events",[],function(){return{on:function(a,b,c){if(!a||"function"!==typeof a.on&&"function"!==typeof a.addEventListener)throw new TypeError("target is not a Evented or EventTarget object");if("on"in a)return a.on(b,c);if(Array.isArray(b)){for(var d=b.slice(),e=0;e<d.length;e++)a.addEventListener(d[e],c);return{remove:function(){for(var f=0;f<d.length;f++)a.removeEventListener(d[f],c)}}}a.addEventListener(b,c);return{remove:function(){a.removeEventListener(b,c)}}}}});

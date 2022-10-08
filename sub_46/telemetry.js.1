@@ -1,0 +1,56 @@
+define([
+  "app/telemetry.dojo.min"
+], function (Telemetry) {
+  return {
+
+    _envCredentials: {
+      dev: {
+        userPoolID: "us-east-1:7345bcf2-bffa-4849-a379-a83178f63eef",
+        appId: "80170577e89b432e8ada7ebb5aebfbeb"
+      },
+      production: {
+        userPoolID: "us-east-1:8c41b2dc-7563-403d-ba64-673b103debce",
+        appId: "3fea7cb5e1f74c44913da340a15a3623"
+      },
+      qa: {
+        userPoolID: "us-east-1:7345bcf2-bffa-4849-a379-a83178f63eef",
+        appId: "78f03ef15c6c404587ff2714786c9eb3"
+      }
+    },
+
+    init: function (settings) {
+      // Track public and anonymous users | Turn off for 6.1
+      // Allow tracking if:
+      // * IP Address is US Based
+      // * Host name is dev, qa, or production
+      var env = this._getEnvironment();
+      var allowTracking = !settings.disabled && (settings.ipLocation === "us") && env;
+      var telemetry = new Telemetry({
+        debug: !env,
+        disabled: !allowTracking,
+        amazon: (env ? this._getAmazonCredentials(env) :{}) 
+      });
+      telemetry.logPageView();
+
+      return telemetry;
+    },
+
+    _getAmazonCredentials: function (env) {
+      return {
+        userPoolID: this._envCredentials[env].userPoolID,
+        app: {
+          name: "Arcgis Online",
+          id: this._envCredentials[env].appId,
+          version: "5.2"
+        }
+      };
+    },
+
+    _getEnvironment: function () {
+      var h = location.hostname.replace("www.", "");
+      return (h === "arcgis.com" && "production") ||
+             (h === "qaext.arcgis.com" && "qa")   || 
+             (h === "devext.arcgis.com" && "dev") || null;
+    }
+  };
+});

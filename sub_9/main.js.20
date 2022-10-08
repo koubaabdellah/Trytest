@@ -1,0 +1,152 @@
+(function() {
+var $window = jQuery(window);
+
+ $window.load(function() {
+	if(jQuery('#full-screen-slider').length > 0 ) {
+        AdjustSlider();
+		jQuery('#full-screen-slider').bxSlider({
+			mode: 'horizontal',
+			pager: false,
+			onSliderLoad: function(currentIndex){
+				jQuery(".full-screen-slider").removeClass('bxloading');
+			},
+			onSlideBefore: function($slideElement, oldIndex, newIndex){
+				jQuery('.slider-wrapper .container .slider-content').removeClass('active');
+				$slideElement.children('.slider-wrapper').children('.container').children('.slider-content').addClass('active');
+			},
+			onSlideAfter: function($slideElement, oldIndex, newIndex){
+				jQuery('.slider-wrapper .container .slider-content').removeClass('active');
+				$slideElement.children('.slider-wrapper').children('.container').children('.slider-content').addClass('active');
+			}	
+		});
+	}	
+});
+
+// check grid size on resize event
+    $window.resize(function() {
+		AdjustSlider();
+    });
+}());
+
+AdjustFeaturedBox();
+
+jQuery('.mobile-navigation li:has(ul)').each(function(){
+    jQuery(this).append('<span class="menu-arrow"></span>');
+});
+
+jQuery('.mobile-navigation li:has(ul) > a').click(function(){
+    jQuery(this).parent('li').children('span').toggleClass('active');
+    jQuery(this).parent().children('ul').slideToggle();
+    return false;
+});
+
+jQuery('.menu-navigate').click(function(){
+	jQuery('body').toggleClass('open_nav');
+	return false;
+});
+
+
+jQuery('.mobile-navigation a').click(function(){
+	jQuery('body').removeClass('open_mobile_nav');
+});
+
+
+/* Login form */
+jQuery('#login-submit-form').on('submit', function(){
+	var username 		= jQuery('#username').val();
+	var password 		= jQuery('#password').val();
+	var security 		= jQuery('#security').val();	
+	var redirect_to     = jQuery('#redirect_to').val();
+	if(username == "") {
+		alert('Please enter your E-mailadres!');
+		jQuery('#username').focus();
+	}
+	else if(password == "") {
+		alert('Please enter your Wachtwoord!');
+		jQuery('#password').focus();
+	}
+	else {
+        jQuery('#login-submit').attr('disabled','disabled');
+        jQuery('#login-status').text('Sending user info, please wait...').removeClass('success error').addClass('info').show();
+        jQuery.ajax({
+        type: 'POST',
+        dataType: 'json',
+        url: Theme.ajax_url,
+        data: { 
+            'action': 'login_user', //calls wp_ajax_nopriv_ajaxlogin
+            'username': username, 
+            'password': password, 
+            'security': security
+            },
+        success: function(data){
+            if(data) {
+                jQuery('#login-status').text(data.msg).removeClass('info success error').show();
+                //console.log(data);
+                 if (data.loggedin == true){
+                    jQuery('#login-status').addClass('success');
+                    location.href = redirect_to;
+                }
+                else {
+                    jQuery('#login-status').addClass('error');
+                }
+                jQuery('#login-submit').removeAttr('disabled');
+            }
+        }
+
+      });
+	}
+	return false;
+});
+
+jQuery(window).resize(function(){
+	var window_height = jQuery(window).height();
+    AdjustFeaturedBox();
+	
+});
+
+function AdjustFeaturedBox(){
+    var window_width = jQuery(window).width();
+    var featured_box_height = 0;
+    jQuery('.featured-box').children('.featured-box-content').removeAttr('style');
+    if(window_width > 520) {
+        jQuery('.featured-box').each(function(){
+            var box_height = jQuery(this).children('.featured-box-content').height();
+            if(featured_box_height < box_height) {
+                featured_box_height = box_height;
+            }
+        });
+        jQuery('.featured-box').children('.featured-box-content').height(featured_box_height);
+    }
+}
+
+function AdjustSlider() {
+
+	var WW = jQuery(window).width();
+	var WH = 300;
+	var imgWidth = jQuery('#full-screen-slider .slide').find('img').attr('width');
+	var imgHeight = jQuery('#full-screen-slider .slide').find('img').attr('height');;	
+	var imgRatio = imgWidth / imgHeight;
+	if((WW/imgRatio) > WH ) {
+		WH = WW/imgRatio;
+	}
+	var Left = 0;
+	var Top = 0;
+
+	var rootWidth = WW;
+	var rootHeight = WH;
+
+    var bgWidth = parseInt(rootWidth);
+    var bgHeight = bgWidth / imgRatio;
+    if(bgHeight >= rootHeight) {
+        bgOffset = (bgHeight - rootHeight) /2;
+        Top = "-" + bgOffset + "px";
+    } else {
+        bgHeight = rootHeight;
+        bgWidth = bgHeight * imgRatio;
+        bgOffset = (bgWidth - rootWidth) / 2;
+        Left = "-" + bgOffset + "px";
+    }
+    jQuery('#full-screen-slider .slide').css({width: rootWidth, height: rootHeight}).find("img").css({width: bgWidth, height: bgHeight, left: Left, top: Top});
+
+
+}

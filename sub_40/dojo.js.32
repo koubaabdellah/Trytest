@@ -1,0 +1,68 @@
+//var package_path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf("/"));
+//var package_path = "";
+var package_path = "/apps/mobileviewer";
+var dojoConfig = {
+  async: true,
+  packages: [{
+      name: "application",
+      location: package_path + "/application",
+      main: "entrypoint"
+    },
+    {
+      name: "boilerplate",
+      location: package_path + "/boilerplate",
+      main: "boilerplate"
+    },
+    {
+      name: "config",
+      location: package_path + "/config"
+    },
+    {
+      name: "viewApp",
+      location: package_path + "/viewApp",
+      main: "entrypoint"
+    },
+    {
+      name: "viewItem",
+      location: package_path + "/viewItem",
+      main: "entrypoint"
+    },
+    {
+      name: "arcgis-components",
+      location: package_path + "/arcgis-components/dist"
+    }
+  ]
+};
+
+function getCookieItem(sKey) {
+  return decodeURIComponent(document.cookie.replace(new RegExp("(?:(?:^|.*;)\\s*" + encodeURIComponent(sKey).replace(/[\-\.\+\*]/g, "\\$&") + "\\s*\\=\\s*([^;]*).*$)|^.*$"), "$1")) || null;
+}
+var rtlLocales = ["ar", "he"],
+  urlLocale = location.search.match(/locale=([\w-]+)/) ? RegExp.$1 : null,
+  browserLocale = navigator.language ? navigator.language : navigator.userLanguage, //default dojoConfig.locale to browser language when no cookie present
+  userLocale = window.JSON.parse(getCookieItem("esri_auth")),
+  sessionLocale = getCookieItem("arcgisLocale"),
+  locale, isRTL = false,
+  dirNode = document.getElementsByTagName("html")[0];
+
+if (urlLocale) {
+  locale = urlLocale;
+} else if (userLocale && userLocale.culture) {
+  locale = userLocale.culture.toLowerCase();
+} else if (sessionLocale) {
+  locale = sessionLocale;
+} else {
+  locale = (browserLocale && browserLocale.toLowerCase()) || "en-us";
+}
+
+for (var i = 0; i < rtlLocales.length; i++) {
+  isRTL = locale.indexOf(rtlLocales[i]) !== -1;
+  if (isRTL) {
+    break;
+  }
+}
+locale = locale.toLowerCase();
+dojoConfig.locale = locale;
+dirNode.setAttribute("dir", isRTL ? "rtl" : "ltr");
+dirNode.className += (isRTL ? " esriRtl" : " esriLtr");
+dirNode.className += " " + locale + " " + (locale.indexOf("-") !== -1 ? locale.split("-")[0] : "");

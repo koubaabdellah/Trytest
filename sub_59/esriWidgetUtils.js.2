@@ -1,0 +1,1112 @@
+define(["require", "exports", "tslib", "esri/core/promiseUtils", "dojo/i18n!../nls/resources", "TemplatesCommonLib/functionality/basemapToggle", "esri/core/watchUtils", "esri/identity/IdentityManager", "esri/core/watchUtils"], function (require, exports, tslib_1, promiseUtils_1, i18n, basemapToggle_1, watchUtils, IdentityManager, watchUtils_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.addImageDate = exports.getInfoContent = exports.addInfoPanel = exports.addSearch = exports.addCoordinates = exports.getPosition = exports.addLayerList = exports.addImageryViewer = exports.addLocateWidget = exports.addEditTool = exports.addSharetoOrg = exports.addImageExport = exports.addImageMeasurement = exports.addBookmarks = exports.addShare = exports.addLegend = exports.addScaleBar = exports.addZoom = exports.addHome = exports.addOverlay = exports.addBasemap = void 0;
+    function addBasemap(props) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var view, config, propertyName, basemapTogglePosition, basemapToggle, node, _a, originalBasemap, nextBasemap, BasemapToggle, bmToggle;
+            return tslib_1.__generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        view = props.view, config = props.config, propertyName = props.propertyName;
+                        basemapTogglePosition = config.basemapTogglePosition, basemapToggle = config.basemapToggle;
+                        node = view.ui.find("basemapWidget");
+                        return [4 /*yield*/, basemapToggle_1.getBasemaps(props)];
+                    case 1:
+                        _a = _b.sent(), originalBasemap = _a.originalBasemap, nextBasemap = _a.nextBasemap;
+                        // If basemapToggle isn't enabled remove the widget if it exists and exit 
+                        if (!basemapToggle) {
+                            if (node) {
+                                view.ui.remove(node);
+                                node.destroy();
+                            }
+                            return [2 /*return*/];
+                        }
+                        return [4 /*yield*/, new Promise(function (resolve_1, reject_1) { require(["esri/widgets/BasemapToggle"], resolve_1, reject_1); }).then(tslib_1.__importStar)];
+                    case 2:
+                        BasemapToggle = _b.sent();
+                        if (!BasemapToggle)
+                            return [2 /*return*/];
+                        // Move the basemap toggle widget if it exists 
+                        if (propertyName === "basemapTogglePosition" && node) {
+                            view.ui.move(node, basemapTogglePosition);
+                        }
+                        // Add the basemap toggle widget if its enabled or if a different basemap was 
+                        // specified
+                        if (propertyName === "basemapToggle" && !node) {
+                            bmToggle = new BasemapToggle.default({
+                                view: view,
+                                nextBasemap: nextBasemap,
+                                id: "basemapWidget"
+                            });
+                            basemapToggle_1.resetBasemapsInToggle(bmToggle, originalBasemap, nextBasemap);
+                            view.ui.add(bmToggle, basemapTogglePosition);
+                        }
+                        else if (node && (propertyName === "nextBasemap" || propertyName === "basemapSelector")) {
+                            if (propertyName === "nextBasemap" || propertyName === "basemapSelector") {
+                                basemapToggle_1.resetBasemapsInToggle(node, originalBasemap, nextBasemap);
+                            }
+                        }
+                        return [2 /*return*/];
+                }
+            });
+        });
+    }
+    exports.addBasemap = addBasemap;
+    function _findNode(className) {
+        var mainNodes = document.getElementsByClassName(className);
+        var node = null;
+        for (var j = 0; j < mainNodes.length; j++) {
+            node = mainNodes[j];
+        }
+        return node ? node : null;
+    }
+    function _getBasemap(id) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var Basemap, basemap;
+            return tslib_1.__generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, new Promise(function (resolve_2, reject_2) { require(["esri/Basemap"], resolve_2, reject_2); }).then(tslib_1.__importStar)];
+                    case 1:
+                        Basemap = _a.sent();
+                        if (!Basemap) {
+                            return [2 /*return*/];
+                        }
+                        basemap = Basemap.default.fromId(id);
+                        if (!!basemap) return [3 /*break*/, 3];
+                        return [4 /*yield*/, new Basemap.default({
+                                portalItem: {
+                                    id: id
+                                }
+                            }).loadAll()];
+                    case 2:
+                        basemap = _a.sent();
+                        _a.label = 3;
+                    case 3: return [2 /*return*/, basemap];
+                }
+            });
+        });
+    }
+    function addOverlay(props) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var view, config, disableScroll, ScrollOverlay, node, overlay;
+            return tslib_1.__generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        view = props.view, config = props.config;
+                        disableScroll = config.disableScroll;
+                        return [4 /*yield*/, new Promise(function (resolve_3, reject_3) { require(["../ui/ScrollOverlay"], resolve_3, reject_3); }).then(tslib_1.__importStar)];
+                    case 1:
+                        ScrollOverlay = _a.sent();
+                        node = _findNode("scroll-overlay");
+                        if (!disableScroll) {
+                            if (node)
+                                view.ui.remove(node);
+                            // update view nav 
+                            view.navigation.mouseWheelZoomEnabled = true;
+                            view.navigation.browserTouchPanEnabled = true;
+                            return [2 /*return*/];
+                        }
+                        else {
+                            overlay = new ScrollOverlay.default(tslib_1.__assign(tslib_1.__assign({}, props), { container: document.createElement("div") }));
+                            view.ui.add(overlay, "manual");
+                        }
+                        return [2 /*return*/];
+                }
+            });
+        });
+    }
+    exports.addOverlay = addOverlay;
+    function addHome(props) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var view, config, propertyName, home, homePosition, Home, node;
+            return tslib_1.__generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        view = props.view, config = props.config, propertyName = props.propertyName;
+                        home = config.home, homePosition = config.homePosition;
+                        return [4 /*yield*/, new Promise(function (resolve_4, reject_4) { require(["esri/widgets/Home"], resolve_4, reject_4); }).then(tslib_1.__importStar)];
+                    case 1:
+                        Home = _a.sent();
+                        node = _findNode("esri-home");
+                        if (!home) {
+                            if (node)
+                                view.ui.remove(node);
+                            return [2 /*return*/];
+                        }
+                        if (node && !home)
+                            view.ui.remove(node);
+                        if (propertyName === "homePosition" && node) {
+                            view.ui.move(node, homePosition);
+                        }
+                        else if (propertyName === "home") {
+                            view.ui.add(new Home.default({ view: view }), homePosition);
+                        }
+                        return [2 /*return*/];
+                }
+            });
+        });
+    }
+    exports.addHome = addHome;
+    function addZoom(props) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var view, config, propertyName, mapZoom, mapZoomPosition, Zoom, node;
+            return tslib_1.__generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        view = props.view, config = props.config, propertyName = props.propertyName;
+                        mapZoom = config.mapZoom, mapZoomPosition = config.mapZoomPosition;
+                        return [4 /*yield*/, new Promise(function (resolve_5, reject_5) { require(["esri/widgets/Zoom"], resolve_5, reject_5); }).then(tslib_1.__importStar)];
+                    case 1:
+                        Zoom = _a.sent();
+                        node = _findNode("esri-zoom");
+                        if (!mapZoom) {
+                            if (node)
+                                view.ui.remove(node);
+                            return [2 /*return*/];
+                        }
+                        if (node && !mapZoom)
+                            view.ui.remove(node);
+                        if (propertyName === "mapZoomPosition" && node) {
+                            view.ui.move(node, mapZoomPosition);
+                        }
+                        else if (propertyName === "mapZoom" && !node) {
+                            view.ui.add(new Zoom.default({ view: view }), mapZoomPosition);
+                        }
+                        return [2 /*return*/];
+                }
+            });
+        });
+    }
+    exports.addZoom = addZoom;
+    function addScaleBar(props) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var view, portal, config, propertyName, scalebar, scalebarPosition, ScaleBar, node;
+            return tslib_1.__generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        view = props.view, portal = props.portal, config = props.config, propertyName = props.propertyName;
+                        scalebar = config.scalebar, scalebarPosition = config.scalebarPosition;
+                        return [4 /*yield*/, new Promise(function (resolve_6, reject_6) { require(["esri/widgets/ScaleBar"], resolve_6, reject_6); }).then(tslib_1.__importStar)];
+                    case 1:
+                        ScaleBar = _a.sent();
+                        node = _findNode("esri-scale-bar");
+                        if (!scalebar) {
+                            if (node)
+                                view.ui.remove(node);
+                            return [2 /*return*/];
+                        }
+                        // move the node if it exists 
+                        if (propertyName === "scalebarPosition" && node) {
+                            view.ui.move(node, scalebarPosition);
+                        }
+                        else if (propertyName === "scalebar") {
+                            view.ui.add(new ScaleBar.default({
+                                view: view,
+                                unit: (portal === null || portal === void 0 ? void 0 : portal.units) === "metric" ? portal === null || portal === void 0 ? void 0 : portal.units : "non-metric"
+                            }), scalebarPosition);
+                        }
+                        return [2 /*return*/];
+                }
+            });
+        });
+    }
+    exports.addScaleBar = addScaleBar;
+    function addLegend(props) {
+        var _a;
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var view, config, propertyName, legend, legendPosition, layoutType, node, legendEnabledLayer, modules, _b, Legend, Expand, group, content, legendExpand;
+            return tslib_1.__generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0:
+                        view = props.view, config = props.config, propertyName = props.propertyName;
+                        legend = config.legend, legendPosition = config.legendPosition, layoutType = config.layoutType;
+                        node = view.ui.find("legendExpand");
+                        legendEnabledLayer = (_a = view.map.layers) === null || _a === void 0 ? void 0 : _a.some(function (layer) {
+                            if (layer.legendEnabled) {
+                                return layer;
+                            }
+                        });
+                        if (!legend || !legendEnabledLayer) {
+                            if (node)
+                                view.ui.remove(node);
+                            return [2 /*return*/];
+                        }
+                        return [4 /*yield*/, promiseUtils_1.eachAlways([new Promise(function (resolve_7, reject_7) { require(["esri/widgets/Legend"], resolve_7, reject_7); }).then(tslib_1.__importStar), new Promise(function (resolve_8, reject_8) { require(["esri/widgets/Expand"], resolve_8, reject_8); }).then(tslib_1.__importStar)])];
+                    case 1:
+                        modules = _c.sent();
+                        _b = modules.map(function (module) { return module.value; }), Legend = _b[0], Expand = _b[1];
+                        group = getPosition(legendPosition);
+                        if (propertyName === "legendPosition" && node) {
+                            if (propertyName === "legendPosition") {
+                                view.ui.move(node, legendPosition);
+                                node.group = group;
+                            }
+                        }
+                        else if (propertyName === "legend") {
+                            content = new Legend.default({
+                                style: layoutType === "horizontal" ? {
+                                    type: "card",
+                                    layout: "auto"
+                                } : "classic",
+                                view: view,
+                                respectLayerVisibility: true
+                            });
+                            legendExpand = new Expand.default({
+                                id: "legendExpand",
+                                content: content,
+                                group: group,
+                                expandTooltip: i18n.tools.legend,
+                                collapseTooltip: i18n.tools.legend,
+                                mode: "floating",
+                                view: view
+                            });
+                            // if (legendOpenAtStart) legendExpand.expand();
+                            view.ui.add(legendExpand, legendPosition);
+                        }
+                        return [2 /*return*/];
+                }
+            });
+        });
+    }
+    exports.addLegend = addLegend;
+    function addShare(props) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var view, config, propertyName, share, sharePosition, node, modules, _a, Share, Expand, shareExpand;
+            return tslib_1.__generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        view = props.view, config = props.config, propertyName = props.propertyName;
+                        share = config.share, sharePosition = config.sharePosition;
+                        node = view.ui.find("shareMap");
+                        // Remove the widget if share isdisabled or if header is enabled
+                        if (!share) {
+                            if (node) {
+                                view.ui.remove(node);
+                                node.destroy();
+                            }
+                            return [2 /*return*/];
+                        }
+                        return [4 /*yield*/, promiseUtils_1.eachAlways([new Promise(function (resolve_9, reject_9) { require(["../ui/Share"], resolve_9, reject_9); }).then(tslib_1.__importStar), new Promise(function (resolve_10, reject_10) { require(["esri/widgets/Expand"], resolve_10, reject_10); }).then(tslib_1.__importStar)])];
+                    case 1:
+                        modules = _b.sent();
+                        _a = modules.map(function (module) { return module.value; }), Share = _a[0], Expand = _a[1];
+                        if (!Share)
+                            return [2 /*return*/];
+                        if (propertyName === "sharePosition" && node) {
+                            view.ui.move(node, sharePosition);
+                        }
+                        else if ((propertyName === "share") && !node) {
+                            shareExpand = new Expand.default({
+                                id: "shareMap",
+                                content: new Share.default({ view: view, config: config }),
+                                mode: "floating",
+                                expandIconClass: "esri-icon-share2",
+                                view: view
+                            });
+                            if (!view.ui.find("shareMap")) {
+                                view.ui.add(shareExpand, sharePosition);
+                            }
+                        }
+                        return [2 /*return*/];
+                }
+            });
+        });
+    }
+    exports.addShare = addShare;
+    function addBookmarks(props) {
+        var _a;
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var view, config, propertyName, bookmarks, bookmarksPosition, modules, _b, Bookmarks, Expand, node, map, mapContainsBookmarks, content, bookmarksExpand;
+            return tslib_1.__generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0:
+                        view = props.view, config = props.config, propertyName = props.propertyName;
+                        bookmarks = config.bookmarks, bookmarksPosition = config.bookmarksPosition;
+                        return [4 /*yield*/, promiseUtils_1.eachAlways([new Promise(function (resolve_11, reject_11) { require(["esri/widgets/Bookmarks"], resolve_11, reject_11); }).then(tslib_1.__importStar), new Promise(function (resolve_12, reject_12) { require(["esri/widgets/Expand"], resolve_12, reject_12); }).then(tslib_1.__importStar)])];
+                    case 1:
+                        modules = _c.sent();
+                        _b = modules.map(function (module) { return module.value; }), Bookmarks = _b[0], Expand = _b[1];
+                        node = view.ui.find("bookmarksExpand");
+                        map = view.map;
+                        mapContainsBookmarks = ((_a = map === null || map === void 0 ? void 0 : map.bookmarks) === null || _a === void 0 ? void 0 : _a.length) > 0 ? true : false;
+                        if (!bookmarks || !mapContainsBookmarks) {
+                            if (node)
+                                view.ui.remove(node);
+                            return [2 /*return*/];
+                        }
+                        // move the node if it exists 
+                        if (propertyName === "bookmarksPosition" && node) {
+                            view.ui.move(node, bookmarksPosition);
+                        }
+                        else if (propertyName === "bookmarks") {
+                            content = new Bookmarks.default({
+                                view: view,
+                                viewModel: {
+                                    view: view,
+                                    abilities: { time: false }
+                                }
+                            });
+                            bookmarksExpand = new Expand.default({
+                                id: "bookmarksExpand",
+                                expandTooltip: i18n.tools.bookmark,
+                                collapseTooltip: i18n.tools.bookmark,
+                                content: content,
+                                mode: "floating",
+                                view: view
+                            });
+                            view.ui.add(bookmarksExpand, bookmarksPosition);
+                        }
+                        return [2 /*return*/];
+                }
+            });
+        });
+    }
+    exports.addBookmarks = addBookmarks;
+    function addImageMeasurement(props) {
+        var _a, _b;
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var view, config, propertyName, imageMeasurement, imageMeasurementPosition, areaUnit, linearUnit, angularUnit, modules, _c, ImageMeasurement, Expand, node, map, content_1, imageMeasurementExpand, handle;
+            return tslib_1.__generator(this, function (_d) {
+                switch (_d.label) {
+                    case 0:
+                        view = props.view, config = props.config, propertyName = props.propertyName;
+                        imageMeasurement = config.imageMeasurement, imageMeasurementPosition = config.imageMeasurementPosition, areaUnit = config.areaUnit, linearUnit = config.linearUnit, angularUnit = config.angularUnit;
+                        return [4 /*yield*/, promiseUtils_1.eachAlways([new Promise(function (resolve_13, reject_13) { require(["../ui/ImageMeasurement"], resolve_13, reject_13); }).then(tslib_1.__importStar), new Promise(function (resolve_14, reject_14) { require(["esri/widgets/Expand"], resolve_14, reject_14); }).then(tslib_1.__importStar)])];
+                    case 1:
+                        modules = _d.sent();
+                        _c = modules.map(function (module) { return module.value; }), ImageMeasurement = _c[0], Expand = _c[1];
+                        node = view.ui.find("imageMeasurementExpand");
+                        if (!imageMeasurement) {
+                            if (node) {
+                                node.content.onClose();
+                                view.ui.remove(node);
+                            }
+                            return [2 /*return*/];
+                        }
+                        map = view.map;
+                        if (propertyName === "imageMeasurementPosition" && node) {
+                            view.ui.move(node, imageMeasurementPosition);
+                        }
+                        else if (propertyName === "imageMeasurement") {
+                            content_1 = new ImageMeasurement.default({
+                                view: view,
+                                applicationConfig: config,
+                                nls: i18n.imageMeasurement
+                            });
+                            imageMeasurementExpand = new Expand.default({
+                                id: "imageMeasurementExpand",
+                                expandTooltip: i18n.tools.imageMeasurement,
+                                collapseTooltip: i18n.tools.imageMeasurement,
+                                expandIconClass: "esri-icon-measure",
+                                content: content_1,
+                                mode: "floating",
+                                view: view
+                            });
+                            view.ui.add(imageMeasurementExpand, imageMeasurementPosition);
+                            handle = watchUtils.watch(imageMeasurementExpand.viewModel, "expanded", function (val) {
+                                if (!val) {
+                                    content_1.onClose();
+                                }
+                            });
+                        }
+                        else if (propertyName === "areaUnit" && node && ((_a = node.content) === null || _a === void 0 ? void 0 : _a.activeWidget)) {
+                            node.content.activeWidget.unit = areaUnit;
+                        }
+                        else if (propertyName === "linearUnit" && node && ((_b = node.content) === null || _b === void 0 ? void 0 : _b.activeWidget)) {
+                            node.content.activeWidget.unit = linearUnit;
+                        }
+                        return [2 /*return*/];
+                }
+            });
+        });
+    }
+    exports.addImageMeasurement = addImageMeasurement;
+    function addImageExport(props) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var view, config, propertyName, exportImagery, exportImageryPosition, modules, _a, Export, Expand, node, map, content_2, imageExportExpand, handle;
+            return tslib_1.__generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        view = props.view, config = props.config, propertyName = props.propertyName;
+                        exportImagery = config.exportImagery, exportImageryPosition = config.exportImageryPosition;
+                        return [4 /*yield*/, promiseUtils_1.eachAlways([new Promise(function (resolve_15, reject_15) { require(["../ui/Export"], resolve_15, reject_15); }).then(tslib_1.__importStar), new Promise(function (resolve_16, reject_16) { require(["esri/widgets/Expand"], resolve_16, reject_16); }).then(tslib_1.__importStar)])];
+                    case 1:
+                        modules = _b.sent();
+                        _a = modules.map(function (module) { return module.value; }), Export = _a[0], Expand = _a[1];
+                        node = view.ui.find("imageExportExpand");
+                        if (!exportImagery) {
+                            if (node) {
+                                node.content.onClose();
+                                view.ui.remove(node);
+                            }
+                            return [2 /*return*/];
+                        }
+                        map = view.map;
+                        if (propertyName === "exportImageryPosition" && node) {
+                            view.ui.move(node, exportImageryPosition);
+                        }
+                        else if (propertyName === "exportImagery") {
+                            content_2 = new Export.default({
+                                view: view,
+                                applicationConfig: config,
+                                nls: i18n.exportPanel
+                            });
+                            imageExportExpand = new Expand.default({
+                                id: "imageExportExpand",
+                                expandTooltip: i18n.tools.export,
+                                collapseTooltip: i18n.tools.export,
+                                expandIconClass: "esri-icon-download",
+                                content: content_2,
+                                mode: "floating",
+                                view: view
+                            });
+                            view.ui.add(imageExportExpand, exportImageryPosition);
+                            handle = watchUtils.watch(imageExportExpand.viewModel, "expanded", function (val) {
+                                if (!val) {
+                                    content_2.onClose();
+                                }
+                            });
+                        }
+                        return [2 /*return*/];
+                }
+            });
+        });
+    }
+    exports.addImageExport = addImageExport;
+    function addSharetoOrg(props) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var view, config, propertyName, shareWithOrg, shareWithOrgPosition, modules, _a, ShareWithOrg, Expand, node, map, content_3, shareOrgExpand, handle;
+            return tslib_1.__generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        view = props.view, config = props.config, propertyName = props.propertyName;
+                        shareWithOrg = config.shareWithOrg, shareWithOrgPosition = config.shareWithOrgPosition;
+                        return [4 /*yield*/, promiseUtils_1.eachAlways([new Promise(function (resolve_17, reject_17) { require(["../ui/ShareWithOrg"], resolve_17, reject_17); }).then(tslib_1.__importStar), new Promise(function (resolve_18, reject_18) { require(["esri/widgets/Expand"], resolve_18, reject_18); }).then(tslib_1.__importStar)])];
+                    case 1:
+                        modules = _b.sent();
+                        _a = modules.map(function (module) { return module.value; }), ShareWithOrg = _a[0], Expand = _a[1];
+                        node = view.ui.find("shareOrgExpand");
+                        if (!shareWithOrg) {
+                            if (node) {
+                                node.content.onClose();
+                                view.ui.remove(node);
+                            }
+                            return [2 /*return*/];
+                        }
+                        map = view.map;
+                        if (propertyName === "shareWithOrgPosition" && node) {
+                            view.ui.move(node, shareWithOrgPosition);
+                        }
+                        else if (propertyName === "shareWithOrg") {
+                            content_3 = new ShareWithOrg.default({
+                                view: view,
+                                applicationConfig: config,
+                                nls: i18n.exportPanel
+                            });
+                            shareOrgExpand = new Expand.default({
+                                id: "shareOrgExpand",
+                                expandTooltip: i18n.tools.shareOrg,
+                                collapseTooltip: i18n.tools.shareOrg,
+                                expandIconClass: "esri-icon-organization",
+                                content: content_3,
+                                mode: "floating",
+                                view: view
+                            });
+                            view.ui.add(shareOrgExpand, shareWithOrgPosition);
+                            handle = watchUtils.watch(shareOrgExpand.viewModel, "expanded", function (val) {
+                                if (!val) {
+                                    content_3.onClose();
+                                }
+                            });
+                        }
+                        return [2 /*return*/];
+                }
+            });
+        });
+    }
+    exports.addSharetoOrg = addSharetoOrg;
+    function addEditTool(props) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var view, config, propertyName, editPanel, editPanelPosition, editLayers, allowedWorkflows, portalUrl, modules, _a, Editor, Expand, node, layerEdits, map;
+            return tslib_1.__generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        view = props.view, config = props.config, propertyName = props.propertyName;
+                        editPanel = config.editPanel, editPanelPosition = config.editPanelPosition, editLayers = config.editLayers, allowedWorkflows = config.allowedWorkflows, portalUrl = config.portalUrl;
+                        return [4 /*yield*/, promiseUtils_1.eachAlways([new Promise(function (resolve_19, reject_19) { require(["esri/widgets/Editor"], resolve_19, reject_19); }).then(tslib_1.__importStar), new Promise(function (resolve_20, reject_20) { require(["esri/widgets/Expand"], resolve_20, reject_20); }).then(tslib_1.__importStar)])];
+                    case 1:
+                        modules = _b.sent();
+                        _a = modules.map(function (module) { return module.value; }), Editor = _a[0], Expand = _a[1];
+                        node = view.ui.find("editExpand");
+                        layerEdits = view.map.layers.some(function (layer) {
+                            if (layer.type === "feature" && layer.editingEnabled) {
+                                return layer;
+                            }
+                        });
+                        if (!editPanel || !layerEdits) {
+                            if (node)
+                                view.ui.remove(node);
+                            return [2 /*return*/];
+                        }
+                        map = view.map;
+                        if (propertyName === "editPanelPosition" && node) {
+                            view.ui.move(node, editPanelPosition);
+                        }
+                        else if (propertyName === "editPanel") {
+                            IdentityManager.checkSignInStatus(portalUrl + '/sharing').then(function (res) {
+                                _createEditWidget(Editor, Expand, view, allowedWorkflows, editPanelPosition);
+                            }).catch(function (err) {
+                                IdentityManager.getCredential(portalUrl + '/sharing', { oAuthPopupConfirmation: false }).then(function (res) {
+                                    _createEditWidget(Editor, Expand, view, allowedWorkflows, editPanelPosition);
+                                });
+                            });
+                        }
+                        else if (propertyName === "editLayers" && node) {
+                            node.content.layerInfos = editLayers;
+                        }
+                        return [2 /*return*/];
+                }
+            });
+        });
+    }
+    exports.addEditTool = addEditTool;
+    function addLocateWidget(props) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var view, config, propertyName, locateWidget, locateWidgetPosition, modules, Locate, node;
+            return tslib_1.__generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        view = props.view, config = props.config, propertyName = props.propertyName;
+                        locateWidget = config.locateWidget, locateWidgetPosition = config.locateWidgetPosition;
+                        return [4 /*yield*/, promiseUtils_1.eachAlways([new Promise(function (resolve_21, reject_21) { require(["esri/widgets/Locate"], resolve_21, reject_21); }).then(tslib_1.__importStar)])];
+                    case 1:
+                        modules = _a.sent();
+                        Locate = modules.map(function (module) { return module.value; })[0];
+                        node = _findNode("esri-locate");
+                        if (!locateWidget) {
+                            if (node)
+                                view.ui.remove(node);
+                            return [2 /*return*/];
+                        }
+                        if (node && !locateWidget)
+                            view.ui.remove(node);
+                        if (propertyName === "locateWidgetPosition" && node) {
+                            view.ui.move(node, locateWidgetPosition);
+                        }
+                        else if (propertyName === "locateWidget") {
+                            view.ui.add(new Locate.default({ view: view }), locateWidgetPosition);
+                        }
+                        return [2 /*return*/];
+                }
+            });
+        });
+    }
+    exports.addLocateWidget = addLocateWidget;
+    function _createEditWidget(Editor, Expand, view, allowedWorkflows, editPanelPosition) {
+        var content = new Editor.default({
+            view: view,
+            allowedWorkflows: allowedWorkflows
+        });
+        //settimeout to make some delay to make sure the layers load
+        setTimeout(function () {
+            if (content.viewModel.canUpdate && content.viewModel.canCreate) {
+                var editExpand = new Expand.default({
+                    id: "editExpand",
+                    expandTooltip: i18n.tools.edit,
+                    collapseTooltip: i18n.tools.edit,
+                    expandIconClass: "esri-icon-edit",
+                    content: content,
+                    mode: "floating",
+                    view: view
+                });
+                view.ui.add(editExpand, editPanelPosition);
+                var handle = watchUtils.watch(editExpand.viewModel, "expanded", function (val) {
+                    if (!val) {
+                        content.cancelWorkflow();
+                    }
+                });
+            }
+        }, 1000);
+    }
+    function addImageryViewer(props) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var view, config, propertyName, imageryViewerPosition, swipe, modules, _a, SingleViewer, Expand, DoubleViewer, node, map, content_4, viewerExpand, handle, content_5, viewerExpand, handle;
+            return tslib_1.__generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        view = props.view, config = props.config, propertyName = props.propertyName;
+                        imageryViewerPosition = config.imageryViewerPosition, swipe = config.swipe;
+                        return [4 /*yield*/, promiseUtils_1.eachAlways([new Promise(function (resolve_22, reject_22) { require(["../ui/SingleViewer"], resolve_22, reject_22); }).then(tslib_1.__importStar), new Promise(function (resolve_23, reject_23) { require(["esri/widgets/Expand"], resolve_23, reject_23); }).then(tslib_1.__importStar), new Promise(function (resolve_24, reject_24) { require(["../ui/DoubleViewer"], resolve_24, reject_24); }).then(tslib_1.__importStar)])];
+                    case 1:
+                        modules = _b.sent();
+                        _a = modules.map(function (module) { return module.value; }), SingleViewer = _a[0], Expand = _a[1], DoubleViewer = _a[2];
+                        node = view.ui.find("viewerExpand");
+                        map = view.map;
+                        //let swipeTool;
+                        if (propertyName === "swipe" && !swipe) {
+                            if (node) {
+                                view.ui.remove(node);
+                            }
+                            if (view.ui.find("swipeTool")) {
+                                node.content.destroy();
+                            }
+                            content_4 = new SingleViewer.default({
+                                view: view,
+                                applicationConfig: config,
+                                nls: i18n.singleViewer
+                            });
+                            viewerExpand = new Expand.default({
+                                id: "viewerExpand",
+                                expandTooltip: i18n.tools.imageryViewer,
+                                collapseTooltip: i18n.tools.imageryViewer,
+                                expandIconClass: "esri-icon-cursor-marquee",
+                                content: content_4,
+                                mode: "floating",
+                                view: view
+                            });
+                            view.ui.add(viewerExpand, imageryViewerPosition);
+                            handle = watchUtils.watch(viewerExpand.viewModel, "expanded", function (val) {
+                                if (!val) {
+                                    content_4.onClose();
+                                }
+                                else {
+                                    content_4.onOpen();
+                                }
+                            });
+                        }
+                        else if (propertyName === "swipe" && swipe) {
+                            if (node) {
+                                view.ui.remove(node);
+                            }
+                            content_5 = new DoubleViewer.default({
+                                view: view,
+                                applicationConfig: config,
+                                nls: i18n.doubleViewer
+                            });
+                            viewerExpand = new Expand.default({
+                                id: "viewerExpand",
+                                expandTooltip: i18n.tools.imageryViewer,
+                                collapseTooltip: i18n.tools.imageryViewer,
+                                expandIconClass: "esri-icon-cursor-marquee",
+                                content: content_5,
+                                mode: "floating",
+                                view: view
+                            });
+                            view.ui.add(viewerExpand, imageryViewerPosition);
+                            handle = watchUtils.watch(viewerExpand.viewModel, "expanded", function (val) {
+                                if (!val) {
+                                    content_5.onClose();
+                                }
+                                else {
+                                    content_5.onOpen();
+                                }
+                            });
+                        }
+                        if (propertyName === "imageryViewerPosition" && node) {
+                            view.ui.move(node, imageryViewerPosition);
+                        }
+                        else if ((propertyName === "swipeDirection" || propertyName === "swipePercentage") && node && swipe) {
+                            // if (view.ui.find("swipeTool")) {
+                            //   (node.content as any).destroy();
+                            // } 
+                            // if (propertyName === "swipePercentage") {
+                            //   (node.content as any).setSwipePercentage();
+                            // }
+                            node.content.onOpen();
+                        }
+                        return [2 /*return*/];
+                }
+            });
+        });
+    }
+    exports.addImageryViewer = addImageryViewer;
+    function addLayerList(props) {
+        var _a;
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var view, config, propertyName, featureLayerList, featureLayerListPosition, node, map, mapContainsOperationalLayers, i, modules, _b, LayerList, Expand, group, list, content, layerListExpand;
+            return tslib_1.__generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0:
+                        view = props.view, config = props.config, propertyName = props.propertyName;
+                        featureLayerList = config.featureLayerList, featureLayerListPosition = config.featureLayerListPosition;
+                        node = view.ui.find("layerListExpand");
+                        map = view.map;
+                        mapContainsOperationalLayers = (_a = map === null || map === void 0 ? void 0 : map.layers) === null || _a === void 0 ? void 0 : _a.some(function (layer) {
+                            if (layer.type !== "imagery" && layer.type !== "imagery-tile") {
+                                return layer;
+                            }
+                        });
+                        if (!featureLayerList && mapContainsOperationalLayers) {
+                            if (node)
+                                view.ui.remove(node);
+                            return [2 /*return*/];
+                        }
+                        //to hide imagery layers from the layer list
+                        for (i = 0; i < view.map.layers.length; i++) {
+                            if (view.map.layers.getItemAt(i).type === "imagery") {
+                                view.map.layers.getItemAt(i).listMode = "hide";
+                            }
+                        }
+                        return [4 /*yield*/, promiseUtils_1.eachAlways([new Promise(function (resolve_25, reject_25) { require(["esri/widgets/LayerList"], resolve_25, reject_25); }).then(tslib_1.__importStar), new Promise(function (resolve_26, reject_26) { require(["esri/widgets/Expand"], resolve_26, reject_26); }).then(tslib_1.__importStar)])];
+                    case 1:
+                        modules = _c.sent();
+                        _b = modules.map(function (module) { return module.value; }), LayerList = _b[0], Expand = _b[1];
+                        group = getPosition(featureLayerListPosition);
+                        if ((propertyName === "layerListIncludeTable" || propertyName === "featureLayerListPosition") && node) {
+                            if (propertyName === "featureLayerListPosition") {
+                                view.ui.move(node, featureLayerListPosition);
+                                node.group = group;
+                            }
+                            node.collapse();
+                            if (propertyName === "layerListIncludeTable") {
+                                list = node.content;
+                                // if (!layerListIncludeTable) {
+                                //   list.listItemCreatedFunction = (item) => {
+                                //     if (item?.item?.actionsSections) {
+                                //       item.item.actionsSections = [];
+                                //     }
+                                //   };
+                                // } else {
+                                //  _createActions(list, view, config);
+                                //}
+                            }
+                        }
+                        else if (propertyName === "featureLayerList" && mapContainsOperationalLayers) {
+                            content = new LayerList.default({
+                                view: view
+                            });
+                            layerListExpand = new Expand.default({
+                                id: "layerListExpand",
+                                expandTooltip: i18n.tools.operationalLayers,
+                                collapseTooltip: i18n.tools.operationalLayers,
+                                content: content,
+                                group: group,
+                                mode: "floating",
+                                view: view
+                            });
+                            //if (layerListOpenAtStart) layerListExpand.expand();
+                            view.ui.add(layerListExpand, featureLayerListPosition);
+                        }
+                        return [2 /*return*/];
+                }
+            });
+        });
+    }
+    exports.addLayerList = addLayerList;
+    function _createActions(operationalLayers, view, config) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var FeatureTableLayer;
+            return tslib_1.__generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, new Promise(function (resolve_27, reject_27) { require(["../ui/FeatureTableLayer"], resolve_27, reject_27); }).then(tslib_1.__importStar)];
+                    case 1:
+                        FeatureTableLayer = _a.sent();
+                        operationalLayers.listItemCreatedFunction = function (event) {
+                            var _a;
+                            var item = event.item;
+                            if (((_a = item === null || item === void 0 ? void 0 : item.layer) === null || _a === void 0 ? void 0 : _a.type) !== "feature") {
+                                return;
+                            }
+                            item.actionsSections = [
+                                [
+                                    {
+                                        title: i18n.tools.table,
+                                        className: "esri-icon-table",
+                                        id: "show-table"
+                                    }
+                                ]
+                            ];
+                        };
+                        operationalLayers.on("trigger-action", function (actionEvent) {
+                            var id = actionEvent.action.id;
+                            if (id === "show-table") {
+                                // create panel with table and dock at bottom of app
+                                var layer = actionEvent.item.layer;
+                                if (!layer)
+                                    return;
+                                var table_1 = new FeatureTableLayer.default({ view: view, layer: layer, config: config });
+                                table_1.watch("dismissed", function () {
+                                    if (table_1.dismissed) {
+                                        view.ui.remove(table_1);
+                                    }
+                                });
+                                view.ui.add(table_1, "manual");
+                            }
+                        });
+                        return [2 /*return*/];
+                }
+            });
+        });
+    }
+    function getPosition(position) {
+        // object or string 
+        var groupName = null;
+        if (typeof position === "string") {
+            groupName = position;
+        }
+        else if (position === null || position === void 0 ? void 0 : position.position) {
+            groupName = position.position;
+        }
+        return groupName;
+    }
+    exports.getPosition = getPosition;
+    function addCoordinates(props) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var view, config, propertyName, coordinates, coordinatesPosition, modules, CoordinateConversion, node, map, coordinatesNode;
+            return tslib_1.__generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        view = props.view, config = props.config, propertyName = props.propertyName;
+                        coordinates = config.coordinates, coordinatesPosition = config.coordinatesPosition;
+                        return [4 /*yield*/, promiseUtils_1.eachAlways([new Promise(function (resolve_28, reject_28) { require(["esri/widgets/CoordinateConversion"], resolve_28, reject_28); }).then(tslib_1.__importStar)])];
+                    case 1:
+                        modules = _a.sent();
+                        CoordinateConversion = modules.map(function (module) { return module.value; })[0];
+                        node = _findNode("esri-coordinate-conversion");
+                        if (!coordinates) {
+                            if (node)
+                                view.ui.remove(node);
+                            return [2 /*return*/];
+                        }
+                        map = view.map;
+                        //const mapContainsBookmarks = map?.bookmarks?.length > 0 ? true : false;
+                        // if (!bookmarks || !mapContainsBookmarks) {
+                        //   if (node) view.ui.remove(node);
+                        //   return;
+                        // }
+                        // move the node if it exists 
+                        if (propertyName === "coordinatesPosition" && node) {
+                            view.ui.move(node, coordinatesPosition);
+                        }
+                        else if (propertyName === "coordinates") {
+                            coordinatesNode = new CoordinateConversion.default({
+                                view: view,
+                                multipleConversions: false
+                            });
+                            view.ui.add(coordinatesNode, coordinatesPosition);
+                        }
+                        return [2 /*return*/];
+                }
+            });
+        });
+    }
+    exports.addCoordinates = addCoordinates;
+    function addSearch(props) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var view, portal, config, propertyName, search, searchPosition, searchConfiguration, searchOpenAtStart, modules, _a, Search, FeatureLayer, Expand, node, sources, content_6, searchExpand;
+            return tslib_1.__generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        view = props.view, portal = props.portal, config = props.config, propertyName = props.propertyName;
+                        search = config.search, searchPosition = config.searchPosition, searchConfiguration = config.searchConfiguration, searchOpenAtStart = config.searchOpenAtStart;
+                        return [4 /*yield*/, promiseUtils_1.eachAlways([new Promise(function (resolve_29, reject_29) { require(["esri/widgets/Search"], resolve_29, reject_29); }).then(tslib_1.__importStar), new Promise(function (resolve_30, reject_30) { require(["esri/layers/FeatureLayer"], resolve_30, reject_30); }).then(tslib_1.__importStar), new Promise(function (resolve_31, reject_31) { require(["esri/widgets/Expand"], resolve_31, reject_31); }).then(tslib_1.__importStar)])];
+                    case 1:
+                        modules = _b.sent();
+                        _a = modules.map(function (module) { return module.value; }), Search = _a[0], FeatureLayer = _a[1], Expand = _a[2];
+                        node = view.ui.find("searchExpand");
+                        if (!Search || !FeatureLayer || !Expand)
+                            return [2 /*return*/];
+                        if (!search) {
+                            if (node)
+                                view.ui.remove(node);
+                            return [2 /*return*/];
+                        }
+                        if (propertyName === "searchPosition" && node) {
+                            // move the node if it exists we have to type as any here 
+                            // due to a doc issue with move once index is doc'd remove 
+                            view.ui.move(node, searchPosition);
+                        }
+                        else if (propertyName === "searchOpenAtStart" && node) {
+                            node.expanded = searchOpenAtStart;
+                        }
+                        else if (propertyName === "search" || (propertyName === "searchConfiguration" && node)) {
+                            if (node)
+                                view.ui.remove(node);
+                            sources = searchConfiguration === null || searchConfiguration === void 0 ? void 0 : searchConfiguration.sources;
+                            if (sources) {
+                                sources.forEach(function (source) {
+                                    var _a, _b;
+                                    var sourceLayer = null;
+                                    if (source === null || source === void 0 ? void 0 : source.id)
+                                        sourceLayer = view.map.findLayerById(source.id);
+                                    if (!sourceLayer && ((_a = source === null || source === void 0 ? void 0 : source.layer) === null || _a === void 0 ? void 0 : _a.url))
+                                        sourceLayer = new FeatureLayer.default((_b = source === null || source === void 0 ? void 0 : source.layer) === null || _b === void 0 ? void 0 : _b.url);
+                                    source.layer = sourceLayer;
+                                });
+                            }
+                            content_6 = new Search.default(tslib_1.__assign({ view: view,
+                                portal: portal }, searchConfiguration));
+                            content_6.on("search-complete", function () {
+                                if (content_6.popupEnabled) {
+                                    // Handle setting focus on popup and then back 
+                                    // to search box 
+                                    view.popup.autoOpenEnabled = true;
+                                    watchUtils_1.whenTrueOnce(view.popup.viewModel, "active", function () {
+                                        view.popup.focus();
+                                        watchUtils_1.whenFalseOnce(view.popup, "visible", function () {
+                                            content_6.focus();
+                                            view.popup.autoOpenEnabled = false;
+                                        });
+                                    });
+                                }
+                            });
+                            searchExpand = new Expand.default({
+                                expanded: searchOpenAtStart,
+                                expandTooltip: i18n.tools.search,
+                                collapseTooltip: i18n.tools.search,
+                                id: "searchExpand",
+                                content: content_6,
+                                mode: "floating",
+                                view: view
+                            });
+                            view.ui.add(searchExpand, searchPosition);
+                        }
+                        return [2 /*return*/];
+                }
+            });
+        });
+    }
+    exports.addSearch = addSearch;
+    function addInfoPanel(props) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var view, config, propertyName, detailsTool, detailsToolPosition, theme, detailsContent, detailsTitle, detailsOpenAtStart, modules, _a, Info, Expand, node, infoPosVal, group, infoContent, infoContent, infoWidget, infoExpand;
+            return tslib_1.__generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        view = props.view, config = props.config, propertyName = props.propertyName;
+                        detailsTool = config.detailsTool, detailsToolPosition = config.detailsToolPosition, theme = config.theme, detailsContent = config.detailsContent, detailsTitle = config.detailsTitle, detailsOpenAtStart = config.detailsOpenAtStart;
+                        return [4 /*yield*/, promiseUtils_1.eachAlways([new Promise(function (resolve_32, reject_32) { require(["../ui/Info/Info"], resolve_32, reject_32); }).then(tslib_1.__importStar), new Promise(function (resolve_33, reject_33) { require(["esri/widgets/Expand"], resolve_33, reject_33); }).then(tslib_1.__importStar)])];
+                    case 1:
+                        modules = _b.sent();
+                        _a = modules.map(function (module) { return module.value; }), Info = _a[0], Expand = _a[1];
+                        node = view.ui.find("infoExpand");
+                        if (!detailsTool) {
+                            if (node) {
+                                view.ui.remove(node);
+                            }
+                            return [2 /*return*/];
+                        }
+                        infoPosVal = typeof detailsToolPosition === "string"
+                            ? detailsToolPosition
+                            : detailsToolPosition.position;
+                        group = infoPosVal.indexOf("left") !== -1
+                            ? "left"
+                            : infoPosVal.indexOf("right") !== -1
+                                ? "right"
+                                : null;
+                        if (!(node && propertyName === "detailsToolPosition")) return [3 /*break*/, 2];
+                        node.expanded = false;
+                        node.group = group;
+                        view.ui.move(node, detailsToolPosition);
+                        return [3 /*break*/, 7];
+                    case 2:
+                        if (!(node && propertyName === "detailsContent")) return [3 /*break*/, 4];
+                        return [4 /*yield*/, getInfoContent(detailsContent, detailsTitle, view)];
+                    case 3:
+                        infoContent = _b.sent();
+                        node.content.viewModel.infoContent = infoContent;
+                        return [3 /*break*/, 7];
+                    case 4:
+                        if (!(propertyName === "detailsTool")) return [3 /*break*/, 6];
+                        return [4 /*yield*/, getInfoContent(detailsContent, detailsTitle, view)];
+                    case 5:
+                        infoContent = _b.sent();
+                        infoWidget = new Info.default({
+                            view: view,
+                            infoContent: infoContent,
+                            theme: theme
+                        });
+                        infoExpand = new Expand.default({
+                            id: "infoExpand",
+                            view: view,
+                            group: group,
+                            content: infoWidget,
+                            mode: "floating",
+                            expandTooltip: infoWidget.label,
+                            collapseTooltip: infoWidget.label
+                        });
+                        infoWidget.expandWidget = infoExpand;
+                        if (detailsOpenAtStart) {
+                            infoExpand.expand();
+                        }
+                        view.ui.add(infoExpand, detailsToolPosition);
+                        return [2 /*return*/, infoWidget];
+                    case 6:
+                        if (propertyName === "detailsOpenAtStart" && node) {
+                            if (detailsOpenAtStart) {
+                                node.expand();
+                            }
+                        }
+                        _b.label = 7;
+                    case 7: return [2 /*return*/];
+                }
+            });
+        });
+    }
+    exports.addInfoPanel = addInfoPanel;
+    function getInfoContent(detailsContent, detailsTitle, view) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var modules, _a, InfoItem, Collection, infoContentItems;
+            return tslib_1.__generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0: return [4 /*yield*/, promiseUtils_1.eachAlways([
+                            new Promise(function (resolve_34, reject_34) { require(["../ui/Info/Info/InfoItem"], resolve_34, reject_34); }).then(tslib_1.__importStar),
+                            new Promise(function (resolve_35, reject_35) { require(["esri/core/Collection"], resolve_35, reject_35); }).then(tslib_1.__importStar)
+                        ])];
+                    case 1:
+                        modules = _b.sent();
+                        _a = modules.map(function (module) { return module.value; }), InfoItem = _a[0], Collection = _a[1];
+                        infoContentItems = detailsContent ? detailsContent : view.map.portalItem.description ? view.map.portalItem.description : "<p>This is an Imagery Viewer app</p>";
+                        return [2 /*return*/, new Collection.default([
+                                new InfoItem.default({
+                                    type: "explanation",
+                                    title: detailsTitle ? detailsTitle : "Imagery Viewer",
+                                    infoContentItems: infoContentItems
+                                })
+                            ])];
+                }
+            });
+        });
+    }
+    exports.getInfoContent = getInfoContent;
+    function addImageDate(props) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var view, config, propertyName, imageDate, header, modules, ImageDate, imageDateWidget, container;
+            return tslib_1.__generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        view = props.view, config = props.config, propertyName = props.propertyName;
+                        imageDate = config.imageDate, header = config.header;
+                        return [4 /*yield*/, promiseUtils_1.eachAlways([new Promise(function (resolve_36, reject_36) { require(["../ui/ImageDate"], resolve_36, reject_36); }).then(tslib_1.__importStar)])];
+                    case 1:
+                        modules = _a.sent();
+                        ImageDate = modules.map(function (module) { return module.value; })[0];
+                        // const node = view.ui.find("shareMap") as Share;
+                        if (!ImageDate)
+                            return [2 /*return*/];
+                        // Remove the widget if share isdisabled or if header is enabled
+                        // if (!imageDate || (header)) {
+                        //   if (node) view.ui.remove(node);
+                        //   return;
+                        // }
+                        // Only add sharing to view if header is false 
+                        if ((propertyName === "imageDate" || propertyName === "header") && !header) {
+                            imageDateWidget = new ImageDate.default({
+                                view: view,
+                                applicationConfig: config
+                            });
+                            container = document.createElement("div");
+                            container.classList.add("esri-map-date");
+                            //container.classList.add(theme);
+                            container.id = "image-date";
+                            view.ui.add(imageDateWidget, "top-left");
+                        }
+                        return [2 /*return*/];
+                }
+            });
+        });
+    }
+    exports.addImageDate = addImageDate;
+});
+//# sourceMappingURL=esriWidgetUtils.js.map

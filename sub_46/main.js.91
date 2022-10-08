@@ -1,0 +1,116 @@
+(function ($) {
+    "use strict";
+    var headerCart = $('.header-cart');
+    var closeCart = $('.close-cart, .cart-overlay');
+    var miniCartWrap = $('.mini-cart-wrap');
+
+    closeCart.on('click', function (e) {
+        e.preventDefault();
+        jQuery("body").removeClass("stuck-here modal-open");
+        $('.cart-overlay').removeClass('visible');
+        miniCartWrap.removeClass('open');
+    });
+
+    if (window.innerWidth > 1071) {
+        $('.slimscroll-menu').niceScroll({
+            cursorborder: "",
+            cursorcolor: "#FBD46A",
+            boxzoom: false
+        });
+    }
+
+    $('#parcel_sidebar, .custom-scroll').niceScroll({
+        cursorborder: "",
+        cursorcolor: "#FBD46A",
+        boxzoom: false
+    });
+
+    $('brand-listing-container .list').niceScroll({
+        cursorborder: "",
+        cursorcolor: "#FBD46A",
+        boxzoom: false
+    });
+
+    $(document).ready(function () {
+        if (window.innerWidth < 1200 && window.innerWidth >= 769) {
+            jQuery(".left-sidebar").niceScroll({
+                cursorborder: "",
+                cursorcolor: "#FBD46A",
+                boxzoom: false
+            });
+            $(".view_more").on('click', function (e) {
+                $(".left-sidebar").getNiceScroll().resize();
+            });
+            $(".left-sidebar").scroll(function () {
+                $(".left-sidebar").getNiceScroll().resize();
+            });
+
+        }
+
+        setTimeout(function () {
+            $('input:-webkit-autofill').each(function () {
+                $(this).closest('.inputfield').addClass('autofilled');
+            });
+        }, 50);
+
+        setTimeout(function () {
+            $('input').each(function () {
+                var valueget = $(this).val().length > 0;
+                if (valueget) {
+                    $(this).closest('.inputfield').addClass('autofilled');
+                }
+            });
+        }, 50);
+
+        jQuery('input, textarea').on('focusin change', function () {
+            $(this).parents('.inputfield').addClass('active');
+        });
+
+        jQuery('input, textarea').on('focusout', function () {
+            if ($(this).val() == '') {
+                $(this).parents('.inputfield').removeClass('active');
+                $(this).parents('.inputfield').removeClass('autofilled');
+                $(this).parent('.inputfield').prev().show();
+            }
+        });
+
+        $('input:-webkit-autofill').each(function () {
+            $(this).closest('.inputfield').addClass('autofilled');
+        });
+
+        $("#login-form").ready(function () {
+            $('body').trigger("click");
+        });
+
+        $("#new-user-create-form").ready(function () {
+            $('body').trigger("click");
+        });
+    });
+
+    $(window).on('load', function () {
+        $('input:-webkit-autofill').each(function () {
+            $(this).closest('.inputfield').addClass('autofilled');
+        });
+    });
+
+    /* jQuery('body').on('click', '.add-to-cart-btn', function () {
+        var cartvalue = $('#user_cart_count');
+        setTimeout(function () {
+            cartvalue.effect("shake", {
+                times: 2, distance: 5
+            }, 100);
+        }, 1500);
+
+    }); */
+
+    var deviceAgent = navigator.userAgent.toLowerCase();
+    var agentID = deviceAgent.match(/(iPad|iPhone|iPod)/i);
+    if (agentID) {
+        jQuery('html').attr('id', 'carting');
+        jQuery('body').attr('class', 'cart');
+    }
+})(jQuery);
+
+function scrollFunction__delete() {
+
+}

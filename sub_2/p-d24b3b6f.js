@@ -1,0 +1,1 @@
+function t(){const{hash:t,pathname:r}=window.location;if(r.includes("group.html"))return"group page";if(r.includes("search.html"))return"search result page";switch(t){case"#favorites":return"favorites";case"#groups":return"my groups content";case"#organization":return"my org content";case"#livingAtlas":return"living atlas";default:return"my content"}}export{t as g}

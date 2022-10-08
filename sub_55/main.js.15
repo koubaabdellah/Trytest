@@ -1,0 +1,100 @@
+require.config({
+    baseUrl: config.baseUrl,
+    paths: {
+        jquery: "jquery",
+        "jquery-ui": "jquery-ui",
+        "jquery-cookie": "jquery-cookie",       
+        plugins: "../plugins",
+        custom: "../custom"
+    },
+    shim: {
+        "plugins/bootstrap": {
+            deps: [ "jquery" ]
+        },
+        "plugins/maskedinput": {
+            deps: [ "jquery" ]
+        },
+        "plugins/owlCarousel": {
+            deps: [ "jquery" ]
+        },
+        "plugins/pickadate": {
+            deps: [ "jquery" ]
+        },
+        "plugins/jPanelMenu": {
+            deps: [ "jquery" ]
+        },
+        "plugins/jquery.scrollTo": {
+            deps: [ "jquery" ]
+        },
+        "plugins/bigtext": {
+            deps: [ "jquery" ]
+        },
+        "plugins/validate": {
+            deps: [ "jquery" ]
+        },
+        "jquery-ui": {
+            deps: [ "jquery" ]
+        },
+        "plugins/matchMediaAddListener": {
+            deps: [ "plugins/matchMedia" ]
+        },
+        "plugins/jquery.sidr.min": {
+            deps: [ "jquery" ]
+        },
+        "youtube": {
+            deps: [ "jquery" ]
+        },
+        "plugins/jquery.fitvids": {
+            deps: [ "jquery" ]
+        }
+    }
+});
+
+require(
+    [
+        "custom/off-canvas",
+        "custom/skipNav",
+        "custom/viewportChange",
+        "custom/ajaxLoad",
+        "custom/location",
+        "custom/nav",
+        "custom/disclosure",
+        "custom/tooltip",
+        "custom/formHelpers",
+        "custom/numberPolyfill",
+        "custom/slider",
+        "custom/freight",
+        "custom/celebration",
+        "custom/menu",
+        "custom/accordion",
+        "custom/accordionTabs",
+        "custom/tertiaryNav",
+        "custom/tabs",
+        "custom/carousel",
+        "custom/qty-widget",
+        "custom/builder",
+        "custom/navSpry",
+        "custom/pizzaVideo",
+        "custom/scrollTo",
+        "custom/interactiveMap"
+    ],
+    function( offCanvas, skipNav, viewportChange, ajaxLoad, location, nav, disclosure, tooltip, formHelpers, numberPolyfill, slider, freight, celebration, menu, accordion, accordionTabs, tertiaryNav, tabs, carousel,navSpry, interactiveMap) {
+        skipNav.init();
+        ajaxLoad.init();
+        formHelpers.init();
+        accordion.init();
+        accordionTabs.init();
+        tertiaryNav.init();
+        tabs.init();
+        offCanvas.init();
+    }
+);
+
+App = {};
+
+App.state = {
+    order: null,
+    store: null,
+    loc: null
+};
+

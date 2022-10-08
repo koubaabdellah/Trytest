@@ -1,0 +1,87 @@
+define({
+  root: {
+    itemType: "Item type", // arcgisonline.GroupWidget.itemType
+    filters: {
+      maps: "Maps", // arcgisonline.galleryPage.maps
+      webMaps: "Web Maps", // arcgisonline.gallery.filters.webMaps
+      mapFiles: "Map Files", // arcgisonline.gallery.filters.mapFiles
+      layers: "Layers", // arcgisonline.gallery.filters.layers
+      featureLayers: "Feature Layers", // arcgisonline.gallery.filters.features
+      tileLayers: "Tile Layers", // arcgisonline.gallery.filters.tiles
+      mapImageLayers: "Map Image Layers", // arcgisonline.gallery.filters.mapimage
+      imageryLayers: "Imagery Layers", // arcgisonline.gallery.filters.layers
+      sceneLayers: "Scene Layers", // arcgisonline.folders.weblayers.imagery
+      tables: "Tables", // arcgisonline.itemProperties.mapTables
+      layerFiles: "Layer Files", // arcgisonline.folders.layers.layerFiles
+      scenes: "Scenes", // arcgisonline.searchFilters.scenes
+      apps: "Apps", // arcgisonline.searchFilters.applications
+      webApps: "Web Apps", // arcgisonline.searchFilters.webApplications
+      sites: "Sites",
+      pages: "Pages",
+      storyMaps: "StoryMaps", // arcgisonline.folders.apps.storymaps
+      experienceApps: "Experience Builder Apps", // arcgisonline.folders.apps.experience
+      mobileApps: "Mobile Apps", // arcgisonline.searchFilters.mobileApplications
+      desktopApps: "Desktop Apps", // arcgisonline.searchFilters.desktopApplications
+      tools: "Tools", // arcgisonline.searchFilters.tools
+      locators: "Locators", // arcgisonline.searchFilters.addressLocators
+      geodatabaseAccess: "Geodatabase Access", // arcgisonline.searchFilters.geodatabaseAccess
+      geometricOperations: "Geometric Operations", // arcgisonline.searchFilters.geoOperations
+      geoprocessingTasks: "Geoprocessing Tasks", // arcgisonline.searchFilters.geoTasks
+      networkAnalysis: "Network Analysis", // arcgisonline.searchFilters.netAnalysis
+      files: "Files", // arcgisonline.organizationStatus.svcusg_portal
+      documents: "Documents", // arcgisonline.folders.files.document
+      images: "Images", // arcgisonline.folders.files.image
+      pdfs: "PDFs", // arcgisonline.folders.files.pdfs,
+      csvs: "CSVs",
+      reports: "Administrative Reports",
+      webTools: "Web Tools",
+      notebooks: "Notebooks",
+      bigDataFileShares: "Big Data File Shares",
+      rasterFunctionTemplates: "Raster Function Templates",
+      deepLearningPackages: "Deep Learning Packages",
+      analytics: "Analytics",
+      tiledImageLayers: "Tiled Imagery Layers",
+      elevationLayers: "Elevation Layers",
+      knowledgeGraphs: "Knowledge Graphs"
+    }
+  },
+  ar: 1,
+  bg: 1,
+  bs: 1,
+  ca: 1,
+  cs: 1,
+  da: 1,
+  de: 1,
+  el: 1,
+  es: 1,
+  et: 1,
+  fi: 1,
+  fr: 1,
+  he: 1,
+  hr: 1,
+  hu: 1,
+  id: 1,
+  it: 1,
+  ja: 1,
+  ko: 1,
+  lt: 1,
+  lv: 1,
+  nl: 1,
+  nb: 1,
+  pl: 1,
+  "pt-br": 1,
+  "pt-pt": 1,
+  ro: 1,
+  ru: 1,
+  sl: 1,
+  sk: 1,
+  sr: 1,
+  sv: 1,
+  th: 1,
+  tr: 1,
+  uk: 1,
+  vi: 1,
+  "zh-cn": 1,
+  "zh-hk": 1,
+  "zh-tw": 1
+});

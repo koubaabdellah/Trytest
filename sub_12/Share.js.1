@@ -1,0 +1,157 @@
+define(["require", "exports", "tslib", "esri/core/accessorSupport/decorators", "esri/widgets/support/widget", "../../icons/icons", "./Share/ShareViewModel", "esri/core/watchUtils", "../../configWidgets/BaseComponent", "./Share/t9nUtils"], function (require, exports, tslib_1, decorators_1, widget_1, icons_1, ShareViewModel, watchUtils_1, BaseComponent, t9nUtils_1) {
+    "use strict";
+    icons_1 = tslib_1.__importDefault(icons_1);
+    var CSS = {
+        base: "esri-config-panel-share",
+        header: "esri-config-panel-share__header",
+        headerText: "esri-config-panel-share__header-text",
+        closeIconButton: "esri-config-panel-share__close-icon-button",
+        body: "esri-config-panel-share__body",
+        alert: "esri-config-panel-share__alert",
+        alertIconContainer: "esri-config-panel-share__alert-icon-container",
+        alertMessageContainer: "esri-config-panel-share__alert-message-container",
+        alertMessage: "esri-config-panel-share__alert-message",
+        alertMessageTitle: "esri-config-panel-share__alert-message-title",
+        alertMessageDesc: "esri-config-panel-share__alert-message-desc",
+        alertLink: "esri-config-panel-share__alert-link",
+        footerButtonText: "esri-config-panel__footer-button-text",
+        footer: "esri-config-panel-share__footer"
+    };
+    var Share = (function (_super) {
+        tslib_1.__extends(Share, _super);
+        function Share(params) {
+            var _this = _super.call(this, params) || this;
+            _this._socialShare = null;
+            _this.configPanelViewModel = null;
+            _this.viewModel = new ShareViewModel();
+            _this.closeShareButton = null;
+            _this.publishPanel = null;
+            _this.openButtonType = null;
+            _this.messages = null;
+            return _this;
+        }
+        Share.prototype.postInitialize = function () {
+            var _this = this;
+            this.own([
+                watchUtils_1.when(this, "closeShareButton", function () {
+                    _this.closeShareButton.focus();
+                })
+            ]);
+        };
+        Share.prototype.render = function () {
+            var header = this._renderHeader();
+            var body = this._renderBody();
+            var footer = this._renderFooter();
+            return (widget_1.tsx("div", { key: "share", class: CSS.base, role: "dialog", "aria-labelledby": "shareHeading", onkeydown: function (e) {
+                    if (e.code === "Space")
+                        e.preventDefault();
+                } },
+                header,
+                body,
+                footer));
+        };
+        Share.prototype.destroy = function () {
+            this.viewModel.destroy();
+            this.viewModel = null;
+        };
+        Share.prototype._renderHeader = function () {
+            return (widget_1.tsx("header", { class: CSS.header },
+                widget_1.tsx("h2", { id: "shareHeading", class: CSS.headerText }, this.messages.share),
+                widget_1.tsx("button", { bind: this, onclick: this._closeShare, class: CSS.closeIconButton, "aria-label": this.messages.close, title: this.messages.close, afterCreate: widget_1.storeNode, "data-node-ref": "closeShareButton" },
+                    widget_1.tsx("calcite-icon", { icon: icons_1.default.close, "text-label": this.messages.close }))));
+        };
+        Share.prototype._renderBody = function () {
+            var _a, _b, _c, _d, _e;
+            var alert = this._renderAlert();
+            return (widget_1.tsx("div", { class: CSS.body },
+                alert,
+                widget_1.tsx("instant-apps-social-share", { class: this.getTheme() === "dark"
+                        ? "calcite-theme-dark"
+                        : "calcite-theme-light", mode: "inline", embed: true, "share-url": (_a = this.viewModel) === null || _a === void 0 ? void 0 : _a.shareUrl, "iframe-inner-text": (_b = this.messages) === null || _b === void 0 ? void 0 : _b.iframesNotSupported, "display-tip-text": "false", "social-media": "" + ((_e = (_d = (_c = this.configPanelViewModel) === null || _c === void 0 ? void 0 : _c.portal) === null || _d === void 0 ? void 0 : _d.portalProperties) === null || _e === void 0 ? void 0 : _e.showSocialMediaLinks) },
+                    widget_1.tsx("span", { slot: "text-area-text" },
+                        this.messages.datePublished,
+                        ": ",
+                        this.viewModel.datePublished))));
+        };
+        Share.prototype._renderAlert = function () {
+            var _this = this;
+            var _a = this.configPanelViewModel, templateAppItem = _a.templateAppItem, shareLevel = _a.shareLevel;
+            var access = templateAppItem.access;
+            var itemHasGroups = shareLevel.itemHasGroups;
+            var messages = this.messages;
+            var groupMessage = t9nUtils_1.getGroupMessage(itemHasGroups, messages.shareLevel.group);
+            var shareLevelMessage = t9nUtils_1.getShareLevelMessage(access, messages, groupMessage);
+            return (widget_1.tsx("div", { class: CSS.alert },
+                widget_1.tsx("div", { class: CSS.alertIconContainer },
+                    widget_1.tsx("calcite-icon", { icon: access === "public"
+                            ? "globe"
+                            : access === "org"
+                                ? "organization"
+                                : access === "private" || access === "shared"
+                                    ? "user"
+                                    : undefined, filled: true, scale: "s", "text-label": "" + this.messages.warning })),
+                widget_1.tsx("div", { class: CSS.alertMessageContainer },
+                    widget_1.tsx("span", { class: CSS.alertMessage },
+                        widget_1.tsx("span", { class: CSS.alertMessageTitle },
+                            this.messages.shareLevel.title,
+                            " "),
+                        shareLevelMessage),
+                    widget_1.tsx("span", { class: CSS.alertMessageDesc }, access === "public"
+                        ? this.messages.shareLevel.public.message
+                        : access === "org"
+                            ? this.messages.shareLevel.org.message
+                            : access === "private" || access === "shared"
+                                ? this.messages.shareLevel.private.message
+                                : undefined),
+                    widget_1.tsx("a", { bind: this, onclick: function () {
+                            _this.configPanelViewModel.shareLevel.isOpen = true;
+                            _this._closeShare();
+                        }, onkeydown: function (e) {
+                            if (e.code === "Space" || e.code === "Enter") {
+                                _this.configPanelViewModel.shareLevel.isOpen = true;
+                                _this._closeShare();
+                            }
+                        }, class: CSS.alertLink, tabIndex: 0 }, this.messages.changeShareSettings))));
+        };
+        Share.prototype._renderFooter = function () {
+            return (widget_1.tsx("footer", { class: CSS.footer },
+                widget_1.tsx("calcite-button", { bind: this, onclick: this._closeShare, width: "half", appearance: "outline" },
+                    widget_1.tsx("span", { class: CSS.footerButtonText }, this.messages.close)),
+                widget_1.tsx("calcite-button", { bind: this, onclick: this._launchApp, width: "half" },
+                    widget_1.tsx("span", { class: CSS.footerButtonText }, this.messages.launch))));
+        };
+        Share.prototype._closeShare = function () {
+            this.set("publishPanel.open", false);
+            this.set("publishPanel.itemIsPublished", false);
+            this.set("publishPanel.shareIsEnabled", false);
+            this.scheduleRender();
+        };
+        Share.prototype._launchApp = function () {
+            window.open(this.configPanelViewModel.getAppUrl(), "_blank");
+        };
+        tslib_1.__decorate([
+            decorators_1.aliasOf("viewModel.configPanelViewModel")
+        ], Share.prototype, "configPanelViewModel", void 0);
+        tslib_1.__decorate([
+            decorators_1.property({ type: ShareViewModel })
+        ], Share.prototype, "viewModel", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], Share.prototype, "closeShareButton", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], Share.prototype, "publishPanel", void 0);
+        tslib_1.__decorate([
+            decorators_1.property()
+        ], Share.prototype, "openButtonType", void 0);
+        tslib_1.__decorate([
+            decorators_1.aliasOf("viewModel.messages"),
+            widget_1.messageBundle("dist/assets/t9n/widgets/Share/resources")
+        ], Share.prototype, "messages", void 0);
+        Share = tslib_1.__decorate([
+            decorators_1.subclass("Share")
+        ], Share);
+        return Share;
+    }(BaseComponent));
+    return Share;
+});

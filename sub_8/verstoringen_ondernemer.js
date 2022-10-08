@@ -1,0 +1,11 @@
+sSorteerSleutel ="datum";
+bToonSorteerKeuze = true;
+bSortOptieDatum = true;
+bSortOptieTitel = true;
+bSelOnderwerp = true;
+ aLi[1] = {a:'Btw-aangiften over 2e kwartaal 2022 en juni 2022 mogelijk niet op tijd verwerkt',b:'Ondernemer',c:'Btw',d:'25-08-2022 13:30',e:'235e9d92-4497-4b2c-a896-c9b5131383f1',f:'',g:''};
+aLi[2] = {a:'Fout in overzicht coronaschulden april (opgelost)',b:'Ondernemer,Intermediair',c:'Corona|Ondernemen|Corona',d:'15-04-2022 17:00',e:'dab23689-4919-4d7b-9a13-4f2e2314936a',f:'',g:'13-05-2022 15:45'};
+aLi[3] = {a:'Mijn Belastingdienst en Inloggen voor ondernemers op zaterdag 8 oktober niet beschikbaar',b:'Particulier,Ondernemer',c:'Ondernemen|Belastingaangifte',d:'06-10-2022 9:15',e:'a8119c0b-81e7-445e-a85f-d167f801cad3',f:'',g:''};
+aLi[4] = {a:'Periodieke overboeking voor betalingsregeling bijzonder uitstel corona nog niet mogelijk via ABN AMRO',b:'Werkgever,Ondernemer',c:'Corona',d:'23-09-2022 10:30',e:'a9c82f3e-33ba-4c18-bdfb-2a3758a5804d',f:'',g:''};
+aLi[5] = {a:'Teruggaaf milieubelastingen vertraagd',b:'Ondernemer',c:'Milieubelastingen',d:'20-05-2021 16:00',e:'8ce50ffa-e9c7-4f77-8a05-7854c198ae49',f:'',g:'08-12-2021 12:30'};
+aLi[6] = {a:'Vertraging in verwerking aangiftes bpm (opgelost)',b:'Particulier,Ondernemer',c:'Auto en vervoer|Auto en vervoer',d:'25-07-2022 15:15',e:'a510d752-ffea-4e8d-8bf0-bbb2fc79e8bc',f:'',g:'03-08-2022 12:30'};

@@ -1,0 +1,32 @@
+;(function(){
+	Object.assign(window.i18n, {
+		/**
+		 * Pluralize according to MDN <Plural rule #7 (3 forms)>
+		 * Families: Belarusian, Russian, Ukrainian
+		 *
+		 * @see https://developer.mozilla.org/en-US/docs/Mozilla/Localization/Localization_and_Plurals
+		 * @param {string} pluralMessage
+		 * @param {number} count
+		 * @returns {string|undefined}
+		 */
+		pluralByValue: function (pluralMessage, count) {
+			if (pluralMessage === undefined){
+				return undefined;
+			}
+			var list = this.getPluralList(pluralMessage);
+			var num = Math.abs(count);
+			var numFormatted = this.numberFormat(count);
+
+			num %= 100;
+			if (num >= 5 && num <= 20) {
+				return this.sprintfForPlural(list[0], numFormatted);
+			}
+
+			num %= 10;
+			if (num === 1) {
+				return this.sprintfForPlural(list[1], numFormatted);
+			}
+			return this.sprintfForPlural((num >= 2 && num <= 4) ? list[2] : list[0], numFormatted);
+		}
+	});
+})();

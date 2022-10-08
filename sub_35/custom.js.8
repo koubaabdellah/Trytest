@@ -1,0 +1,120 @@
+/*
+ * Custom JS
+ * By Banyan
+ *
+ */
+
+jQuery( document ).ready(function($) {
+	
+	/*
+	 * On 'lost product' page, hide the action 'order again' if status is not 'In behandeling'
+	 *
+	 */
+	if ( $('#woolp-app').length ) {
+
+		$('#woolp-app input[type=search]').on( 'input propertychange paste' ,function() {
+				
+				var results;
+
+				var checkExist = setInterval(function() {
+				   if ($('#woolp-app .request_results').length) {
+				 
+				   	results = $('#woolp-app .request_results');
+
+				   	if(results.length) {
+				   		var rows = $(results).find('tr');
+				   		for ( var i = 1; i < rows.length; i++ ) {
+				   			
+				   			var columns = $(rows[i]).find('td');
+
+				   			if ( columns[1].innerText !== 'In behandeling' &&  columns[1].innerText !== 'Aangevraagd' ) {
+				   				$(columns[7]).html('<span style="color: red">Opnieuw bestellen niet mogelijk</span>');
+				   			}
+
+				   		}
+
+				   	}
+
+				      clearInterval(checkExist);
+				   }
+				}, 100);	
+
+		});
+
+	}
+
+	/*
+	 * Checkout field: achternaam. Do not allow numbers + give notice
+	 *
+	 */
+	if ( $('#billing_last_name_field').length ) {
+
+		var fieldValue = $('#billing_last_name').val();
+		
+		$('#billing_last_name').on( 'input propertychange change', function(e) {
+
+			$('#last-name-error-notice').remove();
+
+			if ( hasNumber($('#billing_last_name').val())  ) {
+				$('#billing_last_name').val(fieldValue);
+				$('#billing_last_name').css('border-color',  'red');
+
+				var html = '<div id="last-name-error-notice">';
+				html += 'Let op! Dit veld mag geen cijfers bevatten. Voer uw achternaam zoals vermeld in uw paspoort';
+				html += '</div>';
+
+				$('#billing_last_name_field').append(html);
+
+			} else {
+				fieldValue = $('#billing_last_name').val();
+				$('#billing_last_name').css('border-color',  '#666');
+			}
+
+		} );
+
+		$(document).click(function() {
+		    $('#last-name-error-notice').remove();
+		});
+
+	}
+
+	/* === Banyan: Checkout - postcode check, add country class for styling purposes */
+	function billingCountry() {
+		var selectedCountryBilling = $('.woocommerce-checkout #billing_country').val();
+		console.log(selectedCountryBilling);
+		if(selectedCountryBilling == 'NL') {
+			$('.woocommerce-billing-fields').addClass('country-NL');
+		} else {
+			if($('.woocommerce-billing-fields').hasClass('country-NL')) {
+				$('.woocommerce-billing-fields').removeClass('country-NL');
+			}
+		}
+	}
+
+	function shippingCountry() {
+		var selectedCountryShipping = $('.woocommerce-checkout #shipping_country').val();
+		if(selectedCountryShipping == 'NL') {
+			$('.woocommerce-shipping-fields').addClass('country-NL');
+		} else {
+			if($('.woocommerce-shipping-fields').hasClass('country-NL')) {
+				$('.woocommerce-shipping-fields').removeClass('country-NL');
+			}
+		}
+	}
+
+	billingCountry();
+	shippingCountry();
+	
+	$('#billing_country_field').on('change', function() {
+		billingCountry();
+	});
+
+	$('#shipping_country_field').on('change', function() {
+		shippingCountry();
+	});
+
+});
+
+function hasNumber(myString) {
+  return /\d/.test(myString);
+}

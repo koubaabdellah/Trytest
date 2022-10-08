@@ -1,0 +1,182 @@
+/**
+ * @file
+ */
+(function ($) {
+
+  /**
+   *
+   */
+  Drupal.behaviors.focus = {
+    attach:function(context,settings) {
+      $('input, select, .form-textarea, radio').focus(function() {
+
+        $(this).parents('.form-item').not('.form-item-field-select-costs-und, .multi-select-container').addClass('form-focus');
+      });
+      $('input, select, .form-textarea, radio').blur(function() {
+        $(this).parents('.form-focus').removeClass('form-focus');
+      });
+    }
+  };
+
+  /**
+   *
+   */
+  Drupal.behaviors.formDescriptions = {
+    attach: function (context, settings) {
+      $('div.description', context).once('form-description').each(function() {
+
+        var $element = $(this);
+        var $span = $('<span />').text($element.html()).addClass('questionmarker');
+
+        $span.hover(function() {
+          $('<div />')
+            .attr('id', 'tooltip_temp')
+            .text($element.text())
+            .prependTo('body')
+            .addClass('tooltip');
+
+          $('<div />')
+            .attr('id', 'tooltip_shadow')
+            .text($element.text())
+            .prependTo('body')
+            .addClass('tooltip-shadow');
+
+          $(document).bind('mousemove', function(e) {
+            $('#tooltip_temp, #tooltip_shadow').css({
+              'display': 'block',
+              'left': (e.pageX + 15) + 'px',
+              'top': (e.pageY + 15) + 'px'
+            });
+          });
+        },
+        function() {
+          $('#tooltip_temp, #tooltip_shadow').remove();
+          $(document).unbind('mousemove');
+        });
+
+        $element.replaceWith($('<span />').attr('class', $element.attr('class')).append($span));
+      });
+    }
+  };
+
+  /**
+   * Attaches Jack Moore's jQuery Autosize behavior on textareas.
+   */
+  Drupal.behaviors.autoSize = {
+    attach: function (context) {
+      if (jQuery().autosize) {
+        $('textarea', context).once('textarea-autosize').each(function() {
+          $(this).autosize();
+        });
+      };
+    }
+  };
+
+  /**
+   * Attaches smooth scrolling.
+   */
+  Drupal.behaviors.smoothScroll = {
+    attach: function (context) {
+      function filterPath(string) {
+        return string
+        .replace(/^\//,'')
+        .replace(/(index|default).[a-zA-Z]{3,4}$/,'')
+        .replace(/\/$/,'');
+      }
+      $('a[href*=#]').each(function() {
+        if (!$(this).hasClass('fancybox-opener') && !$(this).hasClass('magnific-popup')) {
+
+          if ( filterPath(location.pathname) == filterPath(this.pathname)
+          && location.hostname == this.hostname
+          && this.hash.replace(/#/,'') ) {
+            var $targetId = $(this.hash), $targetAnchor = $('[name=' + this.hash.slice(1) +']');
+            var $target = $targetId.length ? $targetId : $targetAnchor.length ? $targetAnchor : false;
+            if ($target) {
+              var targetOffset = $target.offset().top;
+              $(this).click(function() {
+                $('html, body').stop().animate({
+                  scrollTop: targetOffset
+                }, 1000,'easeInOutExpo');
+
+                return false;
+              });
+            }
+          }
+        }
+      });
+    }
+  };
+
+  // [name] is the name of the event "click", "mouseover", ..
+  // same as you'd pass it to bind()
+  // [fn] is the handler function
+  $.fn.bindFirst = function(name, fn) {
+    if (this.size()) {
+      // bind as you normally would
+      // don't want to miss out on any jQuery magic
+      this.bind(name, fn);
+
+      // Thanks to a comment by @Martin, adding support for
+      // namespaced events too.
+      var handlers = this.data('events')[name.split('.')[0]];
+      // take out the handler we just inserted from the end
+      var handler = handlers.pop();
+      // move it at the beginning
+      handlers.splice(0, 0, handler);
+    };
+  };
+
+})(jQuery);
+
+
+/**
+ * Explode a string of given tags into an array.
+ */
+function drupalExplodeTags(str) {
+  // This regexp allows the following types of user input:
+  // this, "somecompany, llc", "and ""this"" w,o.rks", foo bar
+  var matches = str.match(/(?:^|,\ *)("([^"]*)(""[^"]* )*"|(?:[^",]*))/ig);
+
+  var starts = [', "', ',"', '"', ','];
+  // Cleanup quotes and comma's
+  for (var i in matches) {
+    for (var j in starts) {
+      if (typeof(matches[i]) == 'string' && matches[i].indexOf(starts[j]) == 0) {
+        matches[i] = matches[i].substr(starts[j].length).trim();
+      };
+    };
+    if (typeof(matches[i]) == 'string' && matches[i].indexOf('"') == (matches[i].length - 1)) {
+      matches[i] = matches[i].substr(0, matches[i].length - 1);
+    };
+  };
+  return matches;
+};
+
+/**
+ *
+ */
+function drupalImplodeTags(tags) {
+  var encoded_tags = [];
+  var tag;
+
+  for (var i in tags) {
+    tag = tags[i];
+    // Commas and quotes in tag names are special cases, so encode them.
+    if (typeof(tag) == 'string' && (tag.indexOf(',') > -1 || tag.indexOf('"') > -1)) {
+      tag = '"' + tag.replace('"', '""') + '"';
+    }
+    encoded_tags.push(tag);
+  }
+
+  // Cleanup duplicates.
+  var objects = {}
+  var results = [];
+  for (var i = 0; i < encoded_tags.length; i++) {
+    objects[encoded_tags[i]] = encoded_tags[i];
+  };
+  for (var i in objects) {
+    results.push(objects[i]);
+  };
+
+  return results.join();
+};

@@ -1,0 +1,3 @@
+//>>built
+define("arcgisonline/map/dijit/JsonView",["require","exports","tslib","arcgis-components/wrappers/BasicWrappers/JsonViewers/JsonViewerModal"],function(f,g,b,c){c=b.__importDefault(c);return function(){function d(a){var e=this;this._value=a||{};this.node=document.createElement("div");document.body.appendChild(this.node);a=b.__assign(b.__assign({},a),{expanded:!0,handleCancel:function(){e.destroy()}});this.view=new c["default"](this.node,a)}Object.defineProperty(d.prototype,"value",{get:function(){return this._value},
+set:function(a){this._value=a||{}},enumerable:!1,configurable:!0});d.prototype.destroy=function(){this.view.destroy()};return d}()});

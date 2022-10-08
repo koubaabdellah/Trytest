@@ -1,0 +1,1143 @@
+function BerekeningBase() {
+}
+// static methods
+BerekeningBase.min = function(a, b) {
+  return a < b ? a : b;
+};
+BerekeningBase.max = function(a, b) {
+  return a > b ? a : b;
+};
+BerekeningBase.sum = function(varargs) {
+  var sum = 0;
+  for (var i = 0, sz = arguments.length; i < sz; ++i) {
+    var value = parseFloat(arguments[i]);
+    if (!isNaN(value))
+      sum += value;
+  }
+  return sum;
+}
+
+function BepaalAOW(theCase, id) {
+  //In deze berekening 	wordt rekening gehouden met schrikkeljaren en maanden met 30 en 31 dagen.
+  // oplossing voor bijv: 31-3 + 1 maand
+  // js berekent dan 1-5, dit moet echter worden: 30-4
+  var aDate = theCase.formValues[id].split('-');
+  //var v_datum65 = new Date(parseInt(aDate[2], 10) + 65, parseInt(aDate[1], 10) - 1, parseInt(aDate[0], 10));
+  var gebdat = new Date(parseInt(aDate[2], 10), parseInt(aDate[1], 10) - 1, parseInt(aDate[0], 10));
+
+  // var v_datum65 = new Date(gebdat);
+  var dag_voor = gebdat.getDate();
+  var v_datum65 = new Date(gebdat);
+  v_datum65.setFullYear(v_datum65.getFullYear() + 65);
+  var dag_na = v_datum65.getDate();
+  if (dag_na < dag_voor) {
+    v_datum65.setDate(v_datum65.getDate() - dag_na);
+  }
+  var v_extra_maanden = 0;
+  for (var i = 0; i < Tabellen.aow.length; i++) {
+    var aDate = Tabellen.aow[i][0].split('-');
+    if (gebdat > new Date(parseInt(aDate[2], 10), parseInt(aDate[1], 10) - 1, parseInt(aDate[0], 10))) {
+      var v_extra_maanden = Tabellen.aow[i][1];
+    } else {
+      break;
+    }
+  }
+  dag_voor = v_datum65.getDate();
+  v_datum65.setMonth(v_datum65.getMonth() + v_extra_maanden);
+  dag_na = v_datum65.getDate();
+  if (dag_na < dag_voor) {
+    v_datum65.setDate(v_datum65.getDate() - dag_na);
+  }
+  return v_datum65;
+}
+
+var AlgemeenBerekening = function() {
+
+  var Base = BerekeningBase;
+
+  function AlgemeenBerekening(jaar, invoer) {
+    this.jaar = jaar;
+    this.invoer = invoer;
+  }
+
+  AlgemeenBerekening.prototype.inkomen = function() {
+    var toeslagpartnerToetsingsinkomen = this.invoer.getAanvragerToeslagpartner() == 'ja' ? this.invoer.getToeslagpartnerToetsingsinkomen() : 0;
+    var inkomen = parseFloat(this.invoer.getAanvragerToetsingsinkomen()) + parseFloat(toeslagpartnerToetsingsinkomen);
+    return Base.max(0, inkomen);
+  }
+
+  AlgemeenBerekening.prototype.jaarUitbetGrnsPerMaand = function() {
+    return this.jaar.uitBetGrns() / 12;
+  }
+
+  AlgemeenBerekening.prototype.totaal = function() {
+    // TODO
+    throw "AlgemeenBerekening.totaal not implemented";
+  }
+
+
+  // returns \c true or \c false
+  AlgemeenBerekening.prototype.beidenWerk = function() {
+    var isBeidenWerk = this.invoer.getAanvragerWerk() == 'ja'
+            && this.invoer.getAanvragerToeslagpartner() == 'ja'
+            && this.invoer.getToeslagpartnerWerk() == 'ja';
+    return isBeidenWerk;
+  }
+
+  return AlgemeenBerekening;
+}();
+var HtBerekening = function() {
+
+  var PROCENT = .01;
+  var Base = BerekeningBase;
+
+  function HtBerekening(htjaar, invoer) {
+    this.htjaar = htjaar;
+    this.invoer = invoer;
+  }
+
+  // HOOFDBEREKENING
+  HtBerekening.prototype.huurtoeslag = function() {
+    return Math.round(Base.max(0, Base.sum(this.huurtoeslagA(), this.huurtoeslagB(), this.huurtoeslagC())));
+  }
+
+  HtBerekening.prototype.huurtoeslagA = function() {
+    var rekenhuur = this.rekenhuur();
+    var kwKrtGrns = this.htjaar.kwKrtGrns();
+    var basishuur = this.basishuur();
+    $(".basishuur").html(formatCurrency(basishuur, 0));
+
+    return Base.max(0, Base.min(rekenhuur, kwKrtGrns) - basishuur);
+  }
+
+  HtBerekening.prototype.huurtoeslagB = function() {
+    var toeslag = Base.min(this.rekenhuur(), this.aftoppingsgrens());
+    var tslTmAftop = this.htjaar.tslTmAftop();
+    toeslag -= this.maximumBenK();
+    toeslag = Base.max(0, toeslag);
+    toeslag *= tslTmAftop * PROCENT;
+    return toeslag;
+  }
+
+  HtBerekening.prototype.huurtoeslagC = function() {
+    if (this.voorwaardeC()) {
+      var toeslag = Base.max(0, this.rekenhuur() - this.maximumBenA());
+      var tslBovenAftop = this.htjaar.tslBovenAftop();
+      toeslag *= tslBovenAftop * PROCENT;
+      return toeslag;
+    } else
+      return 0;
+  }
+
+  HtBerekening.prototype.aftoppingsgrens = function() {
+    if (this.bewoners() < 3)
+      return this.htjaar.aftopA();
+    else
+      return this.htjaar.aftopB();
+  }
+
+  HtBerekening.prototype.maximumBenK = function() {
+    return Base.max(this.basishuur(), this.htjaar.kwKrtGrns());
+  }
+
+  HtBerekening.prototype.maximumBenA = function() {
+    return Base.max(this.basishuur(), this.aftoppingsgrens());
+  }
+
+  HtBerekening.prototype.voorwaardeC = function() {
+    var huishouden = this.huishouden();
+    if ((huishouden == "EPH" || huishouden == "EPH65+") || this.bewoners65plus() > 0 || this.invoer.getWoningAangepast() == 'ja')
+      return this.rekenhuur() > this.aftoppingsgrens();
+    else
+      return false;
+  }
+  // EINDE HOOFDBEREKENING
+
+
+  // REKENHUUR
+  HtBerekening.prototype.huurNaGarage = function() {
+    return this.woningHuur() - this.garageKosten();
+  }
+
+  HtBerekening.prototype.huurVoorOh = function() {
+    return this.huurNaGarage() + this.sK();
+  }
+
+  HtBerekening.prototype.rekenhuur = function() {
+    return Base.min(this.huurNaOH(), this.huurgrens());
+  }
+
+  HtBerekening.prototype.garageKosten = function() {
+    return this.invoer.getWoningGarage() == 'ja' && this.invoer.theCase.garage == true ? this.htjaar.gk() : 0;
+  }
+
+  HtBerekening.prototype.sK = function() {
+    return Base.min(parseFloat(this.invoer.getWoningServicekosten()), parseFloat(this.htjaar.mxSK()));
+  }
+
+  HtBerekening.prototype.onderhuurKorting = function() {
+    return this.invoer.getWoningOnderhuur() == 'ja' && this.invoer.theCase.onderhuur == true ? this.huurVoorOh() * (this.htjaar.ohKort() * PROCENT) : 0;
+  }
+
+  HtBerekening.prototype.huurgrens = function() {
+    if (this.hogeHuurgrens()) {
+      return this.htjaar.maxHuur();
+    } else {
+      return this.htjaar.kwKrtGrns();
+    }
+  }
+
+  HtBerekening.prototype.hogeHuurgrens = function() {
+    var b =
+            (this.invoer.getAanvragerToeslagpartner() == 'ja' && this.invoer.getToeslagpartnerZelfdeAdres() == 'ja' && this.invoer.getToeslagpartnerLeeftijd() >= 23)
+            || this.invoer.getAanvragerLeeftijd() >= 23
+            || this.invoer.getWoningAangepast() == 'ja'
+            || this.invoer.getWoning23Min() == 'nee'
+            || this.invoer.getWoningKind() == 'ja'
+            || this.invoer.getWoningHandicap() == 'ja';
+    return b;
+  }
+  // EINDE REKENHUUR
+
+
+  // BASISHUUR
+  HtBerekening.prototype.basishuur = function() {
+    var htjaar = this.invoer.getWoningHTjaar();
+    var htjaarHTB = this.htjaar.htb();
+    var huishouden = this.huishouden();
+
+    if (htjaarHTB == 'F') {
+      var taakStBedr = Tabellen.HTBP[htjaar][huishouden].TaakStBedr;
+      return Base.sum(taakStBedr, this.normhuur());
+    } else if (htjaarHTB == 'T') {
+      var htbt = Tabellen.HTBT[htjaar][huishouden];
+      var tarief = 0;
+      var hhInkomen = this.hhInkomen();
+
+      for (var i = 0, sz = htbt.length; i < sz; ++i) {
+        tarief = htbt[i].tarief;
+        if (hhInkomen <= htbt[i].schijf) {
+          break;
+        }
+      }
+      return tarief;
+    }
+  }
+
+  HtBerekening.prototype.normhuur = function() {
+    if (this.onderMinimum()) {
+      var htjaar = this.invoer.getWoningHTjaar();
+      var huishouden = this.huishouden();
+      var htbp = Tabellen.HTBP[htjaar] && Tabellen.HTBP[htjaar][huishouden] ? Tabellen.HTBP[htjaar][huishouden] : undefined;
+      var minNrmHr = htbp && htbp.MinNrmHr ? htbp.MinNrmHr : undefined;
+      return minNrmHr;
+    } else {
+      return Base.sum(this.normhuurA(), this.normhuurB());
+    }
+  }
+
+  // @return true or false
+  HtBerekening.prototype.onderMinimum = function() {
+    var htjaar = this.invoer.getWoningHTjaar();
+    var huishouden = this.huishouden();
+    var minInkGrp = Tabellen.HTBP[htjaar] && Tabellen.HTBP[htjaar][huishouden] ? Tabellen.HTBP[htjaar][huishouden].MinInkGr : 0;
+    return this.hhInkomen() <= minInkGrp;
+  }
+
+  HtBerekening.prototype.normhuurA = function()
+  {
+    var htjaar = this.invoer.getWoningHTjaar();
+    var huishouden = this.huishouden();
+    var factorA = Tabellen.HTBP[htjaar] && Tabellen.HTBP[htjaar][huishouden] ? Tabellen.HTBP[htjaar][huishouden]["Factor a"] : 0;
+    var hhInkomen = this.hhInkomen();
+
+    return factorA * hhInkomen * hhInkomen;
+  }
+
+  HtBerekening.prototype.normhuurB = function()
+  {
+    var htjaar = this.invoer.getWoningHTjaar();
+    var huishouden = this.huishouden();
+    var factorB = Tabellen.HTBP[htjaar] && Tabellen.HTBP[htjaar][huishouden] ? Tabellen.HTBP[htjaar][huishouden]["Factor b"] : 0;
+    var hhInkomen = this.hhInkomen();
+
+    return factorB * hhInkomen;
+  }
+  // EINDE BASISHUUR
+
+
+  HtBerekening.prototype.huurNaOH = function() {
+    return this.huurVoorOh() - this.onderhuurKorting();
+  }
+
+  HtBerekening.prototype.woningHuur = function() {
+    return this.invoer.getWoningHuur();
+  }
+
+  // GEEN RUBRIEK
+  HtBerekening.prototype.doelgroepgrens = function() {
+    var htjaar = this.invoer.getWoningHTjaar();
+    var htb = this.htjaar.htb();
+    var huishouden = this.huishouden();
+
+    if (htb == 'F') {
+      var htbp = Tabellen.HTBP[htjaar][huishouden];
+      return htbp.DoelGrpGr;
+    } else if (htb == 'T') {
+      var htbt = Tabellen.HTBT[htjaar] && Tabellen.HTBT[htjaar][huishouden];
+      var maxSchijf = 0;
+      for (var i = 0, sz = htbt.length; i < sz; ++i)
+        maxSchijf = Base.max(maxSchijf, htbt[i].schijf);
+      return maxSchijf;
+    } else
+      return 0;
+  }
+  // EINDE GEEN RUBRIEK
+
+
+  // HUISHOUDEN
+  HtBerekening.prototype.huishouden = function() {
+    return this.bewoners() == 1 ? this.epHuishouden() : this.mpHuishouden();
+  }
+
+
+  HtBerekening.prototype.bewoners = function() {
+    return Base.sum(this.tpOpZelfdeAdres() ? 1 : 0, 1, this.woningMedebewoners());
+  }
+
+  HtBerekening.prototype.tpOpZelfdeAdres = function() {
+    return this.invoer.getAanvragerToeslagpartner() == 'ja' && this.invoer.getToeslagpartnerZelfdeAdres() == 'ja';
+  }
+
+  HtBerekening.prototype.epHuishouden = function() {
+    //return this.invoer.getAanvragerLeeftijd() < 65 ? "EPH" : "EPH65+";
+    return this.invoer.theCase["aanvrager-aow"] === 'nee' ? "EPH" : "EPH65+";
+  }
+
+  // CG aangepast volgens FO 25-10-2016
+  HtBerekening.prototype.mpHuishouden = function() {
+    var AantalPBoven65 = this.bewoners65plus();  
+    var jaar = this.invoer.getJaar();       
+    if (jaar <= 2016) {
+        var temp65plus = this.hhInkomen65plus() > this.hhInkomen65min();        
+        return temp65plus ? "MPH65+" : "MPH";        
+    }
+    else if (jaar >= 2017){
+         if (AantalPBoven65 === 0) {                      
+             return "MPH";
+         }
+         else if (AantalPBoven65 >= 1) { 
+              return "MPH65+"; 
+         }}                   
+  };
+  // EINDE HUISHOUDEN
+
+
+  // REKENINKOMEN
+  HtBerekening.prototype.aanvragerRekeninkomen = function() {
+    return this.invoer.getAanvragerToetsingsinkomen();
+  }
+
+  HtBerekening.prototype.toeslagpartnerRekeninkomen = function() {
+    return this.invoer.getAanvragerToeslagpartner() == 'ja' && this.invoer.getToeslagpartnerZelfdeAdres() == 'ja' ? this.invoer.getToeslagpartnerToetsingsinkomen() : 0;
+  }
+
+  // @param medebewonerNr nummer medebewoner (1..n)
+  HtBerekening.prototype.medebewonersInkomen = function(medebewonerNr) {
+    if (this.getMedebewoners() >= medebewonerNr)
+    {
+      var kind = this.medebewonerKind(medebewonerNr);
+      if (kind == 'ja') {
+        var toetsingsinkomen = this.invoer.getMedebewonerToetsingsinkomen(medebewonerNr);
+        return Base.max(0, toetsingsinkomen - this.htjaar.vrKndInk());
+      } else { // if( kind == 'nee' ) vraag om medebewoner-kind is optioneel!
+        var toetsingsinkomen = this.invoer.getMedebewonerToetsingsinkomen(medebewonerNr);
+        return toetsingsinkomen;
+      } //else
+      //		return 0;
+    } else
+      return 0;
+  }
+  // EINDE REKENINKOMEN
+
+
+  // condities
+  HtBerekening.prototype.geenHuurtoeslagBovenHuurgrens = function() {
+    return this.rekenhuur() > this.huurgrens();
+  }
+
+  // overig
+  HtBerekening.prototype.woningMedebewoners = function() {
+    return this.invoer.getWoningMedebewoners();
+  };
+
+  HtBerekening.prototype.hhInkomen = function() {
+    var inkomen = Base.sum(this.invoer.getAanvragerToetsingsinkomen(), this.toeslagpartnerRekeninkomen());
+    for (var i = 0, amount = this.getMedebewoners(); i < amount; ++i)
+      inkomen = Base.sum(inkomen, this.medebewonersInkomen(i + 1));
+    return inkomen;
+  };
+
+  // @return count(bewoner) where age >= 65
+  HtBerekening.prototype.bewoners65plus = function() {
+    var count = 0;
+    var aanvrager65plus = this.invoer.theCase["aanvrager-aow"] === 'ja' ? 1 : 0;
+    var toeslagpartner65plus = this.invoer.getAanvragerToeslagpartner() === 'ja' && this.invoer.theCase["toeslagpartner-aow"] === 'ja' ? 1 : 0;
+    count = aanvrager65plus + toeslagpartner65plus;
+    for (var i = 1, amount = this.getMedebewoners(); i <= amount; ++i)
+      if (this.invoer.theCase['medebewoner-aow-' + i] === 'ja')
+        count++;
+    return count;
+  };
+
+  // @return count of valid medebewoners
+  HtBerekening.prototype.getMedebewoners = function() {
+    if (this.invoer.getHtMin() === 'ja')
+      return 0;
+    else
+      return this.invoer.getWoningMedebewoners();
+  };
+
+  HtBerekening.prototype.hhInkomen65min = function() {
+    var aanvrager65plus = this.invoer.theCase["aanvrager-aow"] === 'nee' ? this.aanvragerRekeninkomen() : 0;
+    var toeslagpartner65plus = this.invoer.getAanvragerToeslagpartner() == 'ja' && this.invoer.getToeslagpartnerZelfdeAdres() == 'ja' && this.invoer.theCase["toeslagpartner-aow"] === 'nee' ? this.toeslagpartnerRekeninkomen() : 0;
+    var sum = parseFloat(aanvrager65plus) + parseFloat(toeslagpartner65plus);
+
+    for (var i = 1, amount = this.getMedebewoners(); i <= amount; ++i)
+      if (this.invoer.theCase['medebewoner-aow-' + i] == 'nee')
+        sum += parseFloat(this.medebewonersInkomen(i));
+
+    return sum;
+  }
+
+  HtBerekening.prototype.hhInkomen65plus = function() {
+    var aanvrager65plus = this.invoer.theCase["aanvrager-aow"] === 'ja' ? this.aanvragerRekeninkomen() : 0;
+    var toeslagpartner65plus = this.invoer.getAanvragerToeslagpartner() == 'ja' && this.invoer.getToeslagpartnerZelfdeAdres() == 'ja' && this.invoer.theCase["toeslagpartner-aow"] === 'ja' ? this.toeslagpartnerRekeninkomen() : 0;
+    var sum = parseFloat(aanvrager65plus) + parseFloat(toeslagpartner65plus);
+    for (var i = 1, amount = this.getMedebewoners(); i <= amount; ++i)
+      if (this.invoer.theCase['medebewoner-aow-' + i] == 'ja')
+        sum += parseFloat(this.medebewonersInkomen(i));
+
+    return sum;
+  }
+
+  HtBerekening.prototype.medebewonerKind = function(medebewonerNr) {
+    if (medebewonerNr > 0 && medebewonerNr <= this.getMedebewoners())
+      return this.invoer.getMedebewonerKind(medebewonerNr);
+  }
+
+  return HtBerekening;
+}();
+
+var KgbBerekening = function() {
+  var Base = BerekeningBase;
+  var PROCENT = .01;
+
+  function KgbBerekening(algemeenBerekening, kindBerekeningKtKgb, jaarTableAccess, invoer) {
+    this.algemeenBerekening = algemeenBerekening;
+    this.kindBerekeningKtKgb = kindBerekeningKtKgb;
+    this.jaar = jaarTableAccess;
+    this.invoer = invoer;
+  }
+
+  // HOOFDBEREKENING
+  KgbBerekening.prototype.kindgebondenBudget = function() {
+    return Math.floor(this.kgbNaVermindering() / 12);
+  }
+
+  KgbBerekening.prototype.kgbNaVermindering = function() { // par 7.4.1
+    return Base.max(0, this.maxKgb() + this.AlleenstaandeExtraKGB() + this.verhoging12plus() + this.verhoging16plus() - this.vermindering()); // gelijk aan 0 maken als uitkomst minder dan 0 is
+  }
+
+  KgbBerekening.prototype.DeelBovenOndergrens = function(){
+    var algemeenInkomen = this.algemeenBerekening.inkomen();
+    var drempelinkomen = this.jaar.drempelinkomenKGB();
+    return Base.max(0, algemeenInkomen - drempelinkomen);
+  }
+
+  KgbBerekening.prototype.Percentage = function(){
+    return (this.jaar.tslg() * PROCENT);    //TslgTP 
+  }
+
+  //zie p63
+  KgbBerekening.prototype.Percentage_TP = function(){
+    return (this.jaar.TslgTP() * PROCENT);    //TslgTP 
+  }
+
+  KgbBerekening.prototype.verhoogdeDrempel = function(){
+    return Tabellen.Jaar[this.invoer.getJaar()].VerhoogdDrempelInkomen;
+  }
+
+  // opzoeken in tabel maxKgb op jaar en aantal kinderen
+  KgbBerekening.prototype.maxKgb = function() {
+    var kind = this.kinderenKgb();
+    var jaar = this.invoer.getJaar();
+    var max = Tabellen.maxKgb[jaar] && Tabellen.maxKgb[jaar][kind] ? Tabellen.maxKgb[jaar][kind] : 0;
+    return max;
+  }
+
+  KgbBerekening.prototype.AlleenstaandeExtraKGB = function() {
+    if (this.invoer.getAanvragerToeslagpartner() == 'nee') {
+      return this.jaar.VHgeenTP();
+    }
+    return 0;
+  }
+
+  KgbBerekening.prototype.verhoging12plus = function() {
+    if (this.jaar.wtos() === true) {
+      return this.jaar.vh12plus() * this.invoer.theCase['12plus'];
+    }
+    return 0;
+  }
+
+  KgbBerekening.prototype.verhoging16plus = function() {
+    if (this.jaar.wtos() === true) {
+      return this.jaar.vh16plus() * this.invoer.theCase['16plus'];
+    }
+    return 0;
+  }
+
+  KgbBerekening.prototype.vermindering = function() {
+    if ( this.invoer.getJaar()  >= 2020 && this.invoer.getAanvragerToeslagpartner() === 'ja'){
+      var vermindering = Base.max(0, this.Percentage_TP() * (this.DeelBovenOndergrens() - this.verhoogdeDrempel()));
+      return vermindering;
+    }
+    else {
+    return this.DeelBovenOndergrens() * this.Percentage(); // vermindering
+    }
+  }
+
+  KgbBerekening.prototype.kinderenKgb = function() {
+    var cnt = 0;
+    for (var i = 0, amount = this.kindBerekeningKtKgb.kinderen(); i < amount; ++i) {
+      cnt += this.kindBerekeningKtKgb.tellingKtKgb(i + 1);
+    }
+    return cnt;
+  }
+  // EINDE HOOFDBEREKENING
+
+  return KgbBerekening;
+}();
+var KindBerekening = function() {
+  var PROCENT = .01;
+
+  var Base = BerekeningBase;
+
+  function KindBerekening(algemeenBerekening, jaar, kott, invoer)
+  {
+    this.algemeenBerekening = algemeenBerekening;
+    this.jaar = jaar;
+    this.kott = kott;
+    this.invoer = invoer;
+    this.kotBerekening = new KotBerekening(this, invoer);
+  }
+
+  KindBerekening.prototype.kinderen = function() {
+    var kinderen = parseInt(this.invoer.getAanvragerKinderen());
+    if (isNaN(kinderen))
+      kinderen = 0;
+    return kinderen;
+  }
+
+  // HulpBerekening KOT - toeslag kind (n)
+  KindBerekening.prototype.kot = function(kindNr, jaar) {
+    var kot = 0;
+    kot += this.regulier(kindNr);     
+    kot = Math.round(kot * 100) / 100; // rekenkundig afronden op 2 decimalen
+    return kot;
+  }
+
+  // // deze functie kan waarschijnlijk in een volgend fo versie 1.85.xx.xx eruit gehaald worden
+  // KindBerekening.prototype.alleenstaande = function(kindNr) {
+  //   var eenZesdeKotKosten = (this.kotKosten(kindNr) / 6);
+  //   return this.jaar.om() == 'Ja' ? Base.max(0, eenZesdeKotKosten - this.overschot(kindNr)) : eenZesdeKotKosten;
+  // }
+
+  // KindBerekening.prototype.overschot = function(kindNr) {
+  //   var eenZesdeKotKosten = (this.kotKosten(kindNr) / 6);
+  //   var overschot = Base.max(0, this.kotBijdragenAanvrager(kindNr) - eenZesdeKotKosten);
+  //   return overschot;
+  // }
+  KindBerekening.prototype.regulier = function(kindNr) {
+    var kotKosten = this.kotKosten(kindNr);
+    var kotPercentage = this.kotPercentage(kindNr);
+    return Math.round(kotKosten * kotPercentage * PROCENT * 100) / 100;
+  }
+
+  KindBerekening.prototype.kotPercentage = function(kindNr) {
+    var rang = this.kotBerekening.rang(kindNr);
+    var algemeenInkomen = this.algemeenBerekening.inkomen();
+    var kotPercentage = (rang == 1 ? this.kott.kotPercentageRang1(algemeenInkomen) : this.kott.kotPercentageRang2(algemeenInkomen));
+    return kotPercentage;
+  }
+
+  // // deze functie komt hoogstwaarschijnlijk te vervallen in v1.85.xx.xx, omdat hij als het goed is nergens meer wordt aangeroepen
+  // KindBerekening.prototype.extra = function(kindNr) {
+  //   var bijdrage = this.bijdrageTekort(kindNr);
+  //   if (this.jaar.etp() == 'Ja') {
+  //     return bijdrage * this.etPercentage(kindNr) * PROCENT;
+  //   } else {
+  //     return bijdrage;
+  //   }
+  // }
+
+  // KindBerekening.prototype.etPercentage = function(kindNr) {
+  //   var algemeenInkomen = this.algemeenBerekening.inkomen();
+  //   var rang = this.kotBerekening.rang(kindNr);
+  //   var etPercentage = (rang == 1 ? this.kott.etPercentageRang1(algemeenInkomen) : this.kott.etPercentageRang2(algemeenInkomen));
+  //   return etPercentage;
+  // }
+
+  // KindBerekening.prototype.bijdrageTekort = function(kindNr) {
+  //   var bijdrageTekort = this.invoer.getAanvragerToeslagpartner() == 'ja' ? this.bijdragetekortToeslagpartner(kindNr) : 0;
+  //   return Base.max(0, bijdrageTekort + this.BijdragetekortAanvrager(kindNr));
+  // }
+
+  KindBerekening.prototype.kotBijdragen = function(kindNr) {
+    var toeslagpartner = this.invoer.getAanvragerToeslagpartner() == 'ja';
+    var kotBijdragen = (toeslagpartner ? this.kotBijdragenToeslagPartner(kindNr) : 0) + this.kotBijdragenAanvrager(kindNr);
+    return kotBijdragen;
+  }
+
+  //Bijdragetekort aanvrager
+  // KindBerekening.prototype.BijdragetekortAanvrager = function(kindNr) {
+  //   var kotWerkgDeelAanvr = (this.kotKosten(kindNr) / 6);
+  //   var bijdrage = (this.invoer.getAanvragerWerk() == 'ja' ? kotWerkgDeelAanvr : 0);
+  //   return bijdrage - this.kotBijdragenAanvrager(kindNr);
+  // }
+
+  KindBerekening.prototype.kotBijdragenAanvrager = function(kindNr) {
+    var werkgvrbdr = (this.jaar.wrkgvrBdr() == 'Ja' ? this.bijdrageWerkgeverA(kindNr) : 0);
+    return werkgvrbdr + this.kotBijdrageUwvGemAanvr(kindNr);
+  }
+
+  KindBerekening.prototype.kotBijdrageUwvGemAanvr = function(kindNr) {
+    var bijdrageUwvGemA = (this.invoer.getAanvragerWerk() == 'ja' ? this.bijdrageUwvGemA(kindNr) : 0);
+    var een_zesde_kotKosten = this.kotKosten(kindNr) / 6;
+    return Base.min(bijdrageUwvGemA, een_zesde_kotKosten);
+  }
+
+  KindBerekening.prototype.bijdrageWerkgeverA = function(kindNr) {
+    var kindWerkgeversBijdrage = this.invoer.getKindWerkgeversbijdrageAanvrager(kindNr);
+    var wrkgBijdrAanvr = 0;
+    if (kindWerkgeversBijdrage == '1-6e-deel') {
+      wrkgBijdrAanvr = this.kotKosten(kindNr) / 6;
+    } else if (kindWerkgeversBijdrage == 'anders') {
+      wrkgBijdrAanvr = parseFloat(this.invoer.getKindWerkgeversbijdrageAanvragerBedrag(kindNr));
+    }
+    var bijdrage = (this.invoer.getAanvragerWerk() == 'ja' ? wrkgBijdrAanvr : 0);
+    return bijdrage;
+  }
+
+  KindBerekening.prototype.bijdrageUwvGemA = function(kindNr) {
+    var KindBijdrageAanvrager = this.invoer.getKindBijdrageAanvrager(kindNr);
+    var bijdrAanvr = 0;
+    if (KindBijdrageAanvrager == '1-6e-deel') {
+      bijdrAanvr = this.kotKosten(kindNr) / 6;
+    } else if (KindBijdrageAanvrager == 'anders') {
+      bijdrAanvr = parseFloat(this.invoer.getKindBijdrageAanvragerBedrag(kindNr));
+    }
+    var bijdrage = (this.invoer.getAanvragerBijdrage() == 'ja' ? bijdrAanvr : 0);
+    return bijdrage;
+  }
+
+  // KindBerekening.prototype.bijdragetekortToeslagpartner = function(kindNr) {
+  //   var kotWerkgDeelT = (this.kotKosten(kindNr) / 6);
+  //   var bijdrage = (this.invoer.getToeslagpartnerWerk() == 'ja' ? kotWerkgDeelT : 0);
+  //   return bijdrage - this.kotBijdragenToeslagPartner(kindNr);
+  // }
+
+  KindBerekening.prototype.kotBijdragenToeslagPartner = function(kindNr) {
+    var bijdrage = 0;
+    if (this.jaar.wrkgvrBdr() == 'Ja') {
+      bijdrage = this.bijdrageWerkgeverT(kindNr);
+    }
+    return bijdrage + this.kotBijdrageUwvGemT(kindNr);
+  }
+
+  KindBerekening.prototype.kotBijdrageUwvGemT = function(kindNr) {
+    var bijdrageUWVGemT = 0;
+    if (this.invoer.getToeslagpartnerWerk() == 'ja') {
+      bijdrageUWVGemT = this.bijdrageUwvGemT(kindNr);
+    }
+    var een_zesde_kotKosten = this.kotKosten(kindNr) / 6;
+    return Base.min(bijdrageUWVGemT, een_zesde_kotKosten);
+  }
+
+  KindBerekening.prototype.bijdrageWerkgeverT = function(kindNr) {
+    var kindWerkgeversBijdrage = this.invoer.getKindWerkgeversbijdragePartner(kindNr);
+    var wrkgBijdrT = 0;
+    if (kindWerkgeversBijdrage == '1-6e-deel') {
+      wrkgBijdrT = this.kotKosten(kindNr) / 6;
+    } else if (kindWerkgeversBijdrage == 'anders') {
+      wrkgBijdrT = parseFloat(this.invoer.getKindWerkgeversbijdragePartnerBedrag(kindNr));
+    }
+    var bijdrage = (this.invoer.getToeslagpartnerWerk() == 'ja' ? wrkgBijdrT : 0);
+    return bijdrage;
+  }
+
+  KindBerekening.prototype.bijdrageUwvGemT = function(kindNr) {
+    var kindBijdragePartner = this.invoer.getKindBijdragePartner(kindNr);
+    var bijdrPartner = 0;
+    if (kindBijdragePartner == '1-6e-deel') {
+      bijdrPartner = this.kotKosten(kindNr) / 6;
+    } else if (kindBijdragePartner == 'anders') {
+      bijdrPartner = parseFloat(this.invoer.getKindBijdragePartnerBedrag(kindNr));
+    }
+    var bijdrage = (this.invoer.getToeslagpartnerBijdrage() == 'ja' ? bijdrPartner : 0);
+    return bijdrage;
+  }
+
+  // -- eind Bijdragetekort toeslagpartner
+
+
+  // -- Uren 
+  KindBerekening.prototype.uren = function(kindNr) {
+    var aantalOpvang = parseInt(this.invoer.getKindKinderopvangAantal(kindNr));
+    if (isNaN(aantalOpvang))
+      aantalOpvang = 0;
+
+    var urenTotal = 0;
+    for (var i = 0; i < aantalOpvang; ++i) {
+      var opvangNr = i + 1;
+      var uren = parseInt(this.invoer.getKindUren(kindNr, opvangNr));
+      urenTotal += (!isNaN(uren) ? uren : 0);
+    }
+    return urenTotal;
+  }
+  // -- eind Uren
+
+
+  // -- KOT Kosten
+  KindBerekening.prototype.kotKosten = function(kindNr) {
+    if (this.jaar.middelen() == "Ja") {
+      return this.totaalKostenBijMiddeling(kindNr);
+    } else {
+      return this.totaalMaximumKosten(kindNr);
+    }
+  }
+
+  KindBerekening.prototype.totaalKostenBijMiddeling = function(kindNr) {
+    if (this.totaalKostenRuimte(kindNr) >= 0) {
+      return this.totaalMaximumUurprijsKosten(kindNr);
+    } else {
+      return this.totaalMaximumUurprijsKosten(kindNr) + this.totaalKostenRuimte(kindNr);
+    }
+  }
+
+  KindBerekening.prototype.totaalKostenRuimte = function(kindNr) {
+    return this.maximumKosten_kostenruimte_(kindNr, 1)[1] + this.maximumKosten_kostenruimte_(kindNr, 2)[1] + this.maximumKosten_kostenruimte_(kindNr, 3)[1];
+  }
+
+  KindBerekening.prototype.totaalMaximumKosten = function(kindNr) {
+    return this.maximumKosten_kostenruimte_(kindNr, 1)[0] + this.maximumKosten_kostenruimte_(kindNr, 2)[0] + this.maximumKosten_kostenruimte_(kindNr, 3)[0];
+  }
+
+  KindBerekening.prototype.totaalMaximumUurprijsKosten = function(kindNr) {
+    return this.maximumUurprijsKosten(kindNr, 1) + this.maximumUurprijsKosten(kindNr, 2) + this.maximumUurprijsKosten(kindNr, 3);
+  }
+
+  KindBerekening.prototype.maximumKosten_kostenruimte_ = function(kindNr, opvangNr) {
+    var aReturn = new Array(0, 0);
+    if (kindNr > 0 && kindNr <= this.kinderen()) {
+      var opvang = this.invoer.getKindOpvang(kindNr);
+      if (opvang != '' && opvang != 'geen' && this.invoer.getKindKinderopvangAantal(kindNr) >= opvangNr) {
+        aReturn[0] = Base.min(this.Kosten(kindNr, opvangNr), this.maximumUurprijsKosten(kindNr, opvangNr)); //Maximum Kosten
+        aReturn[1] = this.Kosten(kindNr, opvangNr) - this.maximumUurprijsKosten(kindNr, opvangNr); //Kostenruimte
+      }
+    }
+    return aReturn;
+  }
+
+  KindBerekening.prototype.Kosten = function(kindNr, opvangNr) {
+    var uren = parseFloat(this.invoer.getKindUren(kindNr, opvangNr));
+    uren = (!isNaN(uren) ? uren : 0);
+    return parseFloat(this.invoer.getKindUurprijs(kindNr, opvangNr)) * uren;
+  }
+
+  KindBerekening.prototype.maximumUurprijsKosten = function(kindNr, opvangNr) {
+    var uren = parseFloat(this.invoer.getKindUren(kindNr, opvangNr));
+    uren = (!isNaN(uren) ? uren : 0);
+    return this.maximumUurprijs(kindNr, opvangNr) * uren;
+  }
+
+
+  KindBerekening.prototype.maximumUurprijs = function(kindNr, opvangNr) {
+    if (kindNr > 0 && kindNr <= this.kinderen()) {
+      var opvang = this.invoer.getKindOpvang(kindNr);
+      var soort_opvanginstelling = this.invoer.getKindSoortOpvanginstelling(kindNr, opvangNr);
+
+      if (opvang == "dagopvang") {
+        if (soort_opvanginstelling == "kindercentrum") {
+          return this.jaar.maxUPDOKC();
+        } else if (soort_opvanginstelling == "gastouderopvang") {
+          return this.jaar.maxUPDOGO();
+        }
+      } else if (opvang == "buitenschoolse-opvang") {
+        if (soort_opvanginstelling == "kindercentrum") {
+          return this.jaar.maxUPBOKC();
+        } else if (soort_opvanginstelling == "gastouderopvang") {
+          return this.jaar.maxUPBOGO();
+        }
+      }
+    }
+    return 0;
+  }
+  // -- einde KOT Kosten
+  // EINDE HulpBerekening KOT
+
+  return KindBerekening;
+}();
+
+// KindBerekening deel Kt/Kgb
+var KindBerekeningKtKgb = function() {
+
+  function KindBerekeningKtKgb(invoer) {
+    this.invoer = invoer;
+  }
+
+  KindBerekeningKtKgb.prototype.kinderen = function() {
+    var kinderen = parseInt(this.invoer.getAanvragerKinderen());
+    if (isNaN(kinderen))
+      kinderen = 0;
+
+    return kinderen;
+  }
+
+  // HulpBer. KT/KGB: returns 0 (no) or 1 (yes)
+  // @param kindNr kind nr, begint bij 1
+  KindBerekeningKtKgb.prototype.tellingKtKgb = function(kindNr) {
+    if (this.kinderen() < kindNr)
+      return 0;
+    else
+    {
+      var kbKind = this.invoer.getKindKbKind(kindNr) == 'nee';
+      var kbOnderhoud = this.invoer.getKindOnderhoud(kindNr) == 'ja' || (this.invoer.getKindOnderhoudA(kindNr) == 'ja' && this.invoer.getKindOnderhoudB(kindNr) == 'ja');
+      var kbInkomensgrens = this.invoer.getKindInkomensgrens(kindNr) == 'ja' || (this.invoer.getKindInkomensgrensA(kindNr) == 'ja' && this.invoer.getKindInkomensgrensB(kindNr) == 'ja');
+      var kbAanvr = this.invoer.getKindKbAanvr(kindNr) == 'ja';
+
+      return kbAanvr || (kbKind && kbOnderhoud && kbInkomensgrens) ? 1 : 0;
+    }
+  }
+  // EINDE HulpBer. KT/KGB
+
+  return KindBerekeningKtKgb;
+}();
+
+var KotBerekening = function() {
+
+  var Base = BerekeningBase;
+
+  function KotBerekening(kindBerekening, invoer)
+  {
+    this.invoer = invoer;
+    this.kindBerekening = kindBerekening;
+  }
+
+  KotBerekening.prototype.kotTotaal = function(jaar) {
+    var totaal = 0;
+    for (var i = 0, amount = this.kindBerekening.kinderen(); i < amount; ++i)
+      totaal += this.kot(i + 1, jaar);
+    return Math.floor(totaal);
+  }
+
+  KotBerekening.prototype.kotTotaalNietAfgerond = function(jaar) {
+    var totaal = 0;
+    for (var i = 0, amount = this.kindBerekening.kinderen(); i < amount; ++i)
+      totaal += this.kot(i + 1, jaar);
+    return Math.floor(totaal * 100) / 100;
+  }
+
+  KotBerekening.prototype.kot = function(kindNr, jaar) {
+    if (this.urenOpvang(kindNr) > 0)
+      return parseFloat(this.kindBerekening.kot(kindNr, jaar));
+    else
+      return 0;
+  }
+
+  // 1, 2, null
+  KotBerekening.prototype.rang = function(kindNr)
+  {
+    var urenOpvang = this.urenOpvang(kindNr);
+    if (urenOpvang == 0)
+      return null;
+    else
+      return this.volgnummer(kindNr) == this.volgnummerMin() ? 1 : 2;
+  }
+
+  // 0 or 1
+  KotBerekening.prototype.telling1 = function(kindNr) {
+    return this.urenOpvang(kindNr) == this.urenOpvangMax() ? 1 : 0;
+  }
+
+  // 0 or 1
+  KotBerekening.prototype.telling2 = function(kindNr) {
+    if (parseInt(this.invoer.getJaar()) < 2015){
+       return this.kotKosten(kindNr) == this.kotKostenMin() ? 1 : 0;
+    } else {
+      return this.kotKosten(kindNr) == this.kotKostenMax() ? 1 : 0;
+    }
+  }
+
+  // int
+  KotBerekening.prototype.urenOpvang = function(kindNr) {
+    if (kindNr > 0 && kindNr <= this.kindBerekening.kinderen()) {
+      var opvang = this.invoer.getKindOpvang(kindNr);
+      if (opvang != '' && opvang != 'geen')
+        return this.kindBerekening.uren(kindNr);
+    }
+
+    return 0;
+  }
+
+  KotBerekening.prototype.urenOpvangMax = function() {
+    var max = 0;
+    for (var i = 0, amount = this.kindBerekening.kinderen(); i < amount; ++i) {
+      var urenOpvang = this.urenOpvang(i + 1);
+      max = Base.max(max, urenOpvang);
+    }
+    return max;
+  }
+
+  // 1 or null
+  KotBerekening.prototype.volgnummer = function(kindNr) {
+    return this.telling2(kindNr) == 1 ? kindNr : null;
+  }
+
+  KotBerekening.prototype.volgnummerMin = function() {
+    var min = null;
+    for (var i = 0, amount = this.kindBerekening.kinderen(); i < amount; ++i) {
+      var volgnummer = this.volgnummer(i + 1);
+      if (min == null)
+        min = volgnummer;
+      else if (volgnummer != null)
+        min = Base.min(min, volgnummer);
+    }
+    return min;
+  }
+
+  // int or null
+  KotBerekening.prototype.kotKosten = function(kindNr) {
+    return this.telling1(kindNr) == 1 ? this.kindBerekening.kotKosten(kindNr) : null;
+  }
+
+  // int or null
+  KotBerekening.prototype.kotKostenMin = function() {
+    var min = null;
+    for (var i = 0, amount = this.kindBerekening.kinderen(); i < amount; ++i)
+    {
+      var kotKosten = this.kotKosten(i + 1);
+      if (min == null)
+        min = kotKosten;
+      else if (kotKosten != null)
+        min = Base.min(min, kotKosten);
+    }
+    return min;
+  }
+  
+  KotBerekening.prototype.kotKostenMax = function() {
+    var max = null;
+    for (var i = 0, amount = this.kindBerekening.kinderen(); i < amount; ++i)
+    {
+      var kotKosten = this.kotKosten(i + 1);
+      if (max == null)
+        max = kotKosten;
+      else if (kotKosten != null)
+        max = Base.max(max, kotKosten);
+    }
+    return max;
+  }
+
+  return KotBerekening;
+}();
+
+var ZtBerekening = function() {
+
+  var PROCENT = .01;
+  var Base = BerekeningBase;
+
+  function ZtBerekening(algemeenBerekening, jaar, wlf, aanvragerInkomenNl, toeslagpartnerInkomenNl, invoer) {
+    this.algemeenBerekening = algemeenBerekening;
+    this.jaar = jaar;
+    this.wlf = wlf;
+    this.aanvragerInkomenNl = aanvragerInkomenNl;
+    this.toeslagpartnerInkomenNl = toeslagpartnerInkomenNl;
+    this.invoer = invoer;
+  }
+
+  ZtBerekening.prototype.zorgtoeslag = function() {
+    var toeslag = this.standaardpremie() - this.normpremie();
+    toeslag = Base.max(0, toeslag);
+    toeslag *= this.factor();
+    toeslag = Math.round(toeslag);
+    toeslag /= 12;
+    toeslag = Math.floor(toeslag);
+    return toeslag;
+  }
+
+  // STANDAARDPREMIE
+  ZtBerekening.prototype.standaardpremie = function() {
+    var standaardpremie = (this.invoer.getAanvragerToeslagpartner() == 'ja' ? this.standaardpremieToeslagpartner() : 0);
+    standaardpremie += this.standaardpremieAanvrager();
+    return standaardpremie;
+  }
+
+  ZtBerekening.prototype.standaardpremieAanvrager = function() {
+    var standaardpremie = this.jaar.wlf() == 'Ja' ? this.jaar.sp() * this.wlfAanvrager() : this.jaar.sp();
+    return standaardpremie;
+  }
+
+  ZtBerekening.prototype.standaardpremieToeslagpartner = function() {
+    var standaardpremie = this.jaar.wlf() == 'Ja' ? this.jaar.sp() * this.wlfToeslagpartner() : this.jaar.sp();
+    return standaardpremie;
+  }
+  // EIND STANDAARDPREMIE
+
+
+  // WLF AANVRAGER
+  ZtBerekening.prototype.wlfAanvrager = function() {
+    return this.invoer.getAanvragerWoonland() == 'Nederland' ? 1 : this.wlfA();
+  }
+
+  ZtBerekening.prototype.wlfA = function() {
+    var inkomenWlf = this.aanvragerInkomenNl.wlf();
+    if (inkomenWlf == 'Land') {
+      var aanvragerWoonland = this.invoer.getAanvragerWoonland();
+      return this.wlf.wlf(aanvragerWoonland);
+    } else {
+      return inkomenWlf;
+    }
+  }
+  // EIND WLF AANVRAGER
+
+
+  // WLF TOESLAGPARTNER
+  ZtBerekening.prototype.wlfToeslagpartner = function() {
+    var woonland = this.invoer.getToeslagpartnerWoonland();
+    if (woonland == "Nederland" || woonland == '- Ander land -') {
+      return 1;
+    } else {
+      return this.wlfT();
+    }
+  }
+
+  ZtBerekening.prototype.wlfT = function() {
+    var bepaling = this.bepaling();
+    if (bepaling === 1) {
+      return this.wlfT1a()
+    } else {
+      return this.wlfT2()
+    }
+  }
+
+  ZtBerekening.prototype.wlfT1a = function() {
+    var wlfT1b = this.wlfT1b();
+    if (wlfT1b == "Land") {
+      var toeslagpartnerWoonland = this.invoer.getToeslagpartnerWoonland();
+      return this.wlf.wlf(toeslagpartnerWoonland);
+    } else {
+      return wlfT1b;
+    }
+  }
+
+  ZtBerekening.prototype.wlfT1b = function() {
+    var cvz = this.invoer.getToeslagpartnerCvz();
+    if (cvz == 'ja')
+      return this.toeslagpartnerInkomenNl.wlf();
+    else
+      return 1;
+  }
+
+  ZtBerekening.prototype.wlfT2 = function() {
+    var wlf2 = this.toeslagpartnerInkomenNl.wlf2();
+    if (wlf2 === "Land") {
+      var toeslagpartnerWoonland = this.invoer.getToeslagpartnerWoonland();
+      return this.wlf.wlf(toeslagpartnerWoonland);
+      //return this.invoer.getToeslagpartnerWoonland();
+    } else {
+      return wlf2;
+    }
+  }
+
+  ZtBerekening.prototype.bepaling = function() {
+    var woonland = this.invoer.getAanvragerWoonland();
+    if (woonland == "Nederland" || woonland == '- Ander land -') {
+      var aanvragerWoonlandOverig = "Nee";
+    } else {
+      var aanvragerWoonlandOverig = "Ja";
+    }
+    if (aanvragerWoonlandOverig === "Ja" && this.aanvragerInkomenNl.wlf() === "Land" && this.jaar.repwlft() === "Ja") {
+      return 2;
+    } else {
+      return 1;
+    }
+  }
+  // EIND WLF TOESLAGPARTNER
+
+
+  // NORMPREMIE
+  ZtBerekening.prototype.normpremie = function() {
+    return this.normpremieTotDrempel() + this.normpremieBovenDrempel();
+  }
+
+  ZtBerekening.prototype.normpremieTotDrempel = function() {
+    return this.jaar.drempel() * this.percentageTotDrempel() * PROCENT;
+  }
+
+  ZtBerekening.prototype.percentageTotDrempel = function() {
+    if (this.invoer.getAanvragerToeslagpartner() == 'ja')
+      return this.jaar.tdmt();
+    else
+      return this.jaar.tda();
+  }
+
+  ZtBerekening.prototype.normpremieBovenDrempel = function() {
+    var normpremie = this.algemeenBerekening.inkomen();
+    normpremie -= this.jaar.drempel();
+    normpremie = Base.max(0, normpremie);
+    normpremie *= this.percentageBovenDrempel() * PROCENT;
+    return normpremie;
+  }
+
+  ZtBerekening.prototype.percentageBovenDrempel = function() {
+    return this.invoer.getAanvragerToeslagpartner() == 'ja' ? this.jaar.bdmt() : this.jaar.bda();
+  }
+  // EIND NORMPREMIE
+
+
+  // FACTOR
+  ZtBerekening.prototype.factor = function() {
+    return this.invoer.getAanvragerToeslagpartner() == 'ja' ? this.factor18plus() : 1;
+  }
+
+  ZtBerekening.prototype.factor18plus = function() {
+    return this.invoer.getToeslagpartnerAchtienPlus() == 'ja' ? this.factorWlf() : 0.5;
+  }
+
+  ZtBerekening.prototype.factorWlf = function() {
+    return this.jaar.wlf() == 'Ja' ? this.factorWoonland() : 1;
+  }
+
+  ZtBerekening.prototype.factorWoonland = function() {
+    var woonland = this.invoer.getToeslagpartnerWoonland();
+    if (woonland === 'Nederland') {
+      return 1;
+    } else if (woonland === '- Ander land -') {
+      return 0.5;
+    } else {
+      return this.factorInkomenNl();
+    }
+  }
+
+  ZtBerekening.prototype.factorInkomenNl = function() {
+    var factor = this.toeslagpartnerInkomenNl.factor()
+    return factor == 'CVZ' ? this.factorCvz() : factor;
+  }
+
+  ZtBerekening.prototype.factorCvz = function() {
+    return this.invoer.getToeslagpartnerCvz() == 'ja' ? 1 : 0.5;
+  }
+  // EIND FACTOR
+
+  return ZtBerekening;
+}();

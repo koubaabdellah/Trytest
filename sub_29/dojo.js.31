@@ -1,0 +1,105 @@
+(function() {
+  var node_modules = "./node_modules";
+
+  /**
+   * /!\ WARNING
+   * apiUrl and dojo_modules are replaced by the portal build   
+   * to point to the single API folder.
+   */
+  var apiUrl = "./js/arcgis-js-api";
+  var dojo_modules = "./node_modules";
+
+  var isIE11 = !!window.MSInputMethodContext && !!document.documentMode;
+
+  dojoConfig = {
+    baseUrl: "./",
+    has: {
+      "esri-layerlist-new-ui": 1,
+      "esri-basemaplayerlist-new-ui": 1
+    },
+    async: true,
+    jsapiUrl: !isIE11 ? new URL(apiUrl + "/esri", document.baseURI).href : null,
+    packages: [
+      { name: "config", location: "./js/config" },
+      { name: "app", location: "./js/app" },
+      { name: "calcite-web", location: "./js/calcite/dist" },
+      { name: "telemetry", location: "./js/telemetry/dist" },
+      { name: "arcgis-components", location: "./js/arcgis-components/dist" },
+      { name: "ago-globalnav-resources", location: "./js/ago-globalnav-resources/dist" },
+      { name: "components", location: "./js/components" },
+
+      { name: "dojo", location: dojo_modules + "/dojo" },
+      { name: "dojox", location: dojo_modules + "/dojox" },
+      { name: "dijit", location: dojo_modules + "/dijit" },
+
+      { name: "esri", location: apiUrl + "/esri" },
+      { name: "moment", location: node_modules + "/moment", main: "moment" },
+      { name: "hotkeys-js", location: node_modules + "/hotkeys-js/dist", main: "hotkeys" },
+      { name: "esri-global-nav", location: node_modules + "/esri-global-nav/dist", main: "esri-global-nav" },
+      // {
+      //   name: "intersection-observer",
+      //   location: `${node_modules}/intersection-observer`,
+      //   main: "intersection-observer"
+      // },
+      { name: "whatwg-fetch", location: node_modules + "/whatwg-fetch", main: "dist/fetch.umd" },
+      { name: "maquette", location: node_modules + "/maquette", main: "dist/maquette.umd" },
+      { name: "maquette-jsx", location: node_modules + "/maquette-jsx", main: "dist/maquette-jsx.umd" },
+      { name: "resize-observer-polyfill", location: node_modules + "/resize-observer-polyfill", main: "dist/ResizeObserver" },
+      {
+        name: "maquette-css-transitions",
+        location: node_modules + "/maquette-css-transitions",
+        main: "dist/maquette-css-transitions.umd"
+      },
+      { name: "@dojo", location: node_modules + "/@dojo" },      
+      { name: "cldrjs", location: node_modules + "/cldrjs", main: "dist/cldr" },
+      { name: "globalize", location: node_modules + "/globalize", main: "dist/globalize" },
+      { name: "tslib", location: node_modules + "/tslib", main: "tslib" },
+      { name: "later", location: "./js/later", main: "later" },
+      { name: "arcgis-charts-shared-utils", location: node_modules + "/@arcgis/charts-shared-utils", main: "dist/amd/index" }
+    ]
+  };
+
+  function getCookieItem(sKey) {
+    return (
+      decodeURIComponent(
+        document.cookie.replace(
+          new RegExp(
+            "(?:(?:^|.*;)\\s*" + encodeURIComponent(sKey).replace(/[\-\.\+\*]/g, "\\$&") + "\\s*\\=\\s*([^;]*).*$)|^.*$"
+          ),
+          "$1"
+        )
+      ) || null
+    );
+  }
+
+  var rtlLocales = ["ar", "he"],
+    urlLocale = location.search.match(/locale=([\w-]+)/) ? RegExp.$1 : null,
+    browserLocale = navigator.language ? navigator.language : navigator.userLanguage, //default dojoConfig.locale to browser language when no cookie present
+    esriLocale = getCookieItem("esri_locale"),        
+    locale,
+    isRTL = false,
+    dirNode = document.getElementsByTagName("html")[0];
+  
+  if (urlLocale) {
+    locale = urlLocale;
+  } else {
+    if (esriLocale) {
+      locale = esriLocale;    
+    } else {
+      locale = (browserLocale && browserLocale) || "en-us";
+    }
+  }
+  
+  for (var i = 0; i < rtlLocales.length; i++) {
+    isRTL = locale.toLowerCase().indexOf(rtlLocales[i]) !== -1;
+    if (isRTL) {
+      break;
+    }
+  }
+
+  dojoConfig.locale = (locale && locale.toLowerCase()) || "en-us";
+  dirNode.setAttribute("dir", isRTL ? "rtl" : "ltr");
+  dirNode.setAttribute("lang", locale);
+  dirNode.className += isRTL ? " esriRtl" : " esriLtr";
+  dirNode.className += " " + locale + " " + (locale.indexOf("-") !== -1 ? locale.split("-")[0] : "");
+})();

@@ -1,0 +1,1980 @@
+var sVersie = '1.87.09.04 - xls:1.50.06';
+var bShowBerekeningDetails = false;
+
+function fillDatepickers(jaar) {
+  var errTextMax = 'U bent te jong om toeslag te kunnen krijgen';
+  addDatepicker($('#input-aanvrager-geboortedatum'), (parseInt(jaar) - 110).toString() + ':' + (parseInt(jaar) - 12).toString(), errTextMax);
+  addDatepicker($('#input-toeslagpartner-geboortedatum'), (parseInt(jaar) - 110).toString() + ':' + (parseInt(jaar) - 12).toString(), errTextMax);
+  addDatepicker($('#input-medebewoner-geboortedatum-1'), (parseInt(jaar) - 110).toString() + ':' + jaar);
+  addDatepicker($('#input-medebewoner-geboortedatum-2'), (parseInt(jaar) - 110).toString() + ':' + jaar);
+  addDatepicker($('#input-medebewoner-geboortedatum-3'), (parseInt(jaar) - 110).toString() + ':' + jaar);
+  addDatepicker($('#input-medebewoner-geboortedatum-4'), (parseInt(jaar) - 110).toString() + ':' + jaar);
+  addDatepicker($('#input-medebewoner-geboortedatum-5'), (parseInt(jaar) - 110).toString() + ':' + jaar);
+}
+
+function addDatepicker(obj, year, errTextMax) {
+  if (year === undefined || year === '')
+    year = (new Date).getFullYear() + ':' + (new Date).getFullYear();
+  aYear = year.split(':');
+  yearChange = (aYear[0] === aYear[1]) ? false : true;
+  defaultYear = aYear[1];
+  $(obj).datepicker({
+    yearRange: year,
+    changeMonth: true,
+    constrainInput: true,
+    changeYear: yearChange,
+    showOn: 'button',
+    buttonImage: '../js/ui/calendar.gif',
+    buttonText: 'kalender tonen of verbergen',
+    buttonImageOnly: true,
+    dateFormat: 'dd-mm-yy',
+    defaultDate: '01-01-' + defaultYear,
+    minDate: '01-01-' + aYear[0],
+    maxDate: '31-12-' + aYear[1],
+    showButtonPanel: true,
+    closeText: 'Sluiten',
+    //autoclose: true,
+    beforeShow: function () {
+      //$(obj).prop("disabled", true);
+    },
+    onClose: function () {
+      //$(obj).prop("disabled", false);
+      updateForm();
+    }
+  });
+
+  $.datepicker.regional['nl'] = {
+    clearText: 'Effacer', clearStatus: '',
+    closeText: 'sluiten', closeStatus: 'Onveranderd sluiten ',
+    prevText: '<vorige', prevStatus: 'Zie de vorige maand',
+    nextText: 'volgende>', nextStatus: 'Zie de volgende maand',
+    currentText: 'Huidige', currentStatus: 'Bekijk de huidige maand',
+    monthNames: ['januari', 'februari', 'maart', 'april', 'mei', 'juni',
+      'juli', 'augustus', 'september', 'oktober', 'november', 'december'],
+    monthNamesShort: ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun',
+      'jul', 'aug', 'sep', 'okt', 'nov', 'dec'],
+    monthStatus: 'Bekijk een andere maand', yearStatus: 'Bekijk nog een jaar',
+    weekHeader: 'Sm', weekStatus: '',
+    dayNames: ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'],
+    dayNamesShort: ['zo', 'ma', 'di', 'wo', 'do', 'vr', 'za'],
+    dayNamesMin: ['zo', 'ma', 'di', 'wo', 'do', 'vr', 'za'],
+    dayStatus: 'Gebruik DD als de eerste dag van de week', dateStatus: 'Kies DD, MM d',
+    dateFormat: 'dd/mm/yy', firstDay: 1,
+    initStatus: 'Kies een datum', isRTL: false
+  };
+  $.datepicker.setDefaults($.datepicker.regional['nl']);
+
+  $(obj).blur(function (e) {
+    checkDatePicker(this, true, errTextMax);
+  });
+}
+
+function checkDatePicker(oThis, bAlert, errTextMax, errTextMin) {
+  var string = oThis.value;
+  var showDatePicker = false;
+  var hideDatePicker = false;
+  range = $('#' + oThis.id).datepicker('option', 'minDate') + ':' + $('#' + oThis.id).datepicker('option', 'maxDate');
+  var errortxt = new Array();
+  var bValid = true;
+
+  if (string === '') {
+    return [false, errortxt, string];
+  }
+
+  //	if (string == $("#" + oThis.id).datepicker("option", "defaultDate")) {
+  //		errortxt[0] = "Selecteer de geboortedatum of vul deze handmatig in. Vul de datum als volgt in: dd-mm-jjjj.";
+  //		return [false, errortxt, string];
+  //	}
+  // valideer geldigheid datum    ( bijvoorbeeld 30-2-2014 > fout )
+  var aString = string.split('-');
+  d = new Date(parseInt(aString[2], 10), parseInt(aString[1], 10) - 1, parseInt(aString[0], 10));
+  if (d.getDate() != parseInt(aString[0], 10) || d.getMonth() != (parseInt(aString[1], 10) - 1) || d.getFullYear() != parseInt(aString[2], 10)) {
+    errortxt[0] = 'De datum is niet geldig. Vul de datum als volgt in: dd-mm-jjjj.';
+    bValid = false;
+  }
+
+  // valideer beperking jaartallen   ( bijvoorbeeld: 2020  i.c.m. range '2000:2010' )
+  var aRange = range.split(':');
+  var aString = aRange[0].split('-');
+  var dMin = new Date(parseInt(aString[2], 10), parseInt(aString[1], 10) - 1, parseInt(aString[0], 10));
+  var aString = aRange[1].split('-');
+  var dMax = new Date(parseInt(aString[2], 10), parseInt(aString[1], 10) - 1, parseInt(aString[0], 10));
+  if (d < dMin) {
+    if (typeof (errTextMin) != 'undefined' && errTextMin != '') {
+      errortxt[0] = errTextMin;
+    } else {
+      errortxt[0] = 'De datum mag niet voor ' + aRange[0] + ' liggen.';
+    }
+    bValid = false;
+  } else if (d > dMax) {
+    if (typeof (errTextMax) != 'undefined' && errTextMax != '') {
+      errortxt[0] = errTextMax;
+    } else {
+      errortxt[0] = 'De datum mag niet na ' + aRange[1] + ' liggen.';
+    }
+    bValid = false;
+  }
+
+  //	$("#" + oThis.id).datepicker("hide")
+  $('#error' + oThis.id).remove();
+  if (bAlert == true && errortxt.length > 0) {
+    if (showDatePicker === true) {
+      $('#' + oThis.id).datepicker('show');
+    }
+    $('#' + oThis.id).after('<div id="error' + oThis.id + '" class="errorMelding"><p> ' + errortxt[0] + '</p></div>');
+
+  }
+
+  return [bValid, errortxt, string];
+}
+
+function Wissen() {
+  document.getElementById('Berekening').reset();
+}
+
+function algValidatie() {
+  function assertNotZero(element) {
+    var value = parseInt(element.value);
+    if (!isNaN(value) && value == 0)
+      element.value = '';
+  }
+
+  assertNotZero(document.getElementById('Berekening')['woning-huur']);
+}
+
+function doShowResultsDevelop(bSwitch) {
+  if (bSwitch == true) {
+    $('#resultaten').addClass('all-visible');
+  } else {
+    $('#resultaten').removeClass('all-visible');
+  }
+}
+
+function showBerekeningDetails(bSwitch) {
+  bShowBerekeningDetails = bSwitch;
+  var log = document.getElementById('log');
+  if (log) {
+    if (bSwitch == true)
+      addClass_utils(log, 'visible');
+    else
+      removeClass_utils(log, 'visible');
+  }
+}
+
+/**
+ alle vragen tonen ja/nee
+ */
+function showFullForm(bSwitch) {
+  var container = document.getElementById('divContainer');
+  if (bSwitch) {
+    addClass_utils(container, 'visible');
+  } else {
+    removeClass_utils(container, 'visible');
+  }
+}
+
+/**
+ aangeroepen als een toeslagen wordt aan- of uitgezet
+ */
+function updateToeslagenAllOnOrOff() {
+  var ids = ['huurtoeslag', 'kindgebonden-budget', 'kinderopvangtoeslag', 'zorgtoeslag'];
+  var allOn = true;
+  var allOff = true;
+  for (var i = 0, sz = ids.length; i != sz; ++i) {
+    if (document.getElementById(ids[i]).className.match(/(^|\s)visible(\s|$)/)) {
+      var checked = document.getElementById('Berekening')[ids[i]].checked;
+      if (!checked) {
+        allOn = false;
+      } else {
+        allOff = false;
+      }
+    }
+  }
+  document.getElementById('Berekening')['kies-alle-toeslagen'].checked = allOn;
+
+  // show extra message if at least one option is selected
+  var extraDiv = document.getElementById('keuze-toeslagen-extra');
+  if (allOff)
+    addClass_utils(extraDiv, 'invisible');
+  else
+    removeClass_utils(extraDiv, 'invisible');
+
+}
+
+/**
+ aangeroepen als op 'alle toeslagen wordt geklikt
+ */
+function onAlleToeslagen() {
+  var ids = ['huurtoeslag', 'kindgebonden-budget', 'kinderopvangtoeslag', 'zorgtoeslag'];
+
+  var allOn = true;
+  for (var i = 0, sz = ids.length; i != sz; ++i)
+    if (document.getElementById(ids[i]).className.match(/(^|\s)visible(\s|$)/))
+      if (!document.getElementById('Berekening')[ids[i]].checked)
+        allOn = false;
+
+  for (var i = 0, sz = ids.length; i != sz; ++i)
+    document.getElementById('Berekening')[ids[i]].checked = !allOn;
+
+  // show extra message if at least one option is selected
+  var extraDiv = document.getElementById('keuze-toeslagen-extra');
+  if (allOn)
+    addClass_utils(extraDiv, 'invisible');
+  else
+    removeClass_utils(extraDiv, 'invisible');
+
+  updateForm();
+  return true;
+}
+
+/**
+ * enables or disables all elements in a form element
+ *
+ * @param formElement form element containing the inputs to disable or enable
+ * @param isEnabled \c true to enable elements, \c false to disable elements
+ */
+function enableForm(formElement, isEnabled) {
+  for_each(['select', 'input', 'button'], function (tag) {
+    for_each(formElement.getElementsByTagName(tag), function (input) {
+      input.disabled = !isEnabled;
+      // if (isEnabled) removeClass_utils(input,"inputDisabled");
+      // else if (!isEnabled) addClass_utils(input,"inputDisabled");
+      // input.style.color = isEnabled?"#000000:#333333";
+    });
+  });
+}
+
+function Bereken() {
+  SluitHelp();
+  // uitrekenen en zichtbaar maken van juiste resultaten gebeurt in interface.js
+  // hier slechts het tonen van het resultatenblok en het disablen van de invoer
+  addClass_utils(document.getElementById('resultaten'), 'visible');		// resultaten tonen
+  addClass_utils(document.getElementById('divButtons'), 'invisible');	// Bereken knop verbergen
+  enableForm(document.getElementById('Berekening'), false); // formulier onwijzigbaar maken
+  document.getElementById('resultaat-wijzigen-button-1').disabled = false; // wijzigknop wel actief maken
+  document.getElementById('resultaat-wijzigen-button-2').disabled = false; // wijzigknop wel actief maken
+
+
+  // disable all IAH toetsingsinkomen links
+  $('.link-toetsingsinkomen').addClass('disabled'); // remove link style
+  $('.link-toetsingsinkomen').removeAttr('href'); // prevent focus and pointer
+  $('.link-toetsingsinkomen').off(); // remove click event
+  $('.link-toetsingsinkomen').prev('img').hide(); // remove link-arrow
+
+  $('img.ui-datepicker-trigger').hide();
+
+  // zet het resultaat op de juiste positie op het scherm
+
+  //window.location.hash = "resultaten";
+  //  if(iAantalToeslagen > 1) {
+  //    aPos=findPos(document.getElementById("resultaten"),3)
+  //    window.scrollTo(aPos[0],aPos[1]-5);
+  //  }
+  $('html,body').animate({ scrollTop: $('#resultaten').offset().top }, 'slow');
+
+}
+
+function doOpnieuw() {
+  SluitHelp();
+  removeClass_utils(document.getElementById('resultaten'), 'visible');		// resultaten weer verbergen
+  removeClass_utils(document.getElementById('divButtons'), 'invisible');	// Berekenknop weer tonen
+  enableForm(document.getElementById('Berekening'), true); // formulier weer wijzigbaar maken
+
+  // enable all IAH toetsingsinkomen links
+  $('.link-toetsingsinkomen').removeClass('disabled');
+  $('.link-toetsingsinkomen').attr('href', 'javascript://');
+  setLinkToetsingsinkomen(); // add clickevent to link
+  $('.link-toetsingsinkomen').prev('img').show();
+
+  $('img.ui-datepicker-trigger').show();
+}
+
+
+function doTussenresultaat(id, niettoevoegen) {
+  addClass_utils(document.getElementById(id), 'visible'); // tussenresultaat tonen
+  addClass_utils(document.getElementById('tussenresultaten'), 'visible'); // tussenresultatenblok tonen
+  $('#fsUitvoerTussenresultaat legend').show();
+  addClass_utils(document.getElementById('divButtons'), 'invisible');	// Bereken knop verbergen
+  enableForm(document.getElementById('Berekening'), false); // formulier onwijzigbaar maken
+  var tussenresultaatVerder = document.getElementById('tussenresultaat-Verder-button');
+  tussenresultaatVerder.disabled = false; //  wijzigknop wel actief maken
+
+  // bij onclick tussenresultaat verwijderen en toevoegen aan lijst van tussenresultaten die we al kennen
+  tussenresultaatVerder.onclick = function (id) {
+    return function () {
+      eindeTussenresultaat(id, niettoevoegen);
+    };
+  }(id);
+}
+
+function eindeTussenresultaat(id, niettoevoegen) {
+  document.getElementById('Berekening')['tussenresultaten-negeren'].value += ' ' + id;
+
+  removeClass_utils(document.getElementById(id), 'visible'); // tussenresultaat verbergen
+  removeClass_utils(document.getElementById('tussenresultaten'), 'visible');	// tussenresultatenblok weer verbergen
+  removeClass_utils(document.getElementById('divButtons'), 'invisible');	// Bereken knop weer tonen
+  enableForm(document.getElementById('Berekening'), true); // formulier wijzigbaar maken
+
+  // onchange aanroepen zodat de workflow herstart wordt
+  window.setTimeout(function () {
+    document.getElementById('Berekening')['tussenresultaten-negeren'].onchange();
+  }, 0);
+
+}
+
+// when jaar changes, the form should be reset
+/**
+ * generate debug message for calculations
+ *
+ * @param theCase case
+ *
+ * @return string
+ */
+function getDebug(theCase) {
+  var message = '';
+
+  message += '<h3>Casusattributen </h3>';
+  for (var i in theCase)
+    if (typeof theCase[i] != 'function' && i != 'tokens' && i != 'form' && i != 'formValues' && i != 'invoer' && i != 'visibleElements')
+      message += '<p><label>' + i + '</label>:' + theCase[i] + '</p>';
+
+  message += '<h3>Ingevulde velden</h3>';
+  for (var i in theCase.formValues)
+    message += '<p><label>' + i + '</label>:' + theCase.formValues[i] + '</p>';
+
+  message += '<h3>Berekening Huurtoeslag</h3>\n';
+  var htBerekening = new HtBerekening(new HTjaar(theCase.formValues['woning-htjaar']), new CaseInput(theCase));
+  for (var i in htBerekening)
+    if (typeof htBerekening[i] == 'function')
+      message += '<p>' + i + '=' + htBerekening[i]() + '</p>\n';
+
+  message += '<h3>Berekening Kindgebonden budget</h3>\n';
+  var jaarTableAccess = new Jaar(theCase.formValues['jaar']);
+  var algemeenBerekening = new AlgemeenBerekening(jaarTableAccess, new CaseInput(theCase));
+  var kindBerekeningKtKgb = new KindBerekeningKtKgb(new CaseInput(theCase));
+  var kgbBerekening = new KgbBerekening(algemeenBerekening, kindBerekeningKtKgb, jaarTableAccess, new CaseInput(theCase));
+  for (var i in kgbBerekening)
+    if (typeof kgbBerekening[i] == 'function')
+      message += '<p>' + i + '=' + kgbBerekening[i]() + '</p>\n';
+
+  message += '<h3>Berekening Kinderopvangtoeslag</h3>\n';
+  var jaarTableAccess = new Jaar(theCase.formValues['jaar']);
+  var algemeenBerekening = new AlgemeenBerekening(jaarTableAccess, new CaseInput(theCase));
+  var kottTableAccess = new Kott(theCase.formValues['jaar']);
+  var kindBerekening = new KindBerekening(algemeenBerekening, jaarTableAccess, kottTableAccess, new CaseInput(theCase));
+  var kotBerekening = kindBerekening.kotBerekening;
+  for (var i in kotBerekening)
+    if (typeof kotBerekening[i] == 'function')
+      message += '<p>' + i + '=' + kotBerekening[i]() + '</p>\n';
+
+  message += '<h3>Berekening Zorgtoeslag</h3>\n';
+  var jaarTableAccess = new Jaar(theCase.formValues['jaar']);
+  var algemeenBerekening = new AlgemeenBerekening(jaarTableAccess, new CaseInput(theCase));
+  var wlfTableAccess = new Wlf(theCase.formValues['jaar']);
+  var aanvragerInkomenNlTableAccess = new AanvragerInkomenNl(theCase.formValues['aanvrager-inkomen-nl']);
+  var toeslagpartnerInkomenNlTableAccess = new ToeslagpartnerInkomenNl(theCase.formValues['toeslagpartner-inkomen-nl']);
+  var ztBerekening = new ZtBerekening(
+    algemeenBerekening,
+    jaarTableAccess,
+    wlfTableAccess,
+    aanvragerInkomenNlTableAccess,
+    toeslagpartnerInkomenNlTableAccess,
+    new CaseInput(theCase));
+  for (var i in ztBerekening)
+    if (typeof ztBerekening[i] == 'function')
+      message += '<p>' + i + '=' + ztBerekening[i]() + '</p>\n';
+
+  return message;
+}
+
+/**
+ * Handles the workflow of the form
+ *
+ * Shows/hides elements according to entered values
+ */
+
+
+var processFlow = function () {
+  var visibleInputIdsCache = {}; // caching of inputs ids that are currently visible
+  var visibleEndResultsCache = {}; // caching of end-result ids that are currently visible
+
+
+  function processFlow() {
+    // maak casus en start flow
+    var theCase = {};
+    theCase.v_selDatum = new Date(parseInt(document.getElementById('selectJaar').value), 00, 01);
+    theCase.v_selEindDatum = new Date(parseInt(document.getElementById('selectJaar').value), 11, 31);
+    theCase['tussenresultaten-negeren'] = document.getElementById('Berekening')['tussenresultaten-negeren'].value;
+    theCase.form = document.getElementById('Berekening');
+    theCase.formValues = {};
+    Toeslagen.workflow.flowMain(theCase);
+
+    // hide input elements that are visible in cache, but not in visible elements list
+    for (var id in visibleInputIdsCache) {
+
+      if (theCase.visibleElements == undefined || theCase.visibleElements[id] == undefined) {
+        removeClass_utils(document.getElementById(id), 'visible');
+
+        //BEGIN workaround voor weergave proleem in IE met onjuist herpositioneren van help-icons en legends na verbergen fsToeslagpartner.
+        if (id == 'fsToeslagpartner') {
+          if (hasClass_utils(document.getElementById('fsWoning'), 'visible')) {
+            document.getElementById('fsWoning').style.display = 'block';
+            document.getElementById('fsWoning').style.display = 'none';
+          }
+          if (hasClass_utils(document.getElementById('fsKinderen'), 'visible')) {
+            document.getElementById('fsKinderen').style.display = 'block';
+            document.getElementById('fsKinderen').style.display = 'none';
+          }
+        }
+        //EINDE workaround voor weergave proleem in IE met onjuist herpositioneren van help-icons en legends na verbergen fsToeslagpartner.
+
+      }
+    }
+    // show input elements that are not visible in cache, but are in visible elements list
+    for (var id in (theCase.visibleElements || {})) {
+      if (visibleInputIdsCache[id] == undefined)
+        addClass_utils(document.getElementById(id), 'visible');
+
+      //BEGIN workaround voor weergave proleem in IE met onjuist herpositioneren van help-icons en legends na verbergen fsToeslagpartner.
+      if (id == 'fsWoning') {
+        document.getElementById('fsWoning').style.display = 'block';
+        document.getElementById('fsWoning').style.display = 'none';
+      }
+      if (id == 'fsKinderen') {
+        document.getElementById('fsKinderen').style.display = 'block';
+        document.getElementById('fsKinderen').style.display = 'none';
+      }
+      //EINDE workaround voor weergave proleem in IE met onjuist herpositioneren van help-icons en legends na verbergen fsToeslagpartner.
+
+    }
+    // update cache
+    visibleInputIdsCache = theCase.visibleElements || {};
+
+    // enable/disable Bereken button
+    document.getElementById('but_bereken').disabled = !(theCase.eindconclusie == true);
+    DisableBerekenButton('but_bereken', !(theCase.eindconclusie == true));
+
+    // show end results
+    var visibleEndResults = Toeslagen.getEndResults(theCase);
+    // hide visible end results that should not be visible now
+    for (var id in visibleEndResultsCache) {
+      var visible = false; // assume no longer visible
+      for (var i = 0; i < visibleEndResults.length; ++i) {
+        var visibleId = visibleEndResults[i];
+        if (visibleId == id) {
+          visible = true;
+          break;
+        }
+      }
+      if (!visible)
+        removeClass_utils(document.getElementById(id), 'visible');
+    }
+    // show invisible elements that should be visible now
+    for (var i = 0; i < visibleEndResults.length; ++i) {
+      var id = visibleEndResults[i];
+      var visible = false; // assume invisible
+      for (var visibleId in visibleEndResultsCache) {
+        if (visibleId == id) {
+          visible = true;
+          break;
+        }
+      }
+      if (!visible)
+        addClass_utils(document.getElementById(id), 'visible');
+    }
+    // update cache
+    visibleEndResultsCache = {};
+    for (var i = 0; i < visibleEndResults.length; ++i)
+      visibleEndResultsCache[visibleEndResults[i]] = visibleEndResults[i];
+
+    // store results from the case in the document (for dynamic text parts)
+    document.getElementById('Berekening')['result-toeslag-toegekend'].value = theCase['toeslag-toegekend'];
+    document.getElementById('Berekening')['result-toeslag-gekozen'].value = theCase['toeslag-gekozen'];
+    document.getElementById('Berekening')['result-toeslag-totaal'].value = theCase['toeslag-totaal'];
+    document.getElementById('Berekening')['result-huurgrens'].value = theCase.huurgrens;
+    document.getElementById('Berekening')['result-doelgroepgrens'].value = theCase.doelgroepgrens;
+    document.getElementById('Berekening')['result-huishouden'].value = theCase.huishouden;
+    document.getElementById('Berekening')['result-huurtoeslag'].value = document.getElementById('Berekening')['result-toeslag-toegekend'].value.match(/(^|\s)huurtoeslag(\s|$)/) != null ? theCase.huurtoeslag : 0;
+    document.getElementById('Berekening')['result-kindgebonden-budget'].value = document.getElementById('Berekening')['result-toeslag-toegekend'].value.match(/(^|\s)kindgebonden-budget(\s|$)/) != null ? theCase['kindgebonden-budget'] : 0;
+    document.getElementById('Berekening')['result-kinderopvangtoeslag'].value = document.getElementById('Berekening')['result-toeslag-toegekend'].value.match(/(^|\s)kinderopvangtoeslag(\s|$)/) != null ? theCase.kinderopvangtoeslag : 0;
+    document.getElementById('Berekening')['result-kinderopvangtoeslag-totaal'].value = theCase.kinderopvangtoeslagNietAfgerond;
+    if (theCase.formValues['aanvrager-kinderen'] !== undefined) {
+      for (var i = 0; i < theCase.formValues['aanvrager-kinderen']; ++i) {
+        document.getElementById('Berekening')['result-kinderopvangtoeslag-' + (i + 1)].value = theCase['kinderopvangtoeslag-' + (i + 1)];
+      }
+    }
+    document.getElementById('Berekening')['result-zorgtoeslag'].value = document.getElementById('Berekening')['result-toeslag-toegekend'].value.match(/(^|\s)zorgtoeslag(\s|$)/) != null ? theCase.zorgtoeslag : 0;
+
+    // logging (if enabled)
+    if (bShowBerekeningDetails == true) {
+      var log = document.getElementById('log');
+      if (log)
+        log.innerHTML = getDebug(theCase);
+    }
+  }
+
+  return processFlow;
+}();
+
+/**
+ * werkt het formulier bij
+ */
+var updateForm = function () {
+  var updating = false;	// flag to make sure updateForm is not called recursively
+
+  function updateForm() {
+    SluitHelp(); /* mdb 20-12 tbv Toeslagen */
+    dat = new Date();
+    msec1 = dat.getTime();
+    sTemp = '';
+
+    if (!updating) {
+      updating = true;
+      try {
+        processFlow();
+        dat = new Date();
+        msec2 = dat.getTime();
+        sTemp += '1. ' + (msec2 - msec1) + ' (processFlow)';
+        updateFormVisibility();
+        dat = new Date();
+        msec3 = dat.getTime();
+        sTemp += '<br />2. ' + (msec3 - msec2) + ' (updateFormVisibility)';
+        updateFormContent();
+        dat = new Date();
+        msec4 = dat.getTime();
+        sTemp += '<br />3. ' + (msec4 - msec3) + ' (updateFormContent)';
+        checkAlert();
+        /* 				var temp = "ggg"; */
+      } finally {
+        updating = false;
+      }
+    }
+    dat = new Date();
+    msec5 = dat.getTime();
+    sTemp += '<br />4. ' + (msec5 - msec4) + ' (checkAlert)';
+    if (location.search.substring(1) == 'alert') {
+      if (!document.getElementById('debug')) {
+        $('.size14').append('<div id="debug"></div>');
+      }
+      $('#debug').html(sTemp);
+      $('#debug').css('margin-top', window.mouseYPos - 200);
+      //	alert(sTemp + " - " + window.mouseYPos)
+    }
+  }
+
+  function checkAlert() {
+    try {
+      if (oAlert != '') {
+        alert(getInnerText(oAlert, true));
+        //theCase.tussenresultaat = oAlert.id;
+        document.getElementById('Berekening')['tussenresultaten-negeren'].value += ' ' + oAlert.id;
+      }
+    } catch (e) {
+    }
+  }
+
+  return updateForm;
+}();
+
+/**
+ * instellen van handlers voor onclick/onchange/onblur etc. events
+ *
+ * @note de event handlers worden toegevoegd aan de eventcode die in het html-formulier is geplaatst
+ */
+
+function setEventHandlers() {
+  /* mdb 17-03-2011: alleen voor test/debug */
+  if (location.search.substring(1) == 'alert') {
+    $(document).ready(function () {
+      $().mousemove(function (e) {
+        window.mouseXPos = e.pageX;
+        window.mouseYPos = e.pageY;
+      });
+    });
+  }
+  // reset form when changing jaar
+  document.getElementById('selectJaar').onchange = function () {
+    var jaar = this.value;
+    document.getElementById('Berekening').reset();
+
+    var extraDiv = document.getElementById('keuze-toeslagen-extra');
+    addClass_utils(extraDiv, 'invisible');
+
+    // set some form controls manually, because they are hidden and
+    // some browsers do not reset hidden controls
+    document.getElementById('Berekening')['tussenresultaten-negeren'].value = '';
+    for (var elements = Toeslagen.getElementsByClassName('input-set-amount'), i = 0; i < elements.length; ++i) {
+      elements[i].value = 1; // reset to lines of expandable input sets to 1
+    }
+    updateExpandableInputSet(); // update the visibility of expandable inputs
+    SluitHelp();
+    this.value = jaar;
+    fillSelectFields(jaar);
+    fillDatepickers(jaar);
+  };
+
+  // register onclick on form (onclicks should  bubble up)
+  document.getElementById('Berekening').onclick = function onclickUpdate(e) {
+    // bepaal de target
+    var event = e || window.event;
+    var target = event.target || event.srcElement;
+    sFieldFocus = target.name == undefined ? target.parentNode.name : target.name;
+    if (target.getAttribute('type') && target.getAttribute('type').match(/^(radio|checkbox)$/))
+      updateForm(target);
+    return true;
+  };
+
+  $('a.edithref').click(function () {
+    edithref(this);
+    return false;
+  });
+
+  // create list of all input elements
+  var inputs = [];
+  for_each(document.getElementsByTagName('input'), function (input) {
+    inputs.push(input);
+  });
+  for_each(document.getElementsByTagName('select'), function (input) {
+    inputs.push(input);
+  });
+
+  // hook up event handlers
+  for_each(inputs, function (input) {
+    var type = input.getAttribute('type');
+
+    // gedrag voor textvelden
+    if (type === 'text') {
+      var old = (typeof (input.onblur) === 'function' ? input.onblur : function () {
+        return true;
+      });
+      input.onblur = function (old) {
+        return function () {
+          var r = old.call(this);
+          updateForm();
+          return r;
+        };
+      }(old);
+
+      var old = (typeof (input.onkeyup) === 'function' ? input.onkeyup : function () {
+        return true;
+      });
+      input.onkeyup = function (old) {
+        return function () {
+          var r = old.call(this);
+          updateForm();
+          return r;
+        };
+      }(old);
+
+      // fix for TAB. the form needs to be updated otherwise the focus is not put on an input element that is about to be shown
+      var old = input.onkeydown;
+      input.onkeydown = function (old) {
+        return function (event) {
+          var r = (typeof old == 'function' ? old.call(this) : true);
+          var event = event || window.event;
+          var target = event.target || event.srcElement;
+          sFieldFocus = target.name == undefined ? target.parentNode.name : target.name;
+          var code = event ? (event.which ? event.which : event.keyCode) : undefined; // key code
+          if (code == 9) { // tab pressed?
+            updateForm();
+          }
+          return r;
+        };
+      }(old);
+    }
+
+    // bijwerken formulier op onchange van select en hidden
+    if (input.nodeName.toLowerCase() === 'select' || type === 'hidden') {
+      var old = (typeof (input.onchange) === 'function' ? input.onchange : function () {
+      });
+      input.onchange = function (old) {
+        return function (e) {
+          if (e != undefined) {
+            var event = e || window.event;
+            var target = event.target || event.srcElement;
+            sFieldFocus = target.name == undefined ? target.parentNode.name : target.name;
+          }
+          old.call(this);
+          window.setTimeout(updateForm, 0);
+        };
+      }(old);
+    }
+  });
+}
+
+/**
+ * fills fields with table data
+ *
+ * these fields do not change while the user fills in the form
+ */
+function fillSelectFields(jaarTemp) {
+  // woonland aan de hand van tabel WLF
+  for_each(Toeslagen.getElementsByClassName('input-woonland'), function (select) {
+    var woonland = select;
+    woonland.options.length = 0;
+    var cnt = 0;
+    for (var i in Tabellen.WLF)
+      if (Tabellen.WLF[i][jaarTemp] != undefined) {
+        woonland.options[cnt++] = new Option(i, i, Tabellen.WLF[i].isDefault, Tabellen.WLF[i].isDefault);
+      }
+  });
+
+  // aanvrager-inkomen-nl aan de hand van tabel AanvragerInkomenNl
+  for_each(Toeslagen.getElementsByClassName('input-aanvrager-inkomen-nl'), function (select) {
+    var inkomenNl = select;
+    inkomenNl.options.length = 0;
+    var cnt = 0;
+    for (var i in Tabellen.AanvragerInkomenNl)
+      inkomenNl.options[cnt++] = new Option(i, i, Tabellen.AanvragerInkomenNl[i].isDefault, Tabellen.AanvragerInkomenNl[i].isDefault);
+  });
+
+  // toeslagpartner-inkomen-nl aan de hand van tabel ToeslagpartnerInkomenNl
+  for_each(Toeslagen.getElementsByClassName('input-toeslagpartner-inkomen-nl'), function (select) {
+    var inkomenNl = select;
+    inkomenNl.options.length = 0;
+    var cnt = 0;
+    for (var i in Tabellen.ToeslagpartnerInkomenNl)
+      inkomenNl.options[cnt++] = new Option(i, i, Tabellen.ToeslagpartnerInkomenNl[i].isDefault, Tabellen.ToeslagpartnerInkomenNl[i].isDefault);
+  });
+}
+
+/**
+ * updates texts in the form based on entered form values
+ */
+var updateFormContent = function () {
+  function getJaar() {
+    return document.getElementById('Berekening').jaar.value;
+  }
+  ;
+
+  function getAanvragerLeeftijd() {
+    var geboortejaar = document.getElementById('Berekening')['aanvrager-geboortedatum'].value.split('-')[2];
+    return geboortejaar == '' ? '' : document.getElementById('Berekening')['jaar'].value - parseInt(document.getElementById('Berekening')['aanvrager-geboortedatum'].value.split('-')[2]) - 1;
+  }
+  ;
+
+  function getAanvragerGeboortejaar() {
+    return document.getElementById('Berekening')['aanvrager-geboortedatum'].value.split('-')[2];
+  }
+
+  function getToeslagpartnerLeeftijd() {
+    var geboortejaar = parseInt(document.getElementById('Berekening')['toeslagpartner-geboortedatum'].value.split('-')[2]);
+    return geboortejaar == '' ? '' : parseInt(document.getElementById('Berekening')['jaar'].value) - geboortejaar - 1;
+  }
+  ;
+
+  function getToeslagpartnerGeboortejaar() {
+    return document.getElementById('Berekening')['toeslagpartner-geboortedatum'].value.split('-')[2];
+  }
+
+  function getMedebewonerLeeftijd(medebewonerNr) {
+    var geboortejaar = document.getElementById('Berekening')['medebewoner-geboortedatum-' + medebewonerNr].value.split('-')[2];
+    return geboortejaar == '' ? '' : document.getElementById('Berekening')['jaar'].value - geboortejaar - 1;
+  }
+
+  function getMedebewonerGeboortejaar(medebewonerNr) {
+    var geboortejaar = document.getElementById('Berekening')['medebewoner-geboortedatum-' + medebewonerNr].value.split('-')[2];
+    return geboortejaar;
+  }
+
+  function fillWoningHTjaar(jaar) {
+    this.options.length = 0;
+    if (Tabellen.Jaar[jaar] && Tabellen.Jaar[jaar].HTjaar)
+      this.options[0] = new Option(Tabellen.Jaar[jaar].HTjaar, Tabellen.Jaar[jaar].HTjaar, false, false);
+    else {
+      var cnt = 0;
+      this.options[cnt++] = new Option('', '', true, false);
+      for (var i in Tabellen.HTjaar)
+        if (i.match(new RegExp('\\s' + jaar + '$')))
+          this.options[cnt++] = new Option(i, i, false, false);
+    }
+  }
+
+  function getWoning23MinGeboortejaar() {
+    var jaar = document.getElementById('Berekening').jaar.value;
+    if (document.getElementById('woning-23-min').className.match(/(^|\s)visible(\s|$)/)) {
+      var is23Min = document.getElementById('radio-woning-23-min-ja').checked;
+    } else {
+      var is23Min = false;
+    }
+    return jaar - (is23Min ? 23 : 105);
+  }
+
+  function getKindGeboortejaar(kindNr) {
+    return document.getElementById('Berekening')['select-kind-geboortejaar-' + kindNr].value;
+  }
+
+  function getKindLeeftijd(kindNr) {
+    var geboortejaar = document.getElementById('Berekening')['select-kind-geboortejaar-' + kindNr].value;
+    return geboortejaar == '' ? '' : document.getElementById('Berekening')['jaar'].value - geboortejaar - 1;
+  }
+
+  function fillGeboortejaar(selectElement, maxJaar, minJaar) {
+    var value = selectElement.value;
+    selectElement.options.length = 0;
+    var cnt = 0;
+    selectElement.options[cnt++] = new Option('', '', false, value == '');
+    for (var jaar = maxJaar; jaar >= minJaar; --jaar)
+      selectElement.options[cnt++] = new Option(jaar, jaar, false, value == jaar);
+  }
+
+  // table of elements to change:
+  // - name : class name
+  // - value: function() that returns the current value
+  // - onchange: function(value) that is called when the value changes. Takes the changed value as an argument
+  var dynamicContentElements = [
+    {
+      name: 'dit-jaar',
+      value: getJaar,
+      onchange: function (jaar) {
+        this.innerHTML = jaar;
+      }
+    },
+    {
+      name: 'vorig-jaar',
+      value: getJaar,
+      onchange: function (jaar) {
+        this.innerHTML = jaar - 1;
+      }
+    },
+    {
+      name: 'jaar-plus-1',
+      value: getJaar,
+      onchange: function (jaar) {
+        this.innerHTML = parseInt(jaar) + 1;
+      }
+    },
+    {
+      name: 'jaar-uit-bet-grns',
+      value: getJaar,
+      onchange: function (jaar) {
+        var jaarTableAccess = new Jaar(jaar);
+        this.innerHTML = formatCurrency(jaarTableAccess.uitBetGrns(), 0);
+      }
+    },
+    {
+      name: 'jaar-bovengrens',
+      value: getJaar,
+      onchange: function (jaar) {
+        var jaarTableAccess = new Jaar(jaar);
+        this.innerHTML = formatCurrency(jaarTableAccess.bovengrens(), 0);
+      }
+    },
+    {
+      name: 'jaar-ohga',
+      value: getJaar,
+      onchange: function (jaar) {
+        this.innerHTML = Tabellen.Jaar[jaar] && Tabellen.Jaar[jaar].OHGA ? formatCurrency(Tabellen.Jaar[jaar].OHGA, 0) : '-';
+      }
+    },
+    {
+      name: 'jaar-ohgb',
+      value: getJaar,
+      onchange: function (jaar) {
+        this.innerHTML = Tabellen.Jaar[jaar] && Tabellen.Jaar[jaar].OHGB ? formatCurrency(Tabellen.Jaar[jaar].OHGB, 0) : '-';
+      }
+    },
+    {
+      name: 'jaar-igta',
+      value: getJaar,
+      onchange: function (jaar) {
+        this.innerHTML = Tabellen.Jaar[jaar] && Tabellen.Jaar[jaar].IGTA ? formatCurrency(Tabellen.Jaar[jaar].IGTA, 0) : '-';
+      }
+    },
+    {
+      name: 'jaar-igua',
+      value: getJaar,
+      onchange: function (jaar) {
+        this.innerHTML = Tabellen.Jaar[jaar] && Tabellen.Jaar[jaar].IGUA ? formatCurrency(Tabellen.Jaar[jaar].IGUA, 0) : '-';
+      }
+    },
+    {
+      name: 'jaar-igtb',
+      value: getJaar,
+      onchange: function (jaar) {
+        this.innerHTML = Tabellen.Jaar[jaar] && Tabellen.Jaar[jaar].IGTB ? formatCurrency(Tabellen.Jaar[jaar].IGTB, 0) : '-';
+      }
+    },
+    {
+      name: 'jaar-igub',
+      value: getJaar,
+      onchange: function (jaar) {
+        this.innerHTML = Tabellen.Jaar[jaar] && Tabellen.Jaar[jaar].IGUB ? formatCurrency(Tabellen.Jaar[jaar].IGUB, 0) : '-';
+      }
+    },
+    {
+      name: 'jaar-mx-ink-1',
+      value: getJaar,
+      onchange: function (jaar) {
+        this.innerHTML = Tabellen.Jaar[jaar] && Tabellen.Jaar[jaar].MxInk1 ? formatCurrency(Tabellen.Jaar[jaar].MxInk1, 0) : '-';
+      }
+    },
+    {
+      name: 'jaar-mx-ink-2',
+      value: getJaar,
+      onchange: function (jaar) {
+        this.innerHTML = Tabellen.Jaar[jaar] && Tabellen.Jaar[jaar].MxInk2 ? formatCurrency(Tabellen.Jaar[jaar].MxInk2, 0) : '-';
+      }
+    },
+    {
+      name: 'jaar-vsvb',
+      value: getJaar,
+      onchange: function (jaar) {
+        this.innerHTML = Tabellen.Jaar[jaar] && Tabellen.Jaar[jaar].VSVB ? formatCurrency(Tabellen.Jaar[jaar].VSVB, 0) : '-';
+      }
+    },
+    {
+      name: 'jaar-vrij-ht-65-enkel',
+      value: getJaar,
+      onchange: function (jaar) {
+        this.innerHTML = Tabellen.Jaar[jaar] && Tabellen.Jaar[jaar].VrijHT65enkel ? formatCurrency(Tabellen.Jaar[jaar].VrijHT65enkel, 0) : '-';
+      }
+    },
+    {
+      name: 'jaar-vrij-ht-65-gez',
+      value: getJaar,
+      onchange: function (jaar) {
+        this.innerHTML = Tabellen.Jaar[jaar] && Tabellen.Jaar[jaar].VrijHT65gez ? formatCurrency(Tabellen.Jaar[jaar].VrijHT65gez, 0) : '-';
+      }
+    },
+    {
+      name: 'jaar-vrij-zt-kgb-65-enkel',
+      value: getJaar,
+      onchange: function (jaar) {
+        this.innerHTML = Tabellen.Jaar[jaar] && Tabellen.Jaar[jaar].VrijZTKGB65enkel ? formatCurrency(Tabellen.Jaar[jaar].VrijZTKGB65enkel, 0) : '-';
+      }
+    },
+    {
+      name: 'jaar-vrij-zt-kgb-65-gez',
+      value: getJaar,
+      onchange: function (jaar) {
+        this.innerHTML = Tabellen.Jaar[jaar] && Tabellen.Jaar[jaar].VrijZTKGB65gez ? formatCurrency(Tabellen.Jaar[jaar].VrijZTKGB65gez, 0) : '-';
+      }
+    },
+    {
+      name: 'kind-soortopvanginstelling-maxuren',
+      value: getJaar,
+      onchange: function (jaar) {
+        this.innerHTML = Tabellen.Jaar[jaar] && Tabellen.Jaar[jaar].MaxUren ? Tabellen.Jaar[jaar].MaxUren : 0;
+      }
+    },
+    {
+      name: 'toeslagpartner-leeftijd-plus-1',
+      value: getToeslagpartnerLeeftijd,
+      onchange: function (leeftijd) {
+        this.innerHTML = (leeftijd == '' ? '-' : leeftijd + 1);
+      }
+    },
+    {
+      name: 'toeslagpartner-geboortejaar-min-1',
+      value: getToeslagpartnerGeboortejaar,
+      onchange: function (jaar) {
+        this.innerHTML = (jaar == '' ? '-' : jaar - 1);
+      }
+    },
+    {
+      name: 'aanvrager-leeftijd-plus-1',
+      value: getAanvragerLeeftijd,
+      onchange: function (leeftijd) {
+        this.innerHTML = (leeftijd == '' ? '-' : leeftijd + 1);
+      }
+    },
+    {
+      name: 'aanvrager-geboortejaar-min-1',
+      value: getAanvragerGeboortejaar,
+      onchange: function (jaar) {
+        this.innerHTML = (jaar == '' ? '-' : jaar - 1);
+      }
+    },
+    {
+      name: 'woning-htjaar',
+      value: getJaar,
+      onchange: fillWoningHTjaar
+    },
+    {
+      name: 'htjaar-mx-sk',
+      value: getJaar,
+      onchange: function (htjaar) {
+        this.innerHTML = Tabellen.HTjaar[htjaar] && Tabellen.HTjaar[htjaar].MxSK ? formatCurrency(Tabellen.HTjaar[htjaar].MxSK, 0) : '-';
+      }
+    },
+    {
+      name: 'htjaar-mx-rubr',
+      value: getJaar,
+      onchange: function (htjaar) {
+        this.innerHTML = Tabellen.HTjaar[htjaar] && Tabellen.HTjaar[htjaar].MxRubr ? formatCurrency(Tabellen.HTjaar[htjaar].MxRubr, 0) : '-';
+      }
+    },
+    {
+      name: 'doelgroepgrens',
+      value: function () {
+        return document.getElementById('Berekening')['result-doelgroepgrens'].value;
+      },
+      onchange: function (value) {
+        this.innerHTML = formatCurrency(value, 0);
+      }
+    },
+    {
+      name: 'huurtoeslag',
+      value: function () {
+        return document.getElementById('Berekening')['result-huurtoeslag'].value;
+      },
+      onchange: function (huurtoeslag) {
+        this.innerHTML = formatCurrency(huurtoeslag, 0);
+      }
+    },
+    {
+      name: 'huurgrens',
+      value: function () {
+        return document.getElementById('Berekening')['result-huurgrens'].value;
+      },
+      onchange: function (huurgrens) {
+        this.innerHTML = formatCurrency(huurgrens);
+      }
+    },
+    {
+      name: 'kindgebonden-budget',
+      value: function () {
+        return document.getElementById('Berekening')['result-kindgebonden-budget'].value;
+      },
+      onchange: function (kindgebondenBudget) {
+        this.innerHTML = formatCurrency(kindgebondenBudget, 0);
+      }
+    },
+    {
+      name: 'vh-kgb-geen-tp',
+      value: getJaar,
+      onchange: function (jaar) {
+        this.innerHTML = Tabellen.Jaar[jaar] && Tabellen.Jaar[jaar].VHgeenTP ? formatCurrency(Tabellen.Jaar[jaar].VHgeenTP, 0) : '-';
+      }
+    },
+    {
+      name: 'kinderopvangtoeslag',
+      value: function () {
+        return document.getElementById('Berekening')['result-kinderopvangtoeslag'].value;
+      },
+      onchange: function (kinderopvangtoeslag) {
+        this.innerHTML = formatCurrency(kinderopvangtoeslag, 0);
+      }
+    },
+    {
+      name: 'kinderopvangtoeslag-niet-afgerond',
+      value: function () {
+        return document.getElementById('Berekening')['result-kinderopvangtoeslag-totaal'].value;
+      },
+      onchange: function (kinderopvangtoeslag) {
+        this.innerHTML = formatCurrency(kinderopvangtoeslag);
+      }
+    },
+    {
+      name: 'kinderopvangtoeslag-1',
+      value: function () {
+        return document.getElementById('Berekening')['result-kinderopvangtoeslag-1'].value;
+      },
+      onchange: function (kinderopvangtoeslag) {
+        this.innerHTML = formatCurrency(kinderopvangtoeslag);
+      }
+    },
+    {
+      name: 'kinderopvangtoeslag-2',
+      value: function () {
+        return document.getElementById('Berekening')['result-kinderopvangtoeslag-2'].value;
+      },
+      onchange: function (kinderopvangtoeslag) {
+        this.innerHTML = formatCurrency(kinderopvangtoeslag);
+      }
+    },
+    {
+      name: 'kinderopvangtoeslag-3',
+      value: function () {
+        return document.getElementById('Berekening')['result-kinderopvangtoeslag-3'].value;
+      },
+      onchange: function (kinderopvangtoeslag) {
+        this.innerHTML = formatCurrency(kinderopvangtoeslag);
+      }
+    },
+    {
+      name: 'kinderopvangtoeslag-4',
+      value: function () {
+        return document.getElementById('Berekening')['result-kinderopvangtoeslag-4'].value;
+      },
+      onchange: function (kinderopvangtoeslag) {
+        this.innerHTML = formatCurrency(kinderopvangtoeslag);
+      }
+    },
+    {
+      name: 'kinderopvangtoeslag-5',
+      value: function () {
+        return document.getElementById('Berekening')['result-kinderopvangtoeslag-5'].value;
+      },
+      onchange: function (kinderopvangtoeslag) {
+        this.innerHTML = formatCurrency(kinderopvangtoeslag);
+      }
+    },
+    {
+      name: 'kinderopvangtoeslag-6',
+      value: function () {
+        return document.getElementById('Berekening')['result-kinderopvangtoeslag-6'].value;
+      },
+      onchange: function (kinderopvangtoeslag) {
+        this.innerHTML = formatCurrency(kinderopvangtoeslag);
+      }
+    },
+    {
+      name: 'kinderopvangtoeslag-7',
+      value: function () {
+        return document.getElementById('Berekening')['result-kinderopvangtoeslag-7'].value;
+      },
+      onchange: function (kinderopvangtoeslag) {
+        this.innerHTML = formatCurrency(kinderopvangtoeslag);
+      }
+    },
+    {
+      name: 'kinderopvangtoeslag-8',
+      value: function () {
+        return document.getElementById('Berekening')['result-kinderopvangtoeslag-8'].value;
+      },
+      onchange: function (kinderopvangtoeslag) {
+        this.innerHTML = formatCurrency(kinderopvangtoeslag);
+      }
+    },
+    {
+      name: 'zorgtoeslag',
+      value: function () {
+        return document.getElementById('Berekening')['result-zorgtoeslag'].value;
+      },
+      onchange: function (zorgtoeslag) {
+        this.innerHTML = formatCurrency(zorgtoeslag, 0);
+      }
+    },
+    {
+      name: 'totaal-toeslag',
+      value: function () {
+        return document.getElementById('Berekening')['result-toeslag-totaal'].value;
+      },
+      onchange: function (toeslag) {
+        this.innerHTML = formatCurrency(toeslag, 0);
+      }
+    },
+    {
+      name: 'medebewoner-leeftijd-1-plus-1',
+      value: function () {
+        return getMedebewonerLeeftijd(1);
+      },
+      onchange: function (leeftijd) {
+        this.innerHTML = (leeftijd == '' ? '-' : leeftijd + 1);
+      }
+    },
+    {
+      name: 'medebewoner-leeftijd-2-plus-1',
+      value: function () {
+        return getMedebewonerLeeftijd(2);
+      },
+      onchange: function (leeftijd) {
+        this.innerHTML = (leeftijd == '' ? '-' : leeftijd + 1);
+      }
+    },
+    {
+      name: 'medebewoner-leeftijd-3-plus-1',
+      value: function () {
+        return getMedebewonerLeeftijd(3);
+      },
+      onchange: function (leeftijd) {
+        this.innerHTML = (leeftijd == '' ? '-' : leeftijd + 1);
+      }
+    },
+    {
+      name: 'medebewoner-leeftijd-4-plus-1',
+      value: function () {
+        return getMedebewonerLeeftijd(4);
+      },
+      onchange: function (leeftijd) {
+        this.innerHTML = (leeftijd == '' ? '-' : leeftijd + 1);
+      }
+    },
+    {
+      name: 'medebewoner-leeftijd-5-plus-1',
+      value: function () {
+        return getMedebewonerLeeftijd(5);
+      },
+      onchange: function (leeftijd) {
+        this.innerHTML = (leeftijd == '' ? '-' : leeftijd + 1);
+      }
+    },
+    {
+      name: 'medebewoner-geboortejaar-1-min-1',
+      value: function () {
+        return getMedebewonerGeboortejaar(1);
+      },
+      onchange: function (jaar) {
+        this.innerHTML = (jaar == '' ? '-' : jaar - 1);
+      }
+    },
+    {
+      name: 'medebewoner-geboortejaar-2-min-1',
+      value: function () {
+        return getMedebewonerGeboortejaar(2);
+      },
+      onchange: function (jaar) {
+        this.innerHTML = (jaar == '' ? '-' : jaar - 1);
+      }
+    },
+    {
+      name: 'medebewoner-geboortejaar-3-min-1',
+      value: function () {
+        return getMedebewonerGeboortejaar(3);
+      },
+      onchange: function (jaar) {
+        this.innerHTML = (jaar == '' ? '-' : jaar - 1);
+      }
+    },
+    {
+      name: 'medebewoner-geboortejaar-4-min-1',
+      value: function () {
+        return getMedebewonerGeboortejaar(4);
+      },
+      onchange: function (jaar) {
+        this.innerHTML = (jaar == '' ? '-' : jaar - 1);
+      }
+    },
+    {
+      name: 'medebewoner-geboortejaar-5-min-1',
+      value: function () {
+        return getMedebewonerGeboortejaar(5);
+      },
+      onchange: function (jaar) {
+        this.innerHTML = (jaar == '' ? '-' : jaar - 1);
+      }
+    },
+    {
+      name: 'input-geboortejaar',
+      value: getJaar,
+      onchange: function (jaar) {
+        fillGeboortejaar(this, jaar - 12, jaar - 105);
+      }
+    },
+    {
+      name: 'input-woning-geboortejaar',
+      value: getWoning23MinGeboortejaar,
+      onchange: function (minGeboortejaar) {
+        fillGeboortejaar(this, document.getElementById('Berekening').jaar.value, minGeboortejaar);
+      }
+    },
+    {
+      name: 'input-kind-geboortejaar',
+      value: getJaar,
+      onchange: function (jaar) {
+        fillGeboortejaar(this, jaar, jaar - 18);
+      }
+    },
+    {
+      name: 'kind-leeftijd-1-plus-1',
+      value: function () {
+        return getKindLeeftijd(1);
+      },
+      onchange: function (kind_leeftijd) {
+        this.innerHTML = (kind_leeftijd == '' ? '==-' : kind_leeftijd + 1);
+      }
+    },
+    {
+      name: 'kind-leeftijd-2-plus-1',
+      value: function () {
+        return getKindLeeftijd(2);
+      },
+      onchange: function (kind_leeftijd) {
+        this.innerHTML = (kind_leeftijd == '' ? '-' : kind_leeftijd + 1);
+      }
+    },
+    {
+      name: 'kind-leeftijd-3-plus-1',
+      value: function () {
+        return getKindLeeftijd(3);
+      },
+      onchange: function (kind_leeftijd) {
+        this.innerHTML = (kind_leeftijd == '' ? '-' : kind_leeftijd + 1);
+      }
+    },
+    {
+      name: 'kind-leeftijd-4-plus-1',
+      value: function () {
+        return getKindLeeftijd(4);
+      },
+      onchange: function (kind_leeftijd) {
+        this.innerHTML = (kind_leeftijd == '' ? '-' : kind_leeftijd + 1);
+      }
+    },
+    {
+      name: 'kind-leeftijd-5-plus-1',
+      value: function () {
+        return getKindLeeftijd(5);
+      },
+      onchange: function (kind_leeftijd) {
+        this.innerHTML = (kind_leeftijd == '' ? '-' : kind_leeftijd + 1);
+      }
+    },
+    {
+      name: 'kind-leeftijd-6-plus-1',
+      value: function () {
+        return getKindLeeftijd(6);
+      },
+      onchange: function (kind_leeftijd) {
+        this.innerHTML = (kind_leeftijd == '' ? '-' : kind_leeftijd + 1);
+      }
+    },
+    {
+      name: 'kind-leeftijd-7-plus-1',
+      value: function () {
+        return getKindLeeftijd(7);
+      },
+      onchange: function (kind_leeftijd) {
+        this.innerHTML = (kind_leeftijd == '' ? '-' : kind_leeftijd + 1);
+      }
+    },
+    {
+      name: 'kind-leeftijd-8-plus-1',
+      value: function () {
+        return getKindLeeftijd(8);
+      },
+      onchange: function (kind_leeftijd) {
+        this.innerHTML = (kind_leeftijd == '' ? '-' : kind_leeftijd + 1);
+      }
+    },
+    {
+      name: 'kind-leeftijd-1-plus-1b',
+      value: function () {
+        return getKindLeeftijd(1);
+      },
+      onchange: function (kind_leeftijd) {
+        this.innerHTML = (kind_leeftijd == '' ? '==-' : kind_leeftijd + 1);
+      }
+    },
+    {
+      name: 'kind-leeftijd-2-plus-1b',
+      value: function () {
+        return getKindLeeftijd(2);
+      },
+      onchange: function (kind_leeftijd) {
+        this.innerHTML = (kind_leeftijd == '' ? '-' : kind_leeftijd + 1);
+      }
+    },
+    {
+      name: 'kind-leeftijd-3-plus-1b',
+      value: function () {
+        return getKindLeeftijd(3);
+      },
+      onchange: function (kind_leeftijd) {
+        this.innerHTML = (kind_leeftijd == '' ? '-' : kind_leeftijd + 1);
+      }
+    },
+    {
+      name: 'kind-leeftijd-4-plus-1b',
+      value: function () {
+        return getKindLeeftijd(4);
+      },
+      onchange: function (kind_leeftijd) {
+        this.innerHTML = (kind_leeftijd == '' ? '-' : kind_leeftijd + 1);
+      }
+    },
+    {
+      name: 'kind-leeftijd-5-plus-1b',
+      value: function () {
+        return getKindLeeftijd(5);
+      },
+      onchange: function (kind_leeftijd) {
+        this.innerHTML = (kind_leeftijd == '' ? '-' : kind_leeftijd + 1);
+      }
+    },
+    {
+      name: 'kind-leeftijd-6-plus-1b',
+      value: function () {
+        return getKindLeeftijd(6);
+      },
+      onchange: function (kind_leeftijd) {
+        this.innerHTML = (kind_leeftijd == '' ? '-' : kind_leeftijd + 1);
+      }
+    },
+    {
+      name: 'kind-leeftijd-7-plus-1b',
+      value: function () {
+        return getKindLeeftijd(7);
+      },
+      onchange: function (kind_leeftijd) {
+        this.innerHTML = (kind_leeftijd == '' ? '-' : kind_leeftijd + 1);
+      }
+    },
+    {
+      name: 'kind-leeftijd-8-plus-1b',
+      value: function () {
+        return getKindLeeftijd(8);
+      },
+      onchange: function (kind_leeftijd) {
+        this.innerHTML = (kind_leeftijd == '' ? '-' : kind_leeftijd + 1);
+      }
+    },
+    {
+      name: 'kind-geboortejaar-1-min-1',
+      value: function () {
+        return getKindGeboortejaar(1);
+      },
+      onchange: function (jaar) {
+        this.innerHTML = (jaar == '' ? '-' : jaar - 1);
+      }
+    },
+    {
+      name: 'kind-geboortejaar-2-min-1',
+      value: function () {
+        return getKindGeboortejaar(2);
+      },
+      onchange: function (jaar) {
+        this.innerHTML = (jaar == '' ? '-' : jaar - 1);
+      }
+    },
+    {
+      name: 'kind-geboortejaar-3-min-1',
+      value: function () {
+        return getKindGeboortejaar(3);
+      },
+      onchange: function (jaar) {
+        this.innerHTML = (jaar == '' ? '-' : jaar - 1);
+      }
+    },
+    {
+      name: 'kind-geboortejaar-4-min-1',
+      value: function () {
+        return getKindGeboortejaar(4);
+      },
+      onchange: function (jaar) {
+        this.innerHTML = (jaar == '' ? '-' : jaar - 1);
+      }
+    },
+    {
+      name: 'kind-geboortejaar-5-min-1',
+      value: function () {
+        return getKindGeboortejaar(5);
+      },
+      onchange: function (jaar) {
+        this.innerHTML = (jaar == '' ? '-' : jaar - 1);
+      }
+    },
+    {
+      name: 'kind-geboortejaar-6-min-1',
+      value: function () {
+        return getKindGeboortejaar(6);
+      },
+      onchange: function (jaar) {
+        this.innerHTML = (jaar == '' ? '-' : jaar - 1);
+      }
+    },
+    {
+      name: 'kind-geboortejaar-7-min-1',
+      value: function () {
+        return getKindGeboortejaar(7);
+      },
+      onchange: function (jaar) {
+        this.innerHTML = (jaar == '' ? '-' : jaar - 1);
+      }
+    },
+    {
+      name: 'kind-geboortejaar-8-min-1',
+      value: function () {
+        return getKindGeboortejaar(8);
+      },
+      onchange: function (jaar) {
+        this.innerHTML = (jaar == '' ? '-' : jaar - 1);
+      }
+    }
+  ];
+
+  function updateFormContent() {
+    for_each(dynamicContentElements, function (value) {
+      value.previous = value.current;
+      value.current = value.value();
+      if (value.current != value.previous) {
+        var elements = Toeslagen.getElementsByClassName(value.name);
+        for_each(elements, function (element) {
+          value.onchange.call(element, value.current);
+        });
+      }
+    });
+  }
+
+  return updateFormContent;
+}();
+
+/**
+ * update visibility of parts of the form based on entered input fields
+ *
+ * This is used to specifically show parts of a text, not whole questions or blocks.
+ * Those are
+ */
+var updateFormVisibility = function () {
+  function getFormSingleValue(node) {
+    if (node.nodeType == 1) {
+      if (node.checked !== undefined && node.checked)
+        return node.value;
+      else if (node.checked === undefined && node.value !== undefined)
+        return node.value;
+    } else if (node.length != undefined) {
+      for (var i = 0, sz = node.length; i < sz; ++i) {
+        var child = node[i];
+        var value = getFormSingleValue(child);
+        if (value != null)
+          return value;
+      }
+    }
+    return null;
+  }
+
+  function isOpvang2Plus() {
+    var kot = 0;
+    for (var i = 0; i <= 8 && i < document.getElementById("Berekening")["aanvrager-kinderen"].value; ++i) {
+      var index = i + 1;
+      kot += (document.getElementById('Berekening')['kind-opvang-' + index].value == 'geen' ? 0 : 1);
+    }
+    return kot > 1;
+  }
+
+  // list of classes that are set to visible/invisible
+  // - name: class name
+  // - isVisible: function that returns true if the element should be shown or false if it should be hidden
+  var toggleableElements = [
+    {
+      name: 'visible-for-ht',
+      isVisible: function () {
+        return hasClass_utils(document.getElementById('huurtoeslag'), 'visible') && document.getElementById('Berekening').huurtoeslag.checked;
+      }
+    },
+    {
+      name: 'visible-for-zt',
+      isVisible: function () {
+        return hasClass_utils(document.getElementById('zorgtoeslag'), 'visible') && document.getElementById('Berekening').zorgtoeslag.checked;
+      }
+    },
+    {
+      name: 'visible-for-not-zt',
+      isVisible: function () {
+        return !hasClass_utils(document.getElementById('zorgtoeslag'), 'visible') || !document.getElementById('Berekening').zorgtoeslag.checked;
+      }
+    },
+    {
+      name: 'visible-for-kgb',
+      isVisible: function () {
+        return hasClass_utils(document.getElementById('kindgebonden-budget'), 'visible') && document.getElementById('Berekening')['kindgebonden-budget'].checked;
+      }
+    },
+    {
+      name: 'visible-for-kot',
+      isVisible: function () {
+        return hasClass_utils(document.getElementById('kinderopvangtoeslag'), 'visible') && document.getElementById('Berekening').kinderopvangtoeslag.checked;
+      }
+    },
+    {
+      name: 'visible-for-2014',
+      isVisible: function () {
+        return parseInt(document.getElementById('Berekening').jaar.value) === 2014;
+      }
+    },
+    {
+      name: 'visible-from-2014',
+      isVisible: function () {
+        return parseInt(document.getElementById('Berekening').jaar.value) >= 2014;
+      }
+    },
+    {
+      name: 'visible-for-2015',
+      isVisible: function () {
+        return parseInt(document.getElementById('Berekening').jaar.value) === 2015;
+      }
+    },
+    {
+      name: 'visible-from-2015',
+      isVisible: function () {
+        return parseInt(document.getElementById('Berekening').jaar.value) >= 2015;
+      }
+    },
+    {
+      name: 'visible-for-kind',
+      isVisible: function () {
+        return document.getElementById('Berekening')['aanvrager-kinderen'].value == 1;
+      }
+    },
+    {
+      name: 'visible-for-kinderen',
+      isVisible: function () {
+        return document.getElementById('Berekening')['aanvrager-kinderen'].value != 1;
+      }
+    },
+    {
+      name: 'visible-for-medebewoner',
+      isVisible: function () {
+        return document.getElementById('Berekening')['woning-medebewoners'].value == 1;
+      }
+    },
+    {
+      name: 'visible-for-medebewoners',
+      isVisible: function () {
+        return document.getElementById('Berekening')['woning-medebewoners'].value != 1;
+      }
+    },
+    {
+      name: 'visible-for-toeslagpartner',
+      isVisible: function () {
+        return getFormSingleValue(document.getElementById('Berekening')['aanvrager-toeslagpartner']) == 'ja';
+      }
+    },
+    {
+      name: 'visible-for-not-toeslagpartner',
+      isVisible: function () {
+        return getFormSingleValue(document.getElementById('Berekening')['aanvrager-toeslagpartner']) != 'ja';
+      }
+    },
+    {
+      name: 'visible-for-woning-aangepast',
+      isVisible: function () {
+        return getFormSingleValue(document.getElementById('Berekening')['woning-aangepast']) == 'ja';
+      }
+    },
+    {
+      name: 'visible-for-toeslagpartner-not-18-plus',
+      isVisible: function () {
+        var leeftijd = parseInt(document.getElementById('Berekening')['jaar'].value) - parseInt(document.getElementById('Berekening')['toeslagpartner-geboortejaar']) - 1;
+        return getFormSingleValue(document.getElementById('Berekening')['aanvrager-toeslagpartner']) == 'ja' && leeftijd < 18;
+      }
+    },
+    {
+      name: 'visible-for-result-huurtoeslag',
+      isVisible: function () {
+        return document.getElementById('Berekening')['result-toeslag-gekozen'].value.match(/(^|\s)huurtoeslag(\s|$)/) != null;
+      }
+    },
+    {
+      name: 'visible-for-result-kindgebonden-budget',
+      isVisible: function () {
+        return document.getElementById('Berekening')['result-toeslag-gekozen'].value.match(/(^|\s)kindgebonden-budget(\s|$)/) != null;
+      }
+    },
+    {
+      name: 'visible-for-result-kgb-alleenstaande-ouder',
+      isVisible: function () {
+        return document.getElementById('Berekening')['result-toeslag-gekozen'].value.match(/(^|\s)kindgebonden-budget(\s|$)/) != null && parseInt(document.getElementById('Berekening').jaar.value) >= 2015 && getFormSingleValue(document.getElementById('Berekening')['aanvrager-toeslagpartner']) != 'ja';
+      }
+    },
+    {
+      name: 'visible-for-result-kinderopvangtoeslag',
+      isVisible: function () {
+        return document.getElementById('Berekening')['result-toeslag-gekozen'].value.match(/(^|\s)kinderopvangtoeslag(\s|$)/) != null;
+      }
+    },
+    {
+      name: 'visible-for-result-zorgtoeslag',
+      isVisible: function () {
+        return document.getElementById('Berekening')['result-toeslag-gekozen'].value.match(/(^|\s)zorgtoeslag(\s|$)/) != null;
+      }
+    },
+    {
+      name: 'visible-for-huishouden-mph-or-mph-65-plus',
+      isVisible: function () {
+        var huishouden = document.getElementById('Berekening')['result-huishouden'].value;
+        return huishouden == 'MPH' || huishouden == 'MPH65+';
+      }
+    },
+    {
+      name: 'visible-for-aanvrager-17',
+      isVisible: function () {
+        var leeftijd = document.getElementById('Berekening')['jaar'].value - parseInt(document.getElementById('Berekening')['aanvrager-geboortedatum'].value.split('-')[2]) - 1;
+        return leeftijd == 17;
+      }
+    },
+    {
+      name: 'visible-for-aanvrager-64',
+      isVisible: function () {
+        var leeftijd = document.getElementById('Berekening')['jaar'].value - parseInt(document.getElementById('Berekening')['aanvrager-geboortedatum'].value.split('-')[2]) - 1;
+        return leeftijd == 64;
+      }
+    },
+    {
+      name: 'visible-for-aanvrager-jonger-23-met-tp-of-medebewoner',
+      isVisible: function () {
+        var leeftijd = document.getElementById('Berekening')['jaar'].value - parseInt(document.getElementById('Berekening')['aanvrager-geboortedatum'].value.split('-')[2]) - 1;
+        return leeftijd < 23 && (getFormSingleValue(document.getElementById('Berekening')['aanvrager-toeslagpartner']) == 'ja' || document.getElementById('Berekening')['aanvrager-kinderen'].value >= 1);
+      }
+    },
+    {
+      name: 'visible-for-medebewoner-64-1',
+      isVisible: function () {
+        var leeftijd = document.getElementById('Berekening')['jaar'].value - parseInt(document.getElementById('Berekening')['medebewoner-geboortedatum-1'].value.split('-')[2]) - 1;
+        return leeftijd == 64;
+      }
+    },
+    {
+      name: 'visible-for-medebewoner-64-2',
+      isVisible: function () {
+        var leeftijd = document.getElementById('Berekening')['jaar'].value - parseInt(document.getElementById('Berekening')['medebewoner-geboortedatum-2'].value.split('-')[2]) - 1;
+        return leeftijd == 64;
+      }
+    },
+    {
+      name: 'visible-for-medebewoner-64-3',
+      isVisible: function () {
+        var leeftijd = document.getElementById('Berekening')['jaar'].value - parseInt(document.getElementById('Berekening')['medebewoner-geboortedatum-3'].value.split('-')[2]) - 1;
+        return leeftijd == 64;
+      }
+    },
+    {
+      name: 'visible-for-medebewoner-64-4',
+      isVisible: function () {
+        var leeftijd = document.getElementById('Berekening')['jaar'].value - parseInt(document.getElementById('Berekening')['medebewoner-geboortedatum-4'].value.split('-')[2]) - 1;
+        return leeftijd == 64;
+      }
+    },
+    {
+      name: 'visible-for-medebewoner-64-5',
+      isVisible: function () {
+        var leeftijd = document.getElementById('Berekening')['jaar'].value - parseInt(document.getElementById('Berekening')['medebewoner-geboortedatum-5'].value.split('-')[2]) - 1;
+        return leeftijd == 64;
+      }
+    },
+    {
+      name: 'visible-for-toeslagpartner-17',
+      isVisible: function () {
+        var leeftijd = parseInt(document.getElementById('Berekening')['jaar'].value) - parseInt(document.getElementById('Berekening')['toeslagpartner-geboortedatum'].value.split('-')[2]) - 1;
+        return leeftijd == 17;
+      }
+    },
+    {
+      name: 'visible-for-toeslagpartner-64',
+      isVisible: function () {
+        var leeftijd = parseInt(document.getElementById('Berekening')['jaar'].value) - parseInt(document.getElementById('Berekening')['toeslagpartner-geboortedatum'].value.split('-')[2]) - 1;
+        return leeftijd == 64;
+      }
+    },
+    {
+      name: 'visible-for-kind-inkomensgrens-vanaf-2015-1',
+      isVisible: function () {
+        return parseInt(document.getElementById('Berekening').jaar.value) >= 2015;
+        ;
+      }
+    },
+    {
+      name: 'visible-for-kind-inkomensgrens-vanaf-2015-2',
+      isVisible: function () {
+        return parseInt(document.getElementById('Berekening').jaar.value) >= 2015;
+        ;
+      }
+    },
+    {
+      name: 'visible-for-kind-inkomensgrens-vanaf-2015-3',
+      isVisible: function () {
+        return parseInt(document.getElementById('Berekening').jaar.value) >= 2015;
+        ;
+      }
+    },
+    {
+      name: 'visible-for-kind-inkomensgrens-vanaf-2015-4',
+      isVisible: function () {
+        return parseInt(document.getElementById('Berekening').jaar.value) >= 2015;
+        ;
+      }
+    },
+    {
+      name: 'visible-for-kind-inkomensgrens-vanaf-2015-5',
+      isVisible: function () {
+        return parseInt(document.getElementById('Berekening').jaar.value) >= 2015;
+        ;
+      }
+    },
+    {
+      name: 'visible-for-kind-inkomensgrens-vanaf-2015-6',
+      isVisible: function () {
+        return parseInt(document.getElementById('Berekening').jaar.value) >= 2015;
+        ;
+      }
+    },
+    {
+      name: 'visible-for-kind-inkomensgrens-vanaf-2015-7',
+      isVisible: function () {
+        return parseInt(document.getElementById('Berekening').jaar.value) >= 2015;
+        ;
+      }
+    },
+    {
+      name: 'visible-for-kind-inkomensgrens-vanaf-2015-8',
+      isVisible: function () {
+        return parseInt(document.getElementById('Berekening').jaar.value) >= 2015;
+        ;
+      }
+    },
+    {
+      name: 'visible-for-kindopvang-1',
+      isVisible: function () {
+        return document.getElementById('Berekening')['aanvrager-kinderen'].value >= 1 && document.getElementById('Berekening')['kind-opvang-1'].value != 'geen';
+      }
+    },
+    {
+      name: 'visible-for-kindopvang-2',
+      isVisible: function () {
+        return document.getElementById('Berekening')['aanvrager-kinderen'].value >= 2 && document.getElementById('Berekening')['kind-opvang-2'].value != 'geen';
+      }
+    },
+    {
+      name: 'visible-for-kindopvang-3',
+      isVisible: function () {
+        return document.getElementById('Berekening')['aanvrager-kinderen'].value >= 3 && document.getElementById('Berekening')['kind-opvang-3'].value != 'geen';
+      }
+    },
+    {
+      name: 'visible-for-kindopvang-4',
+      isVisible: function () {
+        return document.getElementById('Berekening')['aanvrager-kinderen'].value >= 4 && document.getElementById('Berekening')['kind-opvang-4'].value != 'geen';
+      }
+    },
+    {
+      name: 'visible-for-kindopvang-5',
+      isVisible: function () {
+        return document.getElementById('Berekening')['aanvrager-kinderen'].value >= 5 && document.getElementById('Berekening')['kind-opvang-5'].value != 'geen';
+      }
+    },
+    {
+      name: 'visible-for-kindopvang-6',
+      isVisible: function () {
+        return document.getElementById('Berekening')['aanvrager-kinderen'].value >= 6 && document.getElementById('Berekening')['kind-opvang-6'].value != 'geen';
+      }
+    },
+    {
+      name: 'visible-for-kindopvang-7',
+      isVisible: function () {
+        return document.getElementById('Berekening')['aanvrager-kinderen'].value >= 7 && document.getElementById('Berekening')['kind-opvang-7'].value != 'geen';
+      }
+    },
+    {
+      name: 'visible-for-kindopvang-8',
+      isVisible: function () {
+        return document.getElementById('Berekening')['aanvrager-kinderen'].value >= 8 && document.getElementById('Berekening')['kind-opvang-8'].value != 'geen';
+      }
+    },
+    {
+      name: 'visible-for-kindopvang-2-plus',
+      isVisible: function () {
+        return isOpvang2Plus();
+      }
+    },
+    {
+      name: 'visible-geen-KOT-1', isVisible: function () {
+        return parseInt(document.getElementById('Berekening').jaar.value) === 2020 &&
+          document.getElementById('Berekening')['aanvrager-werk'].value === 'nee' &&
+          document.getElementById('Berekening')['aanvrager-doelgroeper'].value === 'nee' &&
+          document.getElementById('Berekening')['aanvrager-toeslagpartner'].value === 'ja';
+      }
+    },
+    {
+      name: 'visible-geen-KOT-2', isVisible: function () {
+        return parseInt(document.getElementById('Berekening').jaar.value) >= 2021 &&
+          document.getElementById('Berekening')['aanvrager-werk'].value === 'nee' &&
+          document.getElementById('Berekening')['aanvrager-doelgroeper'].value === 'nee' &&
+          document.getElementById('Berekening')['aanvrager-toeslagpartner'].value === 'ja';
+      }
+    },
+    {
+      name: 'visible-geen-KOT-3', isVisible: function () {
+        return parseInt(document.getElementById('Berekening').jaar.value) === 2020 &&
+          (document.getElementById('Berekening')['aanvrager-werk'].value === 'ja' ||
+            document.getElementById('Berekening')['aanvrager-doelgroeper'].value === 'ja') &&
+          document.getElementById('Berekening')['aanvrager-toeslagpartner'].value === 'ja' &&
+          document.getElementById('Berekening')['toeslagpartner-werk'].value === 'nee' &&
+          document.getElementById('Berekening')['toeslagpartner-doelgroeper'].value === 'nee';
+      }
+    },
+    {
+      name: 'visible-geen-KOT-4', isVisible: function () {
+        return parseInt(document.getElementById('Berekening').jaar.value) >= 2021 &&
+          (document.getElementById('Berekening')['aanvrager-werk'].value === 'ja' ||
+            document.getElementById('Berekening')['aanvrager-doelgroeper'].value === 'ja') &&
+          document.getElementById('Berekening')['aanvrager-toeslagpartner'].value === 'ja' &&
+          document.getElementById('Berekening')['toeslagpartner-werk'].value === 'nee' &&
+          document.getElementById('Berekening')['toeslagpartner-doelgroeper'].value === 'nee';
+      }
+    }
+  ];
+
+  function updateFormVisibility() {
+    // get current toggle values
+    for_each(toggleableElements, function (toggleable) {
+      toggleable.previous = toggleable.current;
+      toggleable.current = toggleable.isVisible();
+    });
+
+    // hide all disabled elements
+    for_each(toggleableElements, function (toggleable) {
+      if (toggleable.previous !== toggleable.current && !toggleable.current)
+        for_each(Toeslagen.getElementsByClassName(toggleable.name), function (element) {
+          addClass_utils(element, 'invisible');
+        });
+    });
+
+    // show all enabled elements
+    // NOTE: if an element has at least one class token which is enabled, then it will be shown
+    for_each(toggleableElements, function (toggleable) {
+      if (toggleable.previous !== toggleable.current && toggleable.current)
+        for_each(Toeslagen.getElementsByClassName(toggleable.name), function (element) {
+          removeClass_utils(element, 'invisible');
+        });
+    });
+  }
+
+  return updateFormVisibility;
+}();
+
+function pbtsl_initInterface() {
+  setEventHandlers();
+  // add log
+  var div = document.createElement('div');
+  div.id = 'log';
+  document.getElementsByTagName('body')[0].appendChild(div);
+
+  // initialize expandable input sets
+  initializeExpandableInputSet(updateForm);
+
+  // HACK: disable action for disabled link-toetsingsinkomen
+  // TODO: figure out if these links should be hidden instead as in other rekenhulp applications
+  for_each(Toeslagen.getElementsByClassName('link-toetsingsinkomen'), function (link) {
+    var old = (typeof link.onclick == 'function' ? link.onclick : function () {
+      return true;
+    });
+    link.onclick = function (link, old) {
+      return function () {
+        if (!hasClass_utils(link, 'disabled'))
+          return old.apply(this);
+        else
+          return false;
+      };
+    }(link, old);
+  });
+
+  updateForm();
+
+  // remove waiting indicator
+  addClass_utils(document.getElementById('waiting'), 'invisible');
+
+}
+
+function edithref(oThis) {
+  var target = $(oThis).attr('target');
+  var href = $(oThis).attr('href');
+  href = href.replace('%5Bdit_jaar%5D', document.getElementById('selectJaar').value);
+  if ($(oThis).attr('target') === '_blank') {
+    NieuwVenster(href, 'ih_link');
+  } else {
+    window.location = href;
+  }
+  return false;
+}
+
+function NieuwVenster(sURL, sTarget) {
+  var objNieuwVenster = window.open(sURL, sTarget);
+  objNieuwVenster.focus();
+  return objNieuwVenster;
+}
+
+function initVersie() {
+  document.getElementById('divVersie').innerHTML = '<p>Versie: ' + sVersie + '</p><div class="clNietPrinten"><p><label>Alle resultaatteksten tonen?</label> <input type="radio" name="showResults" id="showResultsJa" value="ja" class="clRadioBtn" onclick="doPrnRadio(\'prn\'+this.name, \'ja\');doShowResultsDevelop(true)" />ja <input type="radio" name="showResults" id="showResultsNee" value="nee" class="clRadioBtn" checked="checked" onclick="doPrnRadio(\'prn\'+this.name, \'nee\');doShowResultsDevelop(false);" />nee</p><p><label>Toon berekeningsonderdelen?</label> <input type="radio" name="toonBerekeningDetails" id="showBerekeningDetailsJa" value="ja" class="clRadioBtn" onclick="doPrnRadio(\'prn\'+this.name, \'ja\');showBerekeningDetails(true)" /><label for="showBerekeningDetailsJa">ja</label> <input type="radio" name="toonBerekeningDetails" id="showBerekeningDetailsNee" value="nee" class="clRadioBtn" checked="checked" onclick="doPrnRadio(\'prn\'+this.name, \'nee\');showBerekeningDetails(false);" /><label for="showBerekeningDetailsNee">nee</label></p><p><label>Alle blokken en vragen tonen?</label> <input type="radio" name="toonAlles" id="showFullFormJa" value="ja" class="clRadioBtn" onclick="doPrnRadio(\'prn\'+this.name, \'ja\');showFullForm(true)" /><label for="showFullFormJa">ja</label> <input type="radio" name="toonAlles" id="showFullFormNee" value="nee" class="clRadioBtn" checked="checked" onclick="doPrnRadio(\'prn\'+this.name, \'nee\');showFullForm(false);" /><label for="showFullFormNee">nee</label></p></div>';
+}

@@ -1,0 +1,31 @@
+!(function () {
+	function insertJS (jsUrl) {
+		var js = document.createElement('script');
+		js.src = jsUrl;
+		document.body.appendChild(js);
+	}
+	function insertCss (cssUrl) {
+		var css = document.createElement('link');
+		css.rel = "stylesheet";
+		css.type = "text/css";
+		css.href = cssUrl;
+		document.getElementsByTagName('head')[0].appendChild(css);
+	}
+	try {
+		var hn = window.location.hostname;
+			
+		if (hn === "desktop.arcgis.com") {
+		
+		} else if (hn === "desktopdev.arcgis.com") {
+
+			//insertCss ("/cdn/css/workflow.css");
+			//insertJS ("/cdn/js/workflow.js");
+
+		} else if (hn === "desktopstg.arcgis.com") {
+			
+			//insertCss ("/cdn/css/workflow.css");
+			//insertJS ("/cdn/js/workflow.js");				
+		}
+	} catch (e){}
+})();
+
